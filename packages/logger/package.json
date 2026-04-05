@@ -20,6 +20,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
     "vite": "latest",
     "vite-plugin-dts": "latest",
     "vitest": "latest"
