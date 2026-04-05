@@ -1,0 +1,178 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createLogger } from "../src/core/logger.js";
+import { LogLevel } from "../src/core/types.js";
+import type { Transport, LogEntry } from "../src/core/types.js";
+
+function createMockTransport(): Transport & { entries: LogEntry[] } {
+  const entries: LogEntry[] = [];
+  return {
+    name: "mock",
+    entries,
+    log: vi.fn((entry: LogEntry) => {
+      entries.push(entry);
+    }),
+    flush: vi.fn(async () => {}),
+    dispose: vi.fn(async () => {}),
+  };
+}
+
+describe("createLogger", () => {
+  let transport: ReturnType<typeof createMockTransport>;
+
+  beforeEach(() => {
+    transport = createMockTransport();
+  });
+
+  it("creates a logger that logs to transports", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.info("hello");
+
+    expect(transport.entries).toHaveLength(1);
+    expect(transport.entries[0]!.message).toBe("hello");
+    expect(transport.entries[0]!.level).toBe(LogLevel.INFO);
+  });
+
+  it("filters entries below the configured level", () => {
+    const logger = createLogger({ level: LogLevel.WARN, transports: [transport] });
+    logger.debug("should be skipped");
+    logger.info("should be skipped");
+    logger.warn("should pass");
+
+    expect(transport.entries).toHaveLength(1);
+    expect(transport.entries[0]!.message).toBe("should pass");
+  });
+
+  it("generates unique IDs for each entry", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.info("one");
+    logger.info("two");
+
+    expect(transport.entries[0]!.id).toBeDefined();
+    expect(transport.entries[0]!.id).not.toBe(transport.entries[1]!.id);
+  });
+
+  it("includes a timestamp in ISO 8601 format", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.info("test");
+
+    const ts = transport.entries[0]!.timestamp;
+    expect(() => new Date(ts)).not.toThrow();
+    expect(new Date(ts).toISOString()).toBe(ts);
+  });
+
+  it("attaches data to the log entry", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.info("with data", { key: "value" });
+
+    expect(transport.entries[0]!.data).toEqual({ key: "value" });
+  });
+
+  it("attaches error info when an Error is passed", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const err = new Error("boom");
+    logger.error("failed", err);
+
+    expect(transport.entries[0]!.error).toMatchObject({
+      name: "Error",
+      message: "boom",
+    });
+    expect(transport.entries[0]!.error!.stack).toBeDefined();
+  });
+
+  it("logs fatal entries at FATAL level", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.fatal("system down");
+
+    expect(transport.entries[0]!.level).toBe(LogLevel.FATAL);
+    expect(transport.entries[0]!.message).toBe("system down");
+  });
+
+  it("fatal attaches error info when an Error is passed", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const err = new Error("critical");
+    logger.fatal("crash", err);
+
+    expect(transport.entries[0]!.error).toMatchObject({
+      name: "Error",
+      message: "critical",
+    });
+  });
+
+  it("uses root tag when provided", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport], tag: "app" });
+    logger.info("test");
+
+    expect(transport.entries[0]!.tag).toBe("app");
+  });
+
+  it("uses empty tag when none provided", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    logger.info("test");
+
+    expect(transport.entries[0]!.tag).toBe("");
+  });
+});
+
+describe("child logger", () => {
+  let transport: ReturnType<typeof createMockTransport>;
+
+  beforeEach(() => {
+    transport = createMockTransport();
+  });
+
+  it("appends tag segment with dot separator", () => {
+    const logger = createLogger({
+      level: LogLevel.DEBUG,
+      transports: [transport],
+      tag: "parent",
+    });
+    const child = logger.child({ tag: "child" });
+    child.info("test");
+
+    expect(transport.entries[0]!.tag).toBe("parent.child");
+  });
+
+  it("creates nested child loggers", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport], tag: "a" });
+    const child = logger.child({ tag: "b" }).child({ tag: "c" });
+    child.info("test");
+
+    expect(transport.entries[0]!.tag).toBe("a.b.c");
+  });
+
+  it("child without parent tag uses child tag alone", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const child = logger.child({ tag: "module" });
+    child.info("test");
+
+    expect(transport.entries[0]!.tag).toBe("module");
+  });
+
+  it("shares transports with parent", () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const child = logger.child({ tag: "child" });
+
+    logger.info("from parent");
+    child.info("from child");
+
+    expect(transport.entries).toHaveLength(2);
+  });
+});
+
+describe("flush and dispose", () => {
+  it("calls flush on all transports", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    await logger.flush();
+    expect(transport.flush).toHaveBeenCalled();
+  });
+
+  it("calls dispose on all transports", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    await logger.dispose();
+    expect(transport.dispose).toHaveBeenCalled();
+  });
+});
