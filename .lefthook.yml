@@ -1,0 +1,17 @@
+pre-commit:
+  commands:
+    lint-staged:
+      run: npx lint-staged
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: pnpm -r typecheck
+    test:
+      run: pnpm test
