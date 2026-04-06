@@ -1,3 +1,6 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import { Command } from "commander";
 import { LogServer } from "./ws-server.js";
 import { FileWriter } from "./file-writer.js";
@@ -57,7 +60,12 @@ export function parseCliArgs(argv: string[]): CliOptions {
  * Start the log server with the given options.
  */
 export async function startServer(options: CliOptions): Promise<void> {
-  const server = new LogServer({ port: options.port });
+  // Resolve web viewer directory (built files next to CLI)
+  const thisDir = dirname(fileURLToPath(import.meta.url));
+  const webDir = join(thisDir, "web");
+  const hasWebViewer = existsSync(webDir);
+
+  const server = new LogServer({ port: options.port, webDir: hasWebViewer ? webDir : undefined });
   const fileWriter = options.file ? new FileWriter(options.file) : null;
 
   server.on("entry", (entry: LogEntry) => {
@@ -65,6 +73,7 @@ export async function startServer(options: CliOptions): Promise<void> {
     if (options.tag && !entry.tag.startsWith(options.tag)) return;
 
     console.log(formatForTerminal(entry));
+    server.broadcast(entry);
 
     if (fileWriter) {
       fileWriter.write(entry);
@@ -73,6 +82,9 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   const port = await server.start();
   console.log(`butterswitch-log-server listening on ws://localhost:${port}`);
+  if (hasWebViewer) {
+    console.log(`Web viewer: http://localhost:${port}`);
+  }
 
   process.on("SIGINT", async () => {
     fileWriter?.close();

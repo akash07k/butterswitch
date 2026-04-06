@@ -213,7 +213,9 @@ export function LogTable({
           <TableBody items={sortedEntries}>
             {(entry) => (
               <Row key={entry.id} id={entry.id}>
-                {(columnKey) => <Cell>{getCellContent(entry, String(columnKey))}</Cell>}
+                {activeColumns.map((col) => (
+                  <Cell key={col.id}>{getCellContent(entry, col.id)}</Cell>
+                ))}
               </Row>
             )}
           </TableBody>

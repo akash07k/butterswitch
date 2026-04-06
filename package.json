@@ -15,12 +15,18 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@commitlint/types": "^20.5.0",
     "@eslint/js": "^9.0.0",
     "@types/node": "^25.5.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.0.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
@@ -29,8 +35,10 @@
     "lefthook": "^2.1.4",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.0",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "ws": "^8.20.0"
   }
 }

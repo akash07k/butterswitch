@@ -6,7 +6,9 @@
     "butterswitch-log-server": "./dist/bin.js"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.web.config.ts",
+    "build:cli": "vite build",
+    "build:web": "vite build --config vite.web.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -24,6 +26,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "latest",
+    "@vitejs/plugin-react": "^6.0.1",
     "vite": "latest",
     "vitest": "latest"
   }

@@ -105,17 +105,17 @@ main {
 }
 
 /* === React Aria SearchField === */
-[data-rac] .react-aria-SearchField {
+.react-aria-SearchField {
   margin-bottom: 0.75rem;
 }
 
-[data-rac] .react-aria-Label {
+.react-aria-Label {
   display: block;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
 
-[data-rac] .react-aria-Input {
+.react-aria-Input {
   font-size: 1rem;
   padding: 0.5rem 0.75rem;
   border: 2px solid #333333;
@@ -126,19 +126,19 @@ main {
 }
 
 /* === React Aria CheckboxGroup === */
-[data-rac] .react-aria-CheckboxGroup {
+.react-aria-CheckboxGroup {
   border: 1px solid #333333;
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
 }
 
-[data-rac] .react-aria-CheckboxGroup [slot="label"] {
+.react-aria-CheckboxGroup [slot="label"] {
   font-weight: 700;
   display: block;
   margin-bottom: 0.5rem;
 }
 
-[data-rac] .react-aria-Checkbox {
+.react-aria-Checkbox {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -146,7 +146,7 @@ main {
   cursor: pointer;
 }
 
-[data-rac] .react-aria-Checkbox [slot="checkbox"] {
+.react-aria-Checkbox [slot="checkbox"] {
   width: 1.25rem;
   height: 1.25rem;
   border: 2px solid #333333;
@@ -156,14 +156,14 @@ main {
   background: #ffffff;
 }
 
-[data-rac] .react-aria-Checkbox[data-selected] [slot="checkbox"] {
+.react-aria-Checkbox[data-selected] [slot="checkbox"] {
   background: #0050a0;
   border-color: #0050a0;
   color: #ffffff;
 }
 
 /* === React Aria Button === */
-[data-rac] .react-aria-Button {
+.react-aria-Button {
   font-size: 1rem;
   padding: 0.5rem 1rem;
   border: 2px solid #333333;
@@ -173,29 +173,29 @@ main {
   font-weight: 600;
 }
 
-[data-rac] .react-aria-Button[data-hovered] {
+.react-aria-Button[data-hovered] {
   background: #e0e0e0;
 }
 
-[data-rac] .react-aria-Button[data-pressed] {
+.react-aria-Button[data-pressed] {
   background: #cccccc;
 }
 
 /* === React Aria Select === */
-[data-rac] .react-aria-Select {
+.react-aria-Select {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 /* === Log Grid (React Aria Table) === */
-[data-rac] .react-aria-Table {
+.react-aria-Table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
 
-[data-rac] .react-aria-Column {
+.react-aria-Column {
   background: #222222;
   color: #ffffff;
   padding: 0.6rem 0.75rem;
@@ -206,24 +206,24 @@ main {
   cursor: pointer;
 }
 
-[data-rac] .react-aria-Column[data-sort-direction] {
+.react-aria-Column[data-sort-direction] {
   text-decoration: underline;
 }
 
-[data-rac] .react-aria-Row {
+.react-aria-Row {
   cursor: pointer;
 }
 
-[data-rac] .react-aria-Row:nth-child(even) {
+.react-aria-Row:nth-child(even) {
   background: #f5f5f5;
 }
 
-[data-rac] .react-aria-Row[data-focused] {
+.react-aria-Row[data-focused] {
   outline: 3px solid #0050a0;
   outline-offset: -1px;
 }
 
-[data-rac] .react-aria-Cell {
+.react-aria-Cell {
   padding: 0.5rem 0.75rem;
   border: 1px solid #cccccc;
   vertical-align: top;
@@ -288,12 +288,12 @@ main {
     align-items: flex-start;
   }
 
-  [data-rac] .react-aria-Table {
+  .react-aria-Table {
     font-size: 0.85rem;
   }
 
-  [data-rac] .react-aria-Column,
-  [data-rac] .react-aria-Cell {
+  .react-aria-Column,
+  .react-aria-Cell {
     padding: 0.35rem 0.5rem;
   }
 }
