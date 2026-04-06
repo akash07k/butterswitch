@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "commander": "^14.0.3",
     "ws": "latest"
   },
   "devDependencies": {

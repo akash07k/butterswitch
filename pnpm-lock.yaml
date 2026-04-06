@@ -59,6 +59,9 @@ importers:
 
   packages/log-server:
     dependencies:
+      commander:
+        specifier: ^14.0.3
+        version: 14.0.3
       ws:
         specifier: latest
         version: 8.20.0
