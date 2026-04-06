@@ -51,7 +51,7 @@ describe("FileWriter", () => {
 
     const content = readFileSync(path, "utf-8");
     expect(content).toContain("test message");
-    expect(content).toContain("[INFO]");
+    expect(content).toContain("INFO:");
   });
 
   it("appends multiple entries with newlines", () => {

@@ -8,15 +8,39 @@ const LEVEL_LABELS: Record<number, string> = {
   4: "FATAL",
 };
 
+function formatOrdinalDate(date: Date): string {
+  const day = date.getDate();
+  const suffix =
+    day % 10 === 1 && day !== 11
+      ? "st"
+      : day % 10 === 2 && day !== 12
+        ? "nd"
+        : day % 10 === 3 && day !== 13
+          ? "rd"
+          : "th";
+  const month = date.toLocaleString("en-US", { month: "long" });
+  return `${day}${suffix} ${month}, ${date.getFullYear()}`;
+}
+
+function formatTime12h(date: Date): string {
+  const hours = date.getHours() % 12 || 12;
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  const ampm = date.getHours() >= 12 ? "PM" : "AM";
+  return `${hours}:${minutes}:${seconds}.${ms} ${ampm}`;
+}
+
 /**
  * Formats a log entry for terminal output.
- * Screen-reader-friendly: no ANSI color codes, flat predictable structure.
- * Format: [TIMESTAMP] [LEVEL] [TAG] Message {data} Error: message
+ * Screen-reader-friendly: no ANSI color codes, clean flat structure.
+ * Format: LEVEL: tag | message [error] at DATE at TIME
  */
 export function formatForTerminal(entry: LogEntry): string {
   const level = LEVEL_LABELS[entry.level] ?? `LEVEL${entry.level}`;
-  const tag = entry.tag ? ` [${entry.tag}]` : "";
-  let line = `[${level}]${tag} ${entry.message}`;
+  const tag = entry.tag ? ` ${entry.tag} |` : "";
+  const date = new Date(entry.timestamp);
+  let line = `${level}:${tag} ${entry.message}`;
 
   if (entry.data) {
     line += ` ${JSON.stringify(entry.data)}`;
@@ -26,7 +50,7 @@ export function formatForTerminal(entry: LogEntry): string {
     line += ` ${entry.error.name}: ${entry.error.message}`;
   }
 
-  line += ` [${entry.timestamp}]`;
+  line += ` on ${formatOrdinalDate(date)} at ${formatTime12h(date)}`;
 
   return line;
 }

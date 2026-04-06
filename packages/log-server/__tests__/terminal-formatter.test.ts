@@ -14,36 +14,38 @@ function makeEntry(overrides: Partial<LogEntry> = {}): LogEntry {
 }
 
 describe("formatForTerminal", () => {
-  it("formats a basic log entry", () => {
+  it("formats a basic log entry with ordinal date", () => {
     const result = formatForTerminal(makeEntry());
 
-    expect(result).toBe("[INFO] [sound-engine] Theme loaded [2026-03-30T13:51:00.331Z]");
+    expect(result).toMatch(/^INFO: sound-engine \| Theme loaded on .+ at .+$/);
+    expect(result).toContain("2026");
   });
 
   it("formats DEBUG level", () => {
     const result = formatForTerminal(makeEntry({ level: 0 }));
-    expect(result).toContain("[DEBUG]");
+    expect(result).toMatch("DEBUG:");
   });
 
   it("formats WARN level", () => {
     const result = formatForTerminal(makeEntry({ level: 2 }));
-    expect(result).toContain("[WARN]");
+    expect(result).toMatch("WARN:");
   });
 
   it("formats ERROR level", () => {
     const result = formatForTerminal(makeEntry({ level: 3 }));
-    expect(result).toContain("[ERROR]");
+    expect(result).toMatch("ERROR:");
   });
 
   it("formats FATAL level", () => {
     const result = formatForTerminal(makeEntry({ level: 4 }));
-    expect(result).toContain("[FATAL]");
+    expect(result).toMatch("FATAL:");
   });
 
-  it("handles empty tag", () => {
+  it("handles empty tag without pipe separator", () => {
     const result = formatForTerminal(makeEntry({ tag: "" }));
 
-    expect(result).toBe("[INFO] Theme loaded [2026-03-30T13:51:00.331Z]");
+    expect(result).toMatch("INFO: Theme loaded");
+    expect(result).not.toContain("|");
   });
 
   it("includes data as JSON when present", () => {
@@ -62,11 +64,24 @@ describe("formatForTerminal", () => {
     expect(result).toContain("Error: boom");
   });
 
-  it("has no ANSI codes by default", () => {
+  it("has no ANSI codes", () => {
     const result = formatForTerminal(makeEntry());
 
-    // ANSI escape codes start with \x1b[
     // eslint-disable-next-line no-control-regex
     expect(result).not.toMatch(/\x1b\[/);
+  });
+
+  it("uses 12-hour time with AM/PM", () => {
+    const result = formatForTerminal(makeEntry({ timestamp: "2026-03-30T15:30:00.000Z" }));
+
+    expect(result).toMatch(/\d+:\d+:\d+\.\d+ [AP]M$/);
+  });
+
+  it("uses ordinal date format", () => {
+    const result = formatForTerminal(makeEntry({ timestamp: "2026-03-31T01:39:48.690Z" }));
+
+    expect(result).toContain("31st");
+    expect(result).toContain("March");
+    expect(result).toContain("2026");
   });
 });
