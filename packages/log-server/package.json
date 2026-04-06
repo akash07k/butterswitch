@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "bin": {
-    "butterswitch-log-server": "./dist/cli.js"
+    "butterswitch-log-server": "./dist/bin.js"
   },
   "scripts": {
     "build": "vite build",
