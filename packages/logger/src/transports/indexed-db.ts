@@ -13,7 +13,6 @@ export class IndexedDBTransport implements Transport {
   private readonly dbName: string;
   private readonly storeName: string;
   private readonly maxEntries: number;
-  private db: IDBDatabase | null = null;
   private dbReady: Promise<IDBDatabase>;
 
   constructor(config: IndexedDBTransportConfig) {
@@ -59,7 +58,6 @@ export class IndexedDBTransport implements Transport {
   async dispose(): Promise<void> {
     const db = await this.dbReady;
     db.close();
-    this.db = null;
   }
 
   private open(): Promise<IDBDatabase> {
@@ -77,7 +75,6 @@ export class IndexedDBTransport implements Transport {
       };
 
       request.onsuccess = () => {
-        this.db = request.result;
         resolve(request.result);
       };
 

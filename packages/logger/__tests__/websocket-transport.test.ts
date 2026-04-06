@@ -118,7 +118,7 @@ describe("WebSocketTransport", () => {
 
     ws.simulateOpen();
     expect(ws.send).toHaveBeenCalledTimes(2);
-    const sent = ws.send.mock.calls.map((c: [string]) => JSON.parse(c[0]).message);
+    const sent = ws.send.mock.calls.map((c) => JSON.parse(c[0] as string).message);
     expect(sent).not.toContain("oldest");
     transport.dispose();
   });
