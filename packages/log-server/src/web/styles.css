@@ -1,0 +1,299 @@
+/* ButterSwitch Log Viewer — High-contrast, WCAG AAA compliant, single theme */
+/* Uses React Aria Components for ARIA — this file handles layout, colors, focus */
+
+/* === Reset & Base === */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 112.5%; /* 18px base */
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  line-height: 1.6;
+  color: #000000;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+/* === Skip Links === */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: #000000;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  z-index: 1000;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* === Focus Indicators — WCAG 2.4.13 (AAA Focus Appearance) === */
+:focus-visible {
+  outline: 3px solid #0050a0;
+  outline-offset: 2px;
+}
+
+/* === Headings === */
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* === Landmarks === */
+header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #000000;
+}
+
+nav {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border: 1px solid #333333;
+}
+
+main {
+  margin-top: 1rem;
+}
+
+/* === Status Bar === */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.status-connected {
+  font-weight: 700;
+  color: #006400;
+}
+
+.status-disconnected {
+  font-weight: 700;
+  color: #8b0000;
+}
+
+/* === React Aria SearchField === */
+[data-rac] .react-aria-SearchField {
+  margin-bottom: 0.75rem;
+}
+
+[data-rac] .react-aria-Label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+[data-rac] .react-aria-Input {
+  font-size: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #333333;
+  width: 100%;
+  max-width: 30rem;
+  background: #ffffff;
+  color: #000000;
+}
+
+/* === React Aria CheckboxGroup === */
+[data-rac] .react-aria-CheckboxGroup {
+  border: 1px solid #333333;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+[data-rac] .react-aria-CheckboxGroup [slot="label"] {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+[data-rac] .react-aria-Checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+[data-rac] .react-aria-Checkbox [slot="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #333333;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+[data-rac] .react-aria-Checkbox[data-selected] [slot="checkbox"] {
+  background: #0050a0;
+  border-color: #0050a0;
+  color: #ffffff;
+}
+
+/* === React Aria Button === */
+[data-rac] .react-aria-Button {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid #333333;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+[data-rac] .react-aria-Button[data-hovered] {
+  background: #e0e0e0;
+}
+
+[data-rac] .react-aria-Button[data-pressed] {
+  background: #cccccc;
+}
+
+/* === React Aria Select === */
+[data-rac] .react-aria-Select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* === Log Grid (React Aria Table) === */
+[data-rac] .react-aria-Table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+[data-rac] .react-aria-Column {
+  background: #222222;
+  color: #ffffff;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border: 1px solid #333333;
+  white-space: nowrap;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-rac] .react-aria-Column[data-sort-direction] {
+  text-decoration: underline;
+}
+
+[data-rac] .react-aria-Row {
+  cursor: pointer;
+}
+
+[data-rac] .react-aria-Row:nth-child(even) {
+  background: #f5f5f5;
+}
+
+[data-rac] .react-aria-Row[data-focused] {
+  outline: 3px solid #0050a0;
+  outline-offset: -1px;
+}
+
+[data-rac] .react-aria-Cell {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cccccc;
+  vertical-align: top;
+}
+
+/* === Log Level Colors (supplementary — text label is primary) === */
+.level-debug {
+  color: #444444; /* 9.7:1 on white */
+}
+
+.level-info {
+  color: #000000; /* 21:1 on white */
+}
+
+.level-warn {
+  color: #6b4400; /* 8.2:1 on white */
+}
+
+.level-error {
+  color: #8b0000; /* 10.0:1 on white */
+}
+
+.level-fatal {
+  color: #ffffff;
+  background: #8b0000; /* 10.0:1 inverted */
+  padding: 0.1rem 0.4rem;
+  font-weight: 700;
+}
+
+/* === Detail Row (expanded row content) === */
+.detail-row td {
+  background: #f0f0f0;
+  padding: 1rem;
+}
+
+.detail-content {
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* === Reflow — usable at 200% zoom without horizontal scroll === */
+@media (max-width: 40rem) {
+  nav {
+    padding: 0.5rem;
+  }
+
+  .status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  [data-rac] .react-aria-Table {
+    font-size: 0.85rem;
+  }
+
+  [data-rac] .react-aria-Column,
+  [data-rac] .react-aria-Cell {
+    padding: 0.35rem 0.5rem;
+  }
+}
