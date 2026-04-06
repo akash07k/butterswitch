@@ -1,0 +1,23 @@
+{
+  "name": "@butterswitch/log-server",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "butterswitch-log-server": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ws": "latest"
+  },
+  "devDependencies": {
+    "@types/ws": "latest",
+    "preact": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}
