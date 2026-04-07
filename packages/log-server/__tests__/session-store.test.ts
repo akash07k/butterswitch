@@ -74,15 +74,17 @@ describe("SessionStore", () => {
     expect(store.currentEntryCount).toBe(2);
   });
 
-  it("lists sessions with newest first", () => {
+  it("lists sessions with newest first", async () => {
     const logDir = tempDir();
     dirs.push(logDir);
 
-    // Create two sessions with a small delay
+    // Create two sessions with different timestamps
     const store1 = new SessionStore({ logDir });
     store1.append(makeEntry({ message: "session 1" }));
 
-    // Force a different session ID by creating a new store
+    // Wait to ensure a different millisecond timestamp for the session ID
+    await new Promise((r) => setTimeout(r, 10));
+
     const store2 = new SessionStore({ logDir });
     store2.append(makeEntry({ message: "session 2 entry 1" }));
     store2.append(makeEntry({ message: "session 2 entry 2" }));
