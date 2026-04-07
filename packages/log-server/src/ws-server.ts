@@ -9,6 +9,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, extname } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { LogEntry } from "./types.js";
+import type { SessionStore } from "./session-store.js";
 
 export interface LogServerConfig {
   /** Port to listen on. Use 0 for a random available port. */
@@ -17,6 +18,8 @@ export interface LogServerConfig {
   webDir?: string;
   /** Max entries to keep in memory for replay to new clients (default: 1000) */
   bufferSize?: number;
+  /** Session store for persistence and session history. */
+  sessionStore?: SessionStore;
 }
 
 const DEFAULT_BUFFER_SIZE = 1000;
@@ -130,13 +133,27 @@ export class LogServer extends EventEmitter {
   }
 
   private handleHttp(req: IncomingMessage, res: ServerResponse): void {
+    const reqUrl = req.url ?? "/";
+
+    // API endpoints for session management
+    if (reqUrl === "/api/sessions") {
+      return this.handleSessionList(res);
+    }
+    if (reqUrl.startsWith("/api/sessions/")) {
+      const filename = reqUrl.slice("/api/sessions/".length);
+      return this.handleSessionLoad(res, filename);
+    }
+    if (reqUrl === "/api/config") {
+      return this.handleConfig(res);
+    }
+
     if (!this.config.webDir) {
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("butterswitch-log-server is running. No web viewer built.");
       return;
     }
 
-    const url = req.url === "/" ? "/index.html" : (req.url ?? "/index.html");
+    const url = reqUrl === "/" ? "/index.html" : reqUrl;
     const filePath = join(this.config.webDir, url);
 
     if (!existsSync(filePath)) {
@@ -156,5 +173,45 @@ export class LogServer extends EventEmitter {
     const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
     res.writeHead(200, { "Content-Type": contentType });
     res.end(readFileSync(filePath));
+  }
+
+  private handleSessionList(res: ServerResponse): void {
+    const store = this.config.sessionStore;
+    if (!store) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sessions: [], currentSession: null }));
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        sessions: store.listSessions(),
+        currentSession: store.currentSessionFile,
+      }),
+    );
+  }
+
+  private handleSessionLoad(res: ServerResponse, filename: string): void {
+    const store = this.config.sessionStore;
+    if (!store) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Session store not available" }));
+      return;
+    }
+
+    const entries = store.loadSession(decodeURIComponent(filename));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ entries }));
+  }
+
+  private handleConfig(res: ServerResponse): void {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        bufferSize: this.bufferSize,
+        currentSession: this.config.sessionStore?.currentSessionFile ?? null,
+      }),
+    );
   }
 }
