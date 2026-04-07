@@ -1,4 +1,5 @@
 import { defineConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite";
 
 /**
  * WXT configuration for the ButterSwitch browser extension.
@@ -7,10 +8,16 @@ import { defineConfig } from "wxt";
  * a background script, popup, options page, content script, etc.
  * based on its name and export.
  *
+ * Tailwind CSS is added via the Vite plugin since WXT manages Vite
+ * internally (there's no separate vite.config.ts).
+ *
  * @see https://wxt.dev/api/config.html
  */
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
   manifest: {
     name: "ButterSwitch",
     description: "Smooth as butter, with every feature just a switch away.",

@@ -1,0 +1,95 @@
+/*
+ * ButterSwitch global styles.
+ *
+ * Single high-contrast theme — WCAG AAA compliant.
+ * No dark/light toggle. All contrast ratios are 7:1 minimum.
+ *
+ * Uses shadcn/ui CSS variable conventions so components
+ * pick up these values automatically.
+ */
+
+@import "tailwindcss";
+
+:root {
+  /* Core colors — high contrast, WCAG AAA (7:1 minimum) */
+  --background: #ffffff;
+  --foreground: #000000;
+
+  /* Card surfaces */
+  --card: #ffffff;
+  --card-foreground: #000000;
+
+  /* Popover surfaces */
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+
+  /* Primary action — dark for max contrast on white */
+  --primary: #0050a0;
+  --primary-foreground: #ffffff;
+
+  /* Secondary — subtle background */
+  --secondary: #f0f0f0;
+  --secondary-foreground: #000000;
+
+  /* Muted — subdued text */
+  --muted: #f5f5f5;
+  --muted-foreground: #444444;
+
+  /* Accent — interactive highlights */
+  --accent: #e8f0fe;
+  --accent-foreground: #000000;
+
+  /* Destructive — errors, danger */
+  --destructive: #8b0000;
+  --destructive-foreground: #ffffff;
+
+  /* Borders and inputs */
+  --border: #333333;
+  --input: #333333;
+  --ring: #0050a0;
+
+  /* Border radius */
+  --radius: 0.5rem;
+}
+
+/*
+ * Base styles — large font, system font stack, high contrast focus.
+ * The 112.5% font size = 18px base, better for low-vision users.
+ */
+html {
+  font-size: 112.5%;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  line-height: 1.6;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/*
+ * Focus indicators — WCAG 2.4.13 AAA Focus Appearance.
+ * 3px solid outline, clearly visible against any background.
+ */
+:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion preferences (WCAG 2.3.3 AAA) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
