@@ -21,6 +21,7 @@ interface LogTableProps {
   visibleColumns: string[];
   onVisibleColumnsChange: (columns: string[]) => void;
   autoScroll: boolean;
+  isLiveSession: boolean;
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -77,6 +78,7 @@ export function LogTable({
   totalCount,
   visibleColumns,
   onVisibleColumnsChange,
+  isLiveSession,
   autoScroll,
 }: LogTableProps) {
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -183,6 +185,7 @@ export function LogTable({
       </CheckboxGroup>
 
       <VisuallyHidden id="grid-instructions">
+        {isLiveSession ? "Live session. " : "Historical session. "}
         Showing {entries.length} of {totalCount} entries. Use arrow keys to navigate rows. Press
         Enter to expand a row. Press Escape to collapse.
       </VisuallyHidden>

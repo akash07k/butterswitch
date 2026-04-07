@@ -1,6 +1,22 @@
-import { Button, Checkbox } from "react-aria-components";
+import {
+  Button,
+  Checkbox,
+  Select,
+  SelectValue,
+  Label,
+  Popover,
+  ListBox,
+  ListBoxItem,
+  type Key,
+} from "react-aria-components";
 import { announce } from "@react-aria/live-announcer";
 import type { LogEntry } from "../../types.js";
+
+interface SessionInfo {
+  filename: string;
+  startedAt: string;
+  entryCount: number;
+}
 
 interface StatusBarProps {
   connected: boolean;
@@ -8,6 +24,34 @@ interface StatusBarProps {
   onAutoScrollChange: (value: boolean) => void;
   entries: LogEntry[];
   onReconnect: () => void;
+  sessions: SessionInfo[];
+  currentSessionFile: string | null;
+  selectedSession: string;
+  onSessionChange: (key: string) => void;
+  isLiveSession: boolean;
+}
+
+function formatSessionDate(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day !== 11
+        ? "st"
+        : day % 10 === 2 && day !== 12
+          ? "nd"
+          : day % 10 === 3 && day !== 13
+            ? "rd"
+            : "th";
+    const month = d.toLocaleString("en-US", { month: "long" });
+    const hours = d.getHours() % 12 || 12;
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = d.getHours() >= 12 ? "PM" : "AM";
+    return `${day}${suffix} ${month}, ${d.getFullYear()} at ${hours}:${minutes} ${ampm}`;
+  } catch {
+    return isoString;
+  }
 }
 
 export function StatusBar({
@@ -16,10 +60,19 @@ export function StatusBar({
   onAutoScrollChange,
   entries,
   onReconnect,
+  sessions,
+  currentSessionFile,
+  selectedSession,
+  onSessionChange,
+  isLiveSession,
 }: StatusBarProps) {
   const handleAutoScrollChange = (isSelected: boolean) => {
     onAutoScrollChange(isSelected);
     announce(isSelected ? "Auto-scroll enabled" : "Auto-scroll paused", "polite");
+  };
+
+  const handleSessionSelect = (key: Key | null) => {
+    if (key !== null) onSessionChange(String(key));
   };
 
   const handleExport = (format: "json" | "csv" | "html") => {
@@ -56,6 +109,9 @@ export function StatusBar({
     announce(`Exported ${entries.length} entries as ${format.toUpperCase()}`, "polite");
   };
 
+  // Build session list: filter out current session (it's shown as "live")
+  const previousSessions = sessions.filter((s) => s.filename !== currentSessionFile);
+
   return (
     <div className="status-bar">
       <span className={connected ? "status-connected" : "status-disconnected"}>
@@ -64,9 +120,34 @@ export function StatusBar({
 
       {!connected && <Button onPress={onReconnect}>Reconnect</Button>}
 
-      <Checkbox isSelected={autoScroll} onChange={handleAutoScrollChange}>
-        Auto-scroll to new entries
-      </Checkbox>
+      <Select selectedKey={selectedSession} onSelectionChange={handleSessionSelect}>
+        <Label>Session</Label>
+        <Button>
+          <SelectValue />
+        </Button>
+        <Popover>
+          <ListBox>
+            <ListBoxItem id="live" textValue="Current session, live">
+              Current Session (Live)
+            </ListBoxItem>
+            {previousSessions.map((s) => (
+              <ListBoxItem
+                key={s.filename}
+                id={s.filename}
+                textValue={`Session from ${formatSessionDate(s.startedAt)}, ${s.entryCount} entries`}
+              >
+                {formatSessionDate(s.startedAt)} — {s.entryCount} entries
+              </ListBoxItem>
+            ))}
+          </ListBox>
+        </Popover>
+      </Select>
+
+      {isLiveSession && (
+        <Checkbox isSelected={autoScroll} onChange={handleAutoScrollChange}>
+          Auto-scroll to new entries
+        </Checkbox>
+      )}
 
       <span>
         <Button onPress={() => handleExport("json")}>Export JSON</Button>

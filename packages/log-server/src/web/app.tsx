@@ -12,8 +12,15 @@ const ALL_LEVELS = [0, 1, 2, 3, 4];
 const RECONNECT_DELAY = 2000;
 const ENTRY_ANNOUNCE_INTERVAL = 3000;
 
+interface SessionInfo {
+  filename: string;
+  startedAt: string;
+  entryCount: number;
+}
+
 function App() {
-  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [liveEntries, setLiveEntries] = useState<LogEntry[]>([]);
+  const [historicalEntries, setHistoricalEntries] = useState<LogEntry[]>([]);
   const [connected, setConnected] = useState(false);
   const [search, setSearch] = useState("");
   const [enabledLevels, setEnabledLevels] = useState<number[]>(ALL_LEVELS);
@@ -26,8 +33,38 @@ function App() {
   ]);
   const [autoScroll, setAutoScroll] = useState(true);
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [currentSessionFile, setCurrentSessionFile] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<string>("live");
   const wsRef = useRef<WebSocket | null>(null);
   const newEntryCountRef = useRef(0);
+
+  const isLiveSession = selectedSession === "live";
+
+  // Fetch and refresh session list
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSessions() {
+      try {
+        const res = await fetch("/api/sessions");
+        const data = await res.json();
+        if (!cancelled) {
+          setSessions(data.sessions);
+          setCurrentSessionFile(data.currentSession);
+        }
+      } catch {
+        // Server might not be ready yet
+      }
+    }
+
+    loadSessions();
+    const timer = setInterval(loadSessions, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   // WebSocket connection with reconnect
   useEffect(() => {
@@ -49,7 +86,7 @@ function App() {
       ws.onmessage = (event) => {
         try {
           const entry = JSON.parse(event.data as string) as LogEntry;
-          setEntries((prev) => [...prev, entry]);
+          setLiveEntries((prev) => [...prev, entry]);
           newEntryCountRef.current++;
         } catch {
           // Ignore invalid messages
@@ -77,8 +114,10 @@ function App() {
     };
   }, [reconnectTrigger]);
 
-  // Batch announce new entries (polite, every 3 seconds)
+  // Batch announce new entries (only for live session)
   useEffect(() => {
+    if (!isLiveSession) return;
+
     const timer = setInterval(() => {
       const count = newEntryCountRef.current;
       if (count > 0) {
@@ -88,15 +127,43 @@ function App() {
     }, ENTRY_ANNOUNCE_INTERVAL);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isLiveSession]);
 
   const handleReconnect = () => {
     wsRef.current?.close();
     setReconnectTrigger((n) => n + 1);
   };
 
+  const handleSessionChange = async (key: string) => {
+    setSelectedSession(key);
+
+    if (key === "live") {
+      setHistoricalEntries([]);
+      announce("Switched to live session", "assertive");
+      return;
+    }
+
+    announce("Loading historical session...", "assertive");
+    try {
+      const res = await fetch(`/api/sessions/${encodeURIComponent(key)}`);
+      const data = await res.json();
+      setHistoricalEntries(data.entries);
+      const session = sessions.find((s) => s.filename === key);
+      announce(`Loaded session with ${data.entries.length} entries`, "assertive");
+      if (session) {
+        announce(`Session from ${session.startedAt}`, "polite");
+      }
+    } catch {
+      announce("Failed to load session", "assertive");
+      setSelectedSession("live");
+    }
+  };
+
+  // Use live or historical entries based on session selection
+  const activeEntries = isLiveSession ? liveEntries : historicalEntries;
+
   // Filter entries
-  const filteredEntries = entries.filter((entry) => {
+  const filteredEntries = activeEntries.filter((entry) => {
     if (!enabledLevels.includes(entry.level)) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -119,6 +186,11 @@ function App() {
           onAutoScrollChange={setAutoScroll}
           entries={filteredEntries}
           onReconnect={handleReconnect}
+          sessions={sessions}
+          currentSessionFile={currentSessionFile}
+          selectedSession={selectedSession}
+          onSessionChange={handleSessionChange}
+          isLiveSession={isLiveSession}
         />
       </header>
 
@@ -128,7 +200,7 @@ function App() {
           value={search}
           onChange={setSearch}
           resultCount={filteredEntries.length}
-          totalCount={entries.length}
+          totalCount={activeEntries.length}
         />
         <LevelFilter enabledLevels={enabledLevels} onChange={setEnabledLevels} />
       </nav>
@@ -139,10 +211,11 @@ function App() {
         </VisuallyHidden>
         <LogTable
           entries={filteredEntries}
-          totalCount={entries.length}
+          totalCount={activeEntries.length}
           visibleColumns={visibleColumns}
           onVisibleColumnsChange={setVisibleColumns}
-          autoScroll={autoScroll}
+          autoScroll={autoScroll && isLiveSession}
+          isLiveSession={isLiveSession}
         />
       </main>
     </>

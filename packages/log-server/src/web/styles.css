@@ -181,11 +181,43 @@ main {
   background: #cccccc;
 }
 
-/* === React Aria Select === */
+/* === React Aria Select (Session Picker) === */
 .react-aria-Select {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.react-aria-Select .react-aria-Button {
+  min-width: 12rem;
+  text-align: left;
+}
+
+.react-aria-Popover {
+  background: #ffffff;
+  border: 2px solid #333333;
+  max-height: 20rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.react-aria-ListBox {
+  padding: 0.25rem 0;
+}
+
+.react-aria-ListBoxItem {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.react-aria-ListBoxItem[data-focused] {
+  background: #0050a0;
+  color: #ffffff;
+  outline: none;
+}
+
+.react-aria-ListBoxItem[data-selected] {
+  font-weight: 700;
 }
 
 /* === Log Grid (React Aria Table) === */
