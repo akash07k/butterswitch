@@ -10,6 +10,29 @@ describe("parseCliArgs", () => {
     expect(opts.level).toBe(0); // DEBUG
     expect(opts.tag).toBeUndefined();
     expect(opts.color).toBe(false);
+    expect(opts.bufferSize).toBe(1000);
+    expect(opts.logDir).toBeUndefined();
+    expect(opts.maxSessions).toBe(50);
+  });
+
+  it("parses --buffer-size", () => {
+    const opts = parseCliArgs(["--buffer-size", "5000"]);
+    expect(opts.bufferSize).toBe(5000);
+  });
+
+  it("parses -b as short for --buffer-size", () => {
+    const opts = parseCliArgs(["-b", "0"]);
+    expect(opts.bufferSize).toBe(0);
+  });
+
+  it("parses --log-dir", () => {
+    const opts = parseCliArgs(["--log-dir", "/tmp/logs"]);
+    expect(opts.logDir).toBe("/tmp/logs");
+  });
+
+  it("parses --max-sessions", () => {
+    const opts = parseCliArgs(["--max-sessions", "100"]);
+    expect(opts.maxSessions).toBe(100);
   });
 
   it("parses --port", () => {

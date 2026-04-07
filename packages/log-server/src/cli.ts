@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { Command } from "commander";
 import { LogServer } from "./ws-server.js";
 import { FileWriter } from "./file-writer.js";
+import { SessionStore } from "./session-store.js";
 import { formatForTerminal } from "./terminal-formatter.js";
 import type { LogEntry } from "./types.js";
 
@@ -21,6 +22,9 @@ export interface CliOptions {
   level: number;
   tag?: string;
   color: boolean;
+  bufferSize: number;
+  logDir?: string;
+  maxSessions: number;
 }
 
 /**
@@ -42,7 +46,10 @@ export function parseCliArgs(argv: string[]): CliOptions {
       "debug",
     )
     .option("-t, --tag <prefix>", "Filter by tag prefix")
-    .option("--color", "Enable colored output", false);
+    .option("--color", "Enable colored output", false)
+    .option("-b, --buffer-size <number>", "In-memory buffer size (0 for unlimited)", "1000")
+    .option("--log-dir <path>", "Session storage directory (default: ~/.butterswitch-logs)")
+    .option("--max-sessions <number>", "Max session files to keep", "50");
 
   program.parse(argv, { from: "user" });
   const opts = program.opts();
@@ -53,6 +60,9 @@ export function parseCliArgs(argv: string[]): CliOptions {
     level: LEVEL_MAP[opts.level as string] ?? 0,
     tag: opts.tag as string | undefined,
     color: Boolean(opts.color),
+    bufferSize: Number(opts.bufferSize),
+    logDir: opts.logDir as string | undefined,
+    maxSessions: Number(opts.maxSessions),
   };
 }
 
@@ -65,10 +75,24 @@ export async function startServer(options: CliOptions): Promise<void> {
   const webDir = join(thisDir, "web");
   const hasWebViewer = existsSync(webDir);
 
-  const server = new LogServer({ port: options.port, webDir: hasWebViewer ? webDir : undefined });
+  // Create session store for persistence
+  const sessionStore = new SessionStore({
+    logDir: options.logDir,
+    maxSessions: options.maxSessions,
+  });
+
+  const server = new LogServer({
+    port: options.port,
+    webDir: hasWebViewer ? webDir : undefined,
+    bufferSize: options.bufferSize,
+    sessionStore,
+  });
   const fileWriter = options.file ? new FileWriter(options.file) : null;
 
   server.on("entry", (entry: LogEntry) => {
+    // Always persist to session file (before filtering)
+    sessionStore.append(entry);
+
     if (entry.level < options.level) return;
     if (options.tag && !entry.tag.startsWith(options.tag)) return;
 
@@ -85,6 +109,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   if (hasWebViewer) {
     console.log(`Web viewer: http://localhost:${port}`);
   }
+  console.log(`Session: ${sessionStore.currentSessionFile}`);
 
   process.on("SIGINT", async () => {
     fileWriter?.close();
