@@ -13,7 +13,12 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "build": "pnpm -r build",
+    "build:logger": "pnpm --filter @butterswitch/logger build",
+    "build:log-server": "pnpm --filter @butterswitch/log-server build",
+    "log-server": "pnpm build:log-server && node packages/log-server/dist/bin.js",
+    "log-server:dev": "pnpm exec tsx packages/log-server/src/bin.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
