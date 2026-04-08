@@ -13,7 +13,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/.wxt/**", "**/coverage/**", "tmp/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/.wxt/**",
+      "**/.output/**",
+      "**/coverage/**",
+      "tmp/**",
+    ],
   },
   eslint.configs.recommended,
   tseslint.configs.recommended,
