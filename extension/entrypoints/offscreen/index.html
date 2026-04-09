@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ButterSwitch Audio (Offscreen)</title>
+  </head>
+  <body>
+    <!--
+      This offscreen document handles audio playback for Chrome MV3.
+      Service workers have no DOM, so they can't play audio directly.
+      This page receives PLAY_SOUND messages and uses Howler.js to play them.
+    -->
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
