@@ -1,0 +1,47 @@
+{
+  "name": "Subtle",
+  "description": "Soft clicks and gentle chimes. Minimal, non-intrusive audio cues for everyday browsing.",
+  "author": "ButterSwitch (sounds from Kenney.nl, CC0 license)",
+  "version": "1.0.0",
+  "mappings": {
+    "tabs.onCreated": "tab-created.ogg",
+    "tabs.onRemoved": "tab-closed.ogg",
+    "tabs.onActivated": "tab-switched.ogg",
+    "tabs.onUpdated.loading": "nav-starting.ogg",
+    "tabs.onUpdated.complete": "page-loaded.ogg",
+    "tabs.onMoved": "tab-moved.ogg",
+    "tabs.onDetached": "tab-detached.ogg",
+    "tabs.onAttached": "tab-attached.ogg",
+
+    "webNavigation.onBeforeNavigate": "nav-starting.ogg",
+    "webNavigation.onCommitted": "nav-committed.ogg",
+    "webNavigation.onDOMContentLoaded": "dom-ready.ogg",
+    "webNavigation.onCompleted": "page-loaded.ogg",
+    "webNavigation.onErrorOccurred": "nav-error.ogg",
+    "webNavigation.onHistoryStateUpdated": "history-changed.ogg",
+
+    "bookmarks.onCreated": "bookmark-added.ogg",
+    "bookmarks.onRemoved": "bookmark-removed.ogg",
+    "bookmarks.onChanged": "bookmark-changed.ogg",
+    "bookmarks.onMoved": "bookmark-moved.ogg",
+
+    "downloads.onCreated": "download-started.ogg",
+    "downloads.onChanged.complete": "download-complete.ogg",
+    "downloads.onChanged.paused": "download-paused.ogg",
+    "downloads.onChanged.failed": "download-failed.ogg",
+
+    "windows.onCreated": "window-opened.ogg",
+    "windows.onRemoved": "window-closed.ogg",
+    "windows.onFocusChanged": "window-focus.ogg",
+
+    "runtime.onInstalled": "extension-installed.ogg",
+    "runtime.onStartup": "browser-started.ogg"
+  },
+  "fallbacks": {
+    "tier1": "generic-info.ogg",
+    "tier2": "generic-info.ogg",
+    "tier3": "generic-info.ogg",
+    "error": "generic-error.ogg",
+    "info": "generic-info.ogg"
+  }
+}
