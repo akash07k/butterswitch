@@ -10,6 +10,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["core/**/__tests__/**/*.test.ts", "shared/**/__tests__/**/*.test.ts"],
+    include: [
+      "core/**/__tests__/**/*.test.ts",
+      "shared/**/__tests__/**/*.test.ts",
+      "modules/**/__tests__/**/*.test.ts",
+    ],
   },
 });
