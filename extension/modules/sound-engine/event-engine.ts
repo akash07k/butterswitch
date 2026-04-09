@@ -1,0 +1,132 @@
+/**
+ * @module sound-engine/event-engine
+ *
+ * Generic engine that reads the event registry and wires browser API listeners.
+ *
+ * For each event definition, it:
+ * 1. Checks if the event is supported on the current platform
+ * 2. Attaches a listener to the browser API (e.g., browser.tabs.onCreated)
+ * 3. Applies the optional filter for sub-events
+ * 4. Extracts relevant data for logging
+ * 5. Publishes to the message bus on the "browser-event" channel
+ *
+ * The sound engine module subscribes to "browser-event" messages
+ * to trigger audio playback. This separation means the event engine
+ * doesn't know about audio — it just detects events and announces them.
+ */
+
+import type { EventDefinition } from "./types.js";
+import type { MessageBus } from "../../core/module-system/types.js";
+import type { Logger } from "@butterswitch/logger";
+
+/**
+ * Data published to the message bus for each browser event.
+ * The sound engine reads this to decide which sound to play.
+ */
+export interface BrowserEventMessage {
+  /** The event definition ID (e.g., "tabs.onCreated"). */
+  eventId: string;
+
+  /** Data extracted from the event arguments (for logging). */
+  extractedData: Record<string, unknown>;
+
+  /** Timestamp when the event fired. */
+  timestamp: string;
+}
+
+/** Channel name used for browser event messages on the message bus. */
+export const BROWSER_EVENT_CHANNEL = "browser-event";
+
+/**
+ * Reads event definitions and wires browser API listeners.
+ *
+ * The browser object is injected (not imported globally) so we can
+ * mock it in tests. In production, WXT provides the `browser` global.
+ *
+ * @example
+ * ```ts
+ * const engine = new EventEngine(browser, messageBus, logger);
+ * engine.registerAll(EVENT_REGISTRY, platform.browser);
+ * ```
+ */
+export class EventEngine {
+  private readonly browser: Record<string, unknown>;
+  private readonly messageBus: MessageBus;
+  private readonly logger: Logger;
+
+  constructor(browser: Record<string, unknown>, messageBus: MessageBus, logger: Logger) {
+    this.browser = browser;
+    this.messageBus = messageBus;
+    this.logger = logger;
+  }
+
+  /**
+   * Register listeners for all provided event definitions.
+   *
+   * Skips events that are not supported on the current platform.
+   * Multiple definitions can share the same browser API event
+   * (e.g., tabs.onUpdated.loading and tabs.onUpdated.complete
+   * both listen to tabs.onUpdated, but with different filters).
+   *
+   * @param events - Event definitions to register.
+   * @param currentPlatform - The browser we're running on ("chrome" or "firefox").
+   */
+  registerAll(events: EventDefinition[], currentPlatform: "chrome" | "firefox"): void {
+    for (const definition of events) {
+      // Skip events not supported on this platform
+      if (!definition.platforms.includes(currentPlatform)) {
+        this.logger.debug(`Skipping ${definition.id}: not supported on ${currentPlatform}`);
+        continue;
+      }
+
+      // Access the browser API: browser[namespace][event]
+      const namespace = this.browser[definition.namespace] as Record<string, unknown> | undefined;
+      if (!namespace) {
+        this.logger.warn(`Namespace "${definition.namespace}" not available`, {
+          event: definition.id,
+        });
+        continue;
+      }
+
+      const eventApi = namespace[definition.event] as
+        | { addListener: (fn: (...args: unknown[]) => void) => void }
+        | undefined;
+      if (!eventApi || typeof eventApi.addListener !== "function") {
+        this.logger.warn(`Event "${definition.event}" not available on "${definition.namespace}"`, {
+          event: definition.id,
+        });
+        continue;
+      }
+
+      // Register the listener
+      eventApi.addListener((...args: unknown[]) => {
+        this.handleEvent(definition, args);
+      });
+
+      this.logger.debug(`Registered listener for ${definition.id}`);
+    }
+  }
+
+  /**
+   * Handles a browser event firing.
+   * Applies the filter, extracts data, and publishes to the message bus.
+   */
+  private handleEvent(definition: EventDefinition, args: unknown[]): void {
+    // Apply filter if defined (for sub-events like tabs.onUpdated.loading)
+    if (definition.filter && !definition.filter(...args)) {
+      return;
+    }
+
+    // Extract data for logging
+    const extractedData = definition.extractData?.(...args) ?? {};
+
+    // Publish to the message bus
+    const message: BrowserEventMessage = {
+      eventId: definition.id,
+      extractedData,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.messageBus.publish(BROWSER_EVENT_CHANNEL, message);
+  }
+}
