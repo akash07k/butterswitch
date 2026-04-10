@@ -17,8 +17,6 @@
 
 import type { ButterSwitchModule, ModuleContext } from "../../core/module-system/types.js";
 import type { AudioBackend } from "./audio-backends/types.js";
-import { ChromeAudioBackend } from "./audio-backends/chrome-backend.js";
-import { FirefoxAudioBackend } from "./audio-backends/firefox-backend.js";
 import { EventEngine, BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "./event-engine.js";
 import { ThemeManager } from "./theme-manager.js";
 import { EVENT_REGISTRY } from "./event-registry.js";
@@ -47,17 +45,32 @@ export const soundEngineModule: ButterSwitchModule = {
   /** @internal */ _themeManager: undefined as unknown as ThemeManager,
   /** @internal */ _unsubscribe: undefined as unknown as (() => void) | null,
 
+  /**
+   * Inject the platform-specific audio backend.
+   * Must be called BEFORE initialize().
+   *
+   * The background script creates the right backend (Chrome offscreen
+   * or Firefox direct) and injects it here. This avoids importing
+   * Howler.js in Chrome's service worker (which has no DOM).
+   */
+  setAudioBackend(backend: AudioBackend): void {
+    this._backend = backend;
+  },
+
   async initialize(context: ModuleContext): Promise<void> {
     this._context = context;
     const logger = context.logger;
 
-    // 1. Select the right audio backend based on platform
-    logger.info("Selecting audio backend", { browser: context.platform.browser });
-    this._backend =
-      context.platform.browser === "firefox" ? new FirefoxAudioBackend() : new ChromeAudioBackend();
+    // 1. Audio backend must be injected before initialization.
+    //    The background script creates the correct backend (Chrome or Firefox)
+    //    and sets it via setAudioBackend() before calling initialize().
+    //    This avoids importing Howler.js in Chrome's service worker (no DOM).
+    if (!this._backend) {
+      throw new Error("Audio backend not set. Call setAudioBackend() before initialize().");
+    }
 
     await this._backend.initialize();
-    logger.info("Audio backend initialized");
+    logger.info("Audio backend initialized", { browser: context.platform.browser });
 
     // 2. Set up the theme manager and load the default theme
     this._themeManager = new ThemeManager();

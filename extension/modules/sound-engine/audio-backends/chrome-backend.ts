@@ -22,8 +22,11 @@ import type {
   AudioResponse,
 } from "./types.js";
 
-/** Path to the offscreen document HTML file (relative to extension root). */
-const OFFSCREEN_DOCUMENT_PATH = "offscreen/index.html";
+/**
+ * Path to the offscreen document HTML file (relative to extension root).
+ * WXT flattens entrypoint paths: entrypoints/offscreen/index.html → offscreen.html
+ */
+const OFFSCREEN_DOCUMENT_PATH = "offscreen.html";
 
 /**
  * Chrome audio backend that delegates playback to an offscreen document.

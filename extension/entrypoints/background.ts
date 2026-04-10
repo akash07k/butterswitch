@@ -16,7 +16,7 @@
  * function inside it and handle errors.
  */
 
-import { createLogger, LogLevel, ConsoleTransport, WebSocketTransport } from "@butterswitch/logger";
+import { createLogger, LogLevel, ConsoleTransport } from "@butterswitch/logger";
 import { ModuleRegistry } from "../core/module-system/registry.js";
 import { ModuleLoader } from "../core/module-system/loader.js";
 import { MessageBusImpl } from "../core/message-bus/bus.js";
@@ -24,6 +24,7 @@ import { InMemorySettingsStore } from "../core/settings/store.js";
 import { DEFAULT_SETTINGS } from "../core/settings/defaults.js";
 import { detectPlatform } from "../shared/platform/detect.js";
 import { soundEngineModule } from "../modules/sound-engine/index.js";
+import { ChromeAudioBackend } from "../modules/sound-engine/audio-backends/chrome-backend.js";
 import type { ModuleContext } from "../core/module-system/types.js";
 
 export default defineBackground(() => {
@@ -33,17 +34,14 @@ export default defineBackground(() => {
    */
   async function bootstrap(): Promise<void> {
     // 1. Create the logger
-    //    Console transport is always available.
-    //    WebSocket transport streams to the log server for accessible debugging.
+    //    Console transport only by default. WebSocket transport can be
+    //    enabled later via the options page when the user starts the log server.
+    //    We don't attempt WebSocket here because Chrome logs ANY failed
+    //    WebSocket connection as an extension error — even caught ones.
     const logger = createLogger({
       level: LogLevel.DEBUG,
       tag: "butterswitch",
-      transports: [
-        new ConsoleTransport(),
-        new WebSocketTransport({
-          url: DEFAULT_SETTINGS.general.logServerUrl,
-        }),
-      ],
+      transports: [new ConsoleTransport()],
     });
 
     logger.info("ButterSwitch starting up...");
@@ -69,7 +67,14 @@ export default defineBackground(() => {
         platform,
       };
 
-      // 5. Create registry and register modules
+      // 5. Inject the audio backend before registering the module.
+      //    Chrome: uses ChromeAudioBackend (offscreen document, no Howler in SW).
+      //    Firefox: will use FirefoxAudioBackend (built separately via wxt build -b firefox).
+      //    NOTE: Firefox backend is NOT imported here to keep Howler.js out of
+      //    Chrome's service worker bundle. Firefox builds will have a separate
+      //    background entry or dynamic loading strategy.
+      soundEngineModule.setAudioBackend(new ChromeAudioBackend());
+
       const registry = new ModuleRegistry();
       registry.register(soundEngineModule);
       logger.info("Modules registered", { count: registry.getIds().length });
