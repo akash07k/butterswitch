@@ -19,6 +19,9 @@ import { announce } from "@/shared/a11y/announcer";
 import { focusFirst } from "@/shared/a11y/focus";
 import { GeneralTab } from "./tabs/GeneralTab.js";
 import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
+import { ThemesTab } from "./tabs/ThemesTab.js";
+import { HotkeysTab } from "./tabs/HotkeysTab.js";
+import { LoggingTab } from "./tabs/LoggingTab.js";
 
 /** Tab definitions — id, label, and component. */
 const TAB_DEFINITIONS = [
@@ -83,43 +86,34 @@ export default function App() {
           <SoundEventsTab />
         </TabsContent>
 
-        {/* Themes Tab — placeholder */}
+        {/* Themes Tab */}
         <TabsContent
           value="themes"
           ref={(el) => {
             panelRefs.current["themes"] = el;
           }}
         >
-          <h2 className="text-xl font-semibold mt-4 mb-3">Themes</h2>
-          <p className="text-muted-foreground">
-            Browse, preview, and import sound themes. Coming soon.
-          </p>
+          <ThemesTab />
         </TabsContent>
 
-        {/* Hotkeys Tab — placeholder */}
+        {/* Hotkeys Tab */}
         <TabsContent
           value="hotkeys"
           ref={(el) => {
             panelRefs.current["hotkeys"] = el;
           }}
         >
-          <h2 className="text-xl font-semibold mt-4 mb-3">Hotkeys</h2>
-          <p className="text-muted-foreground">
-            View and customize keyboard shortcuts. Coming soon.
-          </p>
+          <HotkeysTab />
         </TabsContent>
 
-        {/* Logging Tab — placeholder */}
+        {/* Logging Tab */}
         <TabsContent
           value="logging"
           ref={(el) => {
             panelRefs.current["logging"] = el;
           }}
         >
-          <h2 className="text-xl font-semibold mt-4 mb-3">Logging</h2>
-          <p className="text-muted-foreground">
-            Configure log level, WebSocket URL, and export logs. Coming soon.
-          </p>
+          <LoggingTab />
         </TabsContent>
       </Tabs>
     </main>
