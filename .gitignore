@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 *.temp
 tmp/
 temp/
+
+# Playwright MCP session files
+.playwright-mcp/
