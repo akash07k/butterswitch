@@ -32,6 +32,13 @@ export default defineConfig({
       "history",
       "management",
       "cookies",
+      "offscreen",
+    ],
+    web_accessible_resources: [
+      {
+        resources: ["sounds/**/*"],
+        matches: ["<all_urls>"],
+      },
     ],
   },
 });

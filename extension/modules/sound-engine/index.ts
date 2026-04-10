@@ -59,13 +59,28 @@ export const soundEngineModule: ButterSwitchModule = {
     await this._backend.initialize();
     logger.info("Audio backend initialized");
 
-    // 2. Set up the theme manager
+    // 2. Set up the theme manager and load the default theme
     this._themeManager = new ThemeManager();
 
-    // Load the default "subtle" theme
-    // In a full implementation, this would load the theme.json from assets
-    // For now, the theme is loaded by the caller or during first activation
-    logger.info("Theme manager ready");
+    try {
+      // Load the "subtle" theme from bundled extension assets.
+      // chrome.runtime.getURL() resolves the path relative to the extension root.
+      const themeUrl = chrome.runtime.getURL("sounds/subtle/theme.json");
+      const response = await fetch(themeUrl);
+      const manifest = await response.json();
+
+      const basePath = chrome.runtime.getURL("sounds/subtle");
+      const result = this._themeManager.loadTheme("subtle", manifest, basePath);
+
+      if (result.success) {
+        this._themeManager.setActiveTheme("subtle");
+        logger.info("Theme loaded: subtle");
+      } else {
+        logger.error("Failed to validate subtle theme", { errors: result.errors });
+      }
+    } catch (error) {
+      logger.error("Failed to load subtle theme", error instanceof Error ? error : undefined);
+    }
 
     // 3. Wire the event engine to the browser APIs
     // The `browser` global is provided by WXT at runtime
