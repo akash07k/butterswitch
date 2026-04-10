@@ -295,6 +295,26 @@ export function SoundEventsTab() {
           })}
         </TableBody>
       </Table>
+
+      {/* Reset */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          const defaults: Record<string, EventConfig> = {};
+          for (const event of EVENT_REGISTRY) {
+            defaults[event.id] = {
+              enabled: event.defaultEnabled,
+              volume: 100,
+              pitch: 1.0,
+            };
+            browser.storage.local.remove(`sounds.events.${event.id}`);
+          }
+          setConfigs(defaults);
+          announce("All sound event settings reset to defaults", "polite");
+        }}
+      >
+        Reset Sound Event Settings
+      </Button>
     </div>
   );
 }

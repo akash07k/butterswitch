@@ -125,6 +125,22 @@ export function LoggingTab() {
           </Button>
         </div>
       </fieldset>
+
+      {/* Reset */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          setLogLevel("1");
+          setLogServerUrl("ws://localhost:8089");
+          browser.storage.local.set({
+            "general.logLevel": 1,
+            "general.logServerUrl": "ws://localhost:8089",
+          });
+          announce("Logging settings reset to defaults", "polite");
+        }}
+      >
+        Reset Logging Settings
+      </Button>
     </div>
   );
 }

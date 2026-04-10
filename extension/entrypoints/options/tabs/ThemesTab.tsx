@@ -110,6 +110,18 @@ export function ThemesTab() {
           Import Theme (.zip) — Coming Soon
         </Button>
       </fieldset>
+
+      {/* Reset */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          setActiveTheme("subtle");
+          browser.storage.local.set({ "general.activeTheme": "subtle" });
+          announce("Theme reset to Subtle (default)", "polite");
+        }}
+      >
+        Reset Theme Settings
+      </Button>
     </div>
   );
 }

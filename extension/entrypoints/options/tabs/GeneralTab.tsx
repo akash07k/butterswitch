@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -149,6 +150,43 @@ export function GeneralTab() {
           />
         </div>
       </fieldset>
+
+      {/* Reset */}
+      <Button
+        variant="outline"
+        onClick={() => {
+          setMuted(false);
+          setVolume(80);
+          setActiveTheme("subtle");
+          setSoundEngineEnabled(true);
+          browser.storage.local.set({
+            "general.muted": false,
+            "general.masterVolume": 80,
+            "general.activeTheme": "subtle",
+            "general.enabledModules": ["sound-engine"],
+          });
+          announce("General settings reset to defaults", "polite");
+        }}
+      >
+        Reset General Settings
+      </Button>
+
+      <Button
+        variant="destructive"
+        onClick={async () => {
+          await browser.storage.local.clear();
+          setMuted(false);
+          setVolume(80);
+          setActiveTheme("subtle");
+          setSoundEngineEnabled(true);
+          announce(
+            "All settings reset to factory defaults. Reload the extension for full effect.",
+            "assertive",
+          );
+        }}
+      >
+        Reset All Settings (Factory Reset)
+      </Button>
     </div>
   );
 }
