@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { announce } from "@/shared/a11y/announcer";
+import { sendLog } from "@/core/messaging/send";
 
 /** Built-in theme metadata. */
 const BUILT_IN_THEMES = [
@@ -55,6 +56,7 @@ export function ThemesTab() {
     browser.storage.local.set({ "general.activeTheme": themeId });
     const theme = BUILT_IN_THEMES.find((t) => t.id === themeId);
     announce(`Theme changed to ${theme?.name ?? themeId}`, "polite");
+    sendLog("info", `Theme changed to ${theme?.name ?? themeId}`, { themeId });
   };
 
   const activeThemeInfo = BUILT_IN_THEMES.find((t) => t.id === activeTheme);
@@ -118,6 +120,7 @@ export function ThemesTab() {
           setActiveTheme("subtle");
           browser.storage.local.set({ "general.activeTheme": "subtle" });
           announce("Theme reset to Subtle (default)", "polite");
+          sendLog("warn", "Theme reset to Subtle (default)", { source: "options" });
         }}
       >
         Reset Theme Settings

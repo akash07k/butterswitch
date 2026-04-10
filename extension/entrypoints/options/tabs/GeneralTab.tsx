@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { sendLog } from "@/core/messaging/send";
 import {
   Select,
   SelectContent,
@@ -54,10 +55,11 @@ export function GeneralTab() {
     load();
   }, []);
 
-  /** Save a setting to storage and announce the change. */
+  /** Save a setting to storage, announce the change, and log it. */
   const saveSetting = (key: string, value: unknown, announcement?: string) => {
     browser.storage.local.set({ [key]: value });
     if (announcement) announce(announcement, "polite");
+    sendLog("info", `Setting changed: ${key}`, { key, value });
   };
 
   const handleMuteChange = (checked: boolean) => {
@@ -166,6 +168,7 @@ export function GeneralTab() {
             "general.enabledModules": ["sound-engine"],
           });
           announce("General settings reset to defaults", "polite");
+          sendLog("warn", "General settings reset to defaults", { source: "options" });
         }}
       >
         Reset General Settings
@@ -183,6 +186,7 @@ export function GeneralTab() {
             "All settings reset to factory defaults. Reload the extension for full effect.",
             "assertive",
           );
+          sendLog("warn", "Factory reset: all settings cleared", { source: "options" });
         }}
       >
         Reset All Settings (Factory Reset)

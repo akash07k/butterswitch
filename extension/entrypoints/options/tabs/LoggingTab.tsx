@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { sendLog } from "@/core/messaging/send";
 import {
   Select,
   SelectContent,
@@ -137,6 +138,7 @@ export function LoggingTab() {
             "general.logServerUrl": "ws://localhost:8089",
           });
           announce("Logging settings reset to defaults", "polite");
+          sendLog("warn", "Logging settings reset to defaults", { source: "options" });
         }}
       >
         Reset Logging Settings

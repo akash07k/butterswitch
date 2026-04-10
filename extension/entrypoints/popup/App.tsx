@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { ExternalLink, Settings, Volume2, VolumeOff } from "lucide-react";
 import { announce } from "@/shared/a11y/announcer";
+import { sendLog } from "@/core/messaging/send";
 import { focusFirst } from "@/shared/a11y/focus";
 
 /**
@@ -78,6 +79,7 @@ export default function App() {
     setMuted(newMuted);
     browser.storage.local.set({ "general.muted": newMuted });
     announce(newMuted ? "All sounds muted" : "Sounds unmuted", "assertive");
+    sendLog("info", newMuted ? "Sound muted via popup" : "Sound unmuted via popup");
   };
 
   /** Update volume and save to storage. */
@@ -97,6 +99,7 @@ export default function App() {
     setActiveTheme(themeId);
     browser.storage.local.set({ "general.activeTheme": themeId });
     announce(`Theme changed to ${themeId}`, "polite");
+    sendLog("info", `Theme changed to ${themeId} via popup`);
   };
 
   /** Open the popup UI in a separate persistent window. */

@@ -111,6 +111,9 @@ export default defineBackground(() => {
       //    Done after a delay to avoid ERR_CONNECTION_REFUSED at startup.
       //    If the log server isn't running, this silently skips.
       setTimeout(() => connectLogServer(logger), 2000);
+
+      // 9. Listen for messages from popup/options page
+      setupMessageListener(logger);
     } catch (error) {
       logger.fatal("ButterSwitch failed to start", error instanceof Error ? error : undefined);
     }
@@ -144,6 +147,55 @@ export default defineBackground(() => {
     } catch {
       // Silently skip — log server not configured or not reachable
     }
+  }
+
+  /**
+   * Listens for messages from popup/options page contexts.
+   * Routes LOG messages to the logger and handles other message types.
+   */
+  function setupMessageListener(logger: Logger): void {
+    browser.runtime.onMessage.addListener(
+      (message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
+        const msg = message as { type?: string };
+
+        if (msg.type === "LOG") {
+          const logMsg = message as {
+            level: string;
+            message: string;
+            data?: Record<string, unknown>;
+          };
+          const uiLogger = logger.child({ tag: "ui" });
+          switch (logMsg.level) {
+            case "debug":
+              uiLogger.debug(logMsg.message, logMsg.data);
+              break;
+            case "info":
+              uiLogger.info(logMsg.message, logMsg.data);
+              break;
+            case "warn":
+              uiLogger.warn(logMsg.message, logMsg.data);
+              break;
+            case "error":
+              uiLogger.error(logMsg.message, logMsg.data);
+              break;
+            case "fatal":
+              uiLogger.fatal(logMsg.message, logMsg.data);
+              break;
+          }
+          sendResponse({ success: true });
+          return false;
+        }
+
+        if (msg.type === "PREVIEW_SOUND") {
+          // Preview handled by the offscreen document's onMessage listener.
+          // We don't need to intercept it here — let it pass through.
+          return false;
+        }
+
+        // Unknown message type — don't respond (might be for offscreen document)
+        return false;
+      },
+    );
   }
 
   /**

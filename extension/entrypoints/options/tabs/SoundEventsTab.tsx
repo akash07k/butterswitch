@@ -26,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { sendLog, sendPreviewSound } from "@/core/messaging/send";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Play } from "lucide-react";
@@ -154,12 +155,16 @@ export function SoundEventsTab() {
   /** Preview an event's sound. */
   const handlePreview = async (event: EventDefinition) => {
     announce(`Playing preview for ${event.label}`, "polite");
+    sendLog("info", `Preview requested: ${event.label}`, { eventId: event.id });
     try {
-      // Send a play request to the background script via message
-      await browser.runtime.sendMessage({
-        type: "PREVIEW_SOUND",
-        eventId: event.id,
-      });
+      const result = await sendPreviewSound(event.id);
+      if (!result.success) {
+        announce(`Preview unavailable for ${event.label}`, "polite");
+        sendLog("warn", `Preview failed: ${event.label}`, {
+          eventId: event.id,
+          error: result.error,
+        });
+      }
     } catch {
       announce(`Preview unavailable for ${event.label}`, "polite");
     }
@@ -311,6 +316,7 @@ export function SoundEventsTab() {
           }
           setConfigs(defaults);
           announce("All sound event settings reset to defaults", "polite");
+          sendLog("warn", "Sound event settings reset to defaults", { source: "options" });
         }}
       >
         Reset Sound Event Settings
