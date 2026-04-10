@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
 import { focusFirst } from "@/shared/a11y/focus";
 import { GeneralTab } from "./tabs/GeneralTab.js";
+import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
 
 /** Tab definitions — id, label, and component. */
 const TAB_DEFINITIONS = [
@@ -72,17 +73,14 @@ export default function App() {
           <GeneralTab />
         </TabsContent>
 
-        {/* Sound Events Tab — placeholder */}
+        {/* Sound Events Tab */}
         <TabsContent
           value="sound-events"
           ref={(el) => {
             panelRefs.current["sound-events"] = el;
           }}
         >
-          <h2 className="text-xl font-semibold mt-4 mb-3">Sound Events</h2>
-          <p className="text-muted-foreground">
-            Per-event sound controls will be here. Coming soon.
-          </p>
+          <SoundEventsTab />
         </TabsContent>
 
         {/* Themes Tab — placeholder */}
