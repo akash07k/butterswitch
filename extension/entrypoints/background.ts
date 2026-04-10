@@ -20,7 +20,7 @@ import { createLogger, LogLevel, ConsoleTransport } from "@butterswitch/logger";
 import { ModuleRegistry } from "../core/module-system/registry.js";
 import { ModuleLoader } from "../core/module-system/loader.js";
 import { MessageBusImpl } from "../core/message-bus/bus.js";
-import { InMemorySettingsStore } from "../core/settings/store.js";
+import { BrowserSettingsStore } from "../core/settings/browser-store.js";
 import { DEFAULT_SETTINGS } from "../core/settings/defaults.js";
 import { detectPlatform } from "../shared/platform/detect.js";
 import { soundEngineModule } from "../modules/sound-engine/index.js";
@@ -111,16 +111,13 @@ export default defineBackground(() => {
   }
 
   /**
-   * Creates the settings store pre-populated with default values.
+   * Creates the settings store backed by browser.storage.local.
    *
-   * Flattens the nested DEFAULT_SETTINGS object into dot-notation keys
-   * that the SettingsStore interface expects (e.g., "general.masterVolume").
-   *
-   * In a future iteration, this will use WXT's storage.defineItem()
-   * for persistence. For now, in-memory defaults are sufficient
-   * to get the sound engine running.
+   * Flattens the nested DEFAULT_SETTINGS into dot-notation keys used
+   * as fallback values when a setting hasn't been explicitly set yet.
+   * Reads/writes go to browser.storage.local for persistence.
    */
-  function createSettingsStore(): InMemorySettingsStore {
+  function createSettingsStore(): BrowserSettingsStore {
     const flatDefaults: Record<string, unknown> = {};
 
     // Flatten general settings
@@ -141,7 +138,7 @@ export default defineBackground(() => {
       flatDefaults[`hotkeys.bindings.${key}`] = value;
     }
 
-    return new InMemorySettingsStore(flatDefaults);
+    return new BrowserSettingsStore(flatDefaults);
   }
 
   // Start the bootstrap process.
