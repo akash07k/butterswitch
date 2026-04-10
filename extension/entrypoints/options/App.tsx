@@ -1,0 +1,129 @@
+/**
+ * @module options/App
+ *
+ * ButterSwitch Options page — full settings interface.
+ *
+ * Organized into tabs: General, Sound Events, Themes, Hotkeys, Logging.
+ * Uses shadcn/ui Tabs (Radix) with manual activation mode —
+ * arrow keys move focus between tabs, Enter/Space activates.
+ * This is better for screen readers when tabs have heavy content.
+ *
+ * Each tab panel starts with an h2 heading for screen reader's heading
+ * navigation (H key). Tab switches are announced via the
+ * announcer utility.
+ */
+
+import { useCallback, useRef } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { announce } from "@/shared/a11y/announcer";
+import { focusFirst } from "@/shared/a11y/focus";
+import { GeneralTab } from "./tabs/GeneralTab.js";
+
+/** Tab definitions — id, label, and component. */
+const TAB_DEFINITIONS = [
+  { id: "general", label: "General" },
+  { id: "sound-events", label: "Sound Events" },
+  { id: "themes", label: "Themes" },
+  { id: "hotkeys", label: "Hotkeys" },
+  { id: "logging", label: "Logging" },
+] as const;
+
+export default function App() {
+  const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  /**
+   * Handle tab change — announce the new tab and move focus
+   * into the panel content for screen readers.
+   */
+  const handleTabChange = useCallback((tabId: string) => {
+    const tab = TAB_DEFINITIONS.find((t) => t.id === tabId);
+    if (tab) {
+      announce(`${tab.label} settings loaded`, "polite");
+    }
+
+    // Move focus into the panel after a short delay
+    // (Radix needs time to mount the panel content)
+    setTimeout(() => {
+      const panel = panelRefs.current[tabId];
+      if (panel) focusFirst(panel);
+    }, 50);
+  }, []);
+
+  return (
+    <main className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">ButterSwitch Options</h1>
+
+      <Tabs defaultValue="general" onValueChange={handleTabChange} activationMode="manual">
+        <TabsList className="w-full justify-start">
+          {TAB_DEFINITIONS.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {/* General Tab */}
+        <TabsContent
+          value="general"
+          ref={(el) => {
+            panelRefs.current["general"] = el;
+          }}
+        >
+          <GeneralTab />
+        </TabsContent>
+
+        {/* Sound Events Tab — placeholder */}
+        <TabsContent
+          value="sound-events"
+          ref={(el) => {
+            panelRefs.current["sound-events"] = el;
+          }}
+        >
+          <h2 className="text-xl font-semibold mt-4 mb-3">Sound Events</h2>
+          <p className="text-muted-foreground">
+            Per-event sound controls will be here. Coming soon.
+          </p>
+        </TabsContent>
+
+        {/* Themes Tab — placeholder */}
+        <TabsContent
+          value="themes"
+          ref={(el) => {
+            panelRefs.current["themes"] = el;
+          }}
+        >
+          <h2 className="text-xl font-semibold mt-4 mb-3">Themes</h2>
+          <p className="text-muted-foreground">
+            Browse, preview, and import sound themes. Coming soon.
+          </p>
+        </TabsContent>
+
+        {/* Hotkeys Tab — placeholder */}
+        <TabsContent
+          value="hotkeys"
+          ref={(el) => {
+            panelRefs.current["hotkeys"] = el;
+          }}
+        >
+          <h2 className="text-xl font-semibold mt-4 mb-3">Hotkeys</h2>
+          <p className="text-muted-foreground">
+            View and customize keyboard shortcuts. Coming soon.
+          </p>
+        </TabsContent>
+
+        {/* Logging Tab — placeholder */}
+        <TabsContent
+          value="logging"
+          ref={(el) => {
+            panelRefs.current["logging"] = el;
+          }}
+        >
+          <h2 className="text-xl font-semibold mt-4 mb-3">Logging</h2>
+          <p className="text-muted-foreground">
+            Configure log level, WebSocket URL, and export logs. Coming soon.
+          </p>
+        </TabsContent>
+      </Tabs>
+    </main>
+  );
+}
