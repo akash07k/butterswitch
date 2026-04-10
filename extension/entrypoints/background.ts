@@ -16,7 +16,8 @@
  * function inside it and handle errors.
  */
 
-import { createLogger, LogLevel, ConsoleTransport } from "@butterswitch/logger";
+import { createLogger, LogLevel, ConsoleTransport, WebSocketTransport } from "@butterswitch/logger";
+import type { Logger } from "@butterswitch/logger";
 import { ModuleRegistry } from "../core/module-system/registry.js";
 import { ModuleLoader } from "../core/module-system/loader.js";
 import { MessageBusImpl } from "../core/message-bus/bus.js";
@@ -105,8 +106,43 @@ export default defineBackground(() => {
         activeModules: enabledModules.length,
         platform: platform.browser,
       });
+
+      // 8. Try to connect WebSocket transport after startup
+      //    Done after a delay to avoid ERR_CONNECTION_REFUSED at startup.
+      //    If the log server isn't running, this silently skips.
+      setTimeout(() => connectLogServer(logger), 2000);
     } catch (error) {
       logger.fatal("ButterSwitch failed to start", error instanceof Error ? error : undefined);
+    }
+  }
+
+  /**
+   * Attempts to add a WebSocket transport to the logger for
+   * streaming logs to the accessible log viewer.
+   *
+   * Reads the URL from browser.storage.local. Only connects if
+   * the server is reachable. Silently skips if not.
+   * Called on a delay after startup and whenever the URL setting changes.
+   */
+  async function connectLogServer(logger: Logger): Promise<void> {
+    try {
+      const stored = await browser.storage.local.get("general.logServerUrl");
+      const url =
+        (stored["general.logServerUrl"] as string) || DEFAULT_SETTINGS.general.logServerUrl;
+
+      // Add the WebSocket transport — it auto-reconnects with exponential backoff,
+      // so even if the server isn't running now, it'll connect when it starts.
+      const wsTransport = new WebSocketTransport({ url });
+
+      // Access the internal transports array to add dynamically.
+      // The Logger interface doesn't expose this, but we know it's there.
+      const loggerAny = logger as unknown as { transports: unknown[] };
+      if (Array.isArray(loggerAny.transports)) {
+        loggerAny.transports.push(wsTransport);
+        logger.info("WebSocket log transport added", { url });
+      }
+    } catch {
+      // Silently skip — log server not configured or not reachable
     }
   }
 

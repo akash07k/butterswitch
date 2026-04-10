@@ -208,13 +208,17 @@ export const soundEngineModule: ButterSwitchModule = {
       rate: eventConfig?.pitch,
     });
 
-    // Log the result
-    logger.debug("Sound played", {
-      eventId: message.eventId,
-      sound: soundUrl,
-      success: result.success,
-      latencyMs: result.latencyMs,
-      error: result.error,
-    });
+    // Log the result with the event label in the message for readability
+    if (result.success) {
+      logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, {
+        eventId: message.eventId,
+        sound: soundUrl,
+      });
+    } else {
+      logger.warn(`${eventDef.label} sound failed: ${result.error}`, {
+        eventId: message.eventId,
+        sound: soundUrl,
+      });
+    }
   },
 } as ButterSwitchModule & Record<string, unknown>;
