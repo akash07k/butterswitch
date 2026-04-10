@@ -64,12 +64,13 @@ export const soundEngineModule: ButterSwitchModule = {
 
     try {
       // Load the "subtle" theme from bundled extension assets.
-      // chrome.runtime.getURL() resolves the path relative to the extension root.
-      const themeUrl = chrome.runtime.getURL("sounds/subtle/theme.json");
+      // browser.runtime.getURL() resolves the path relative to the extension root.
+      // Using WXT's cross-browser `browser` global (not `chrome`) for Firefox compat.
+      const themeUrl = browser.runtime.getURL("sounds/subtle/theme.json");
       const response = await fetch(themeUrl);
       const manifest = await response.json();
 
-      const basePath = chrome.runtime.getURL("sounds/subtle");
+      const basePath = browser.runtime.getURL("sounds/subtle");
       const result = this._themeManager.loadTheme("subtle", manifest, basePath);
 
       if (result.success) {

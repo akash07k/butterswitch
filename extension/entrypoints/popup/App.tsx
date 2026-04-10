@@ -1,31 +1,201 @@
-import { useState } from "react";
-import reactLogo from "@/assets/react.svg";
-import wxtLogo from "/wxt.svg";
-import "./App.css";
+/**
+ * @module popup/App
+ *
+ * ButterSwitch popup UI — the primary quick-access interface.
+ *
+ * Opens when the user clicks the extension icon or presses the
+ * global shortcut (Alt+Shift+B). Provides immediate access to:
+ * - Mute toggle (Sound on/off)
+ * - Master volume slider
+ * - Theme switcher
+ * - Pop out to persistent window
+ * - Link to full settings (options page)
+ *
+ * All controls use shadcn/ui (Radix primitives) for built-in
+ * ARIA support. Additional announcements are made via our
+ * announcer utility for state changes that need explicit feedback.
+ *
+ * Uses `browser.*` APIs (WXT's cross-browser abstraction) instead
+ * of `chrome.*` for Chrome + Firefox compatibility.
+ */
 
-function App() {
-  const [count, setCount] = useState(0);
+import { useEffect, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ExternalLink, Settings, Volume2, VolumeOff } from "lucide-react";
+import { announce } from "@/shared/a11y/announcer";
+import { focusFirst } from "@/shared/a11y/focus";
+
+/**
+ * Main popup component.
+ *
+ * Reads current settings from extension storage on mount,
+ * and writes changes back immediately. Settings changes are
+ * reflected in the sound engine in real-time.
+ */
+export default function App() {
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(80);
+  const [activeTheme, setActiveTheme] = useState("subtle");
+
+  // Focus the first control on mount (for screen readers)
+  useEffect(() => {
+    const root = document.getElementById("root");
+    if (root) focusFirst(root);
+  }, []);
+
+  // Load current settings from storage on mount
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const stored = await browser.storage.local.get([
+          "general.muted",
+          "general.masterVolume",
+          "general.activeTheme",
+        ]);
+        if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"]);
+        if (stored["general.masterVolume"] !== undefined) setVolume(stored["general.masterVolume"]);
+        if (stored["general.activeTheme"] !== undefined)
+          setActiveTheme(stored["general.activeTheme"]);
+      } catch {
+        // Storage might not be available yet — use defaults
+      }
+    }
+    loadSettings();
+  }, []);
+
+  /** Toggle mute and announce the change. */
+  const handleMuteChange = (checked: boolean) => {
+    const newMuted = !checked; // Switch shows "Sound on" when checked
+    setMuted(newMuted);
+    browser.storage.local.set({ "general.muted": newMuted });
+    announce(newMuted ? "All sounds muted" : "Sounds unmuted", "assertive");
+  };
+
+  /** Update volume and save to storage. */
+  const handleVolumeChange = (values: number[]) => {
+    const newVolume = values[0] ?? 80;
+    setVolume(newVolume);
+    browser.storage.local.set({ "general.masterVolume": newVolume });
+
+    // Announce boundary states
+    if (newVolume === 0) {
+      announce("Volume muted", "polite");
+    }
+  };
+
+  /** Switch theme and save to storage. */
+  const handleThemeChange = (themeId: string) => {
+    setActiveTheme(themeId);
+    browser.storage.local.set({ "general.activeTheme": themeId });
+    announce(`Theme changed to ${themeId}`, "polite");
+  };
+
+  /** Open the popup UI in a separate persistent window. */
+  const handlePopOut = () => {
+    browser.windows.create({
+      url: browser.runtime.getURL("popup.html"),
+      type: "popup",
+      width: 400,
+      height: 500,
+    });
+    // Close the popup since we've opened a persistent window
+    window.close();
+  };
+
+  /** Open the full options page in a new tab. */
+  const handleOpenSettings = () => {
+    browser.runtime.openOptionsPage();
+    window.close();
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://wxt.dev" target="_blank" rel="noreferrer">
-          <img src={wxtLogo} className="logo" alt="WXT logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>WXT + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the WXT and React logos to learn more</p>
-    </>
+    <main aria-label="ButterSwitch controls" className="w-[320px] p-4 space-y-4">
+      <h1 className="text-lg font-bold">ButterSwitch</h1>
+
+      {/* Sound Controls — grouped for screen reader context */}
+      <fieldset className="space-y-4 border-0 p-0 m-0">
+        <legend className="text-sm font-semibold">Sound Controls</legend>
+
+        {/* Mute Toggle */}
+        <div className="flex items-center justify-between">
+          <label htmlFor="sound-toggle" className="flex items-center gap-2 text-sm font-medium">
+            {muted ? (
+              <VolumeOff className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Volume2 className="h-4 w-4" aria-hidden="true" />
+            )}
+            Sound
+          </label>
+          <Switch id="sound-toggle" checked={!muted} onCheckedChange={handleMuteChange} />
+        </div>
+
+        {/* Volume Slider */}
+        <div className="space-y-2">
+          <label htmlFor="volume-slider" className="text-sm font-medium">
+            Volume: {volume}%
+          </label>
+          <Slider
+            id="volume-slider"
+            aria-label="Master volume"
+            aria-valuetext={`${volume} percent`}
+            value={[volume]}
+            min={0}
+            max={100}
+            step={1}
+            onValueChange={handleVolumeChange}
+            disabled={muted}
+          />
+        </div>
+
+        {/* Theme Switcher */}
+        <div className="space-y-2">
+          <label htmlFor="theme-select" className="text-sm font-medium">
+            Sound Theme
+          </label>
+          <Select value={activeTheme} onValueChange={handleThemeChange}>
+            <SelectTrigger id="theme-select" className="w-full">
+              <SelectValue placeholder="Select theme" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="subtle">Subtle</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </fieldset>
+
+      {/* Utility Actions — grouped separately */}
+      <fieldset className="flex gap-2 pt-2 border-t border-border border-0 p-0 m-0 pt-2">
+        <legend className="sr-only">Actions</legend>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={handlePopOut}
+          aria-label="Open in separate window"
+        >
+          <ExternalLink className="h-4 w-4 mr-1" aria-hidden="true" />
+          Pop out
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={handleOpenSettings}
+          aria-label="Open full settings page"
+        >
+          <Settings className="h-4 w-4 mr-1" aria-hidden="true" />
+          Settings
+        </Button>
+      </fieldset>
+    </main>
   );
 }
-
-export default App;
