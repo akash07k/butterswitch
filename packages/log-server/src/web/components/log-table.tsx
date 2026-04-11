@@ -1,19 +1,4 @@
-/**
- * @module log-table
- *
- * Accessible log table with inline expandable detail rows.
- *
- * When a user presses Enter on a row, a detail row expands INSIDE
- * the table (immediately below the parent row) showing structured
- * data and error info. Focus stays on the parent row — the user
- * presses Down Arrow to read the detail row.
- *
- * This follows the "disclosure table" pattern: aria-expanded on
- * parent rows, detail rows with colspan inside the same table.
- * React Aria Table provides grid keyboard navigation and sorting.
- */
-
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Table,
   TableHeader,
@@ -88,14 +73,6 @@ function formatTime(timestamp: string): string {
   return `${hours}:${minutes}.${seconds}.${ms} ${ampm}`;
 }
 
-/**
- * Represents either a data row or an expanded detail row in the flat list.
- * React Aria's TableBody needs a flat array — we interleave both types.
- */
-type TableItem =
-  | { type: "data"; id: string; entry: LogEntry }
-  | { type: "detail"; id: string; entry: LogEntry };
-
 export function LogTable({
   entries,
   totalCount,
@@ -108,7 +85,7 @@ export function LogTable({
     column: "date",
     direction: "descending",
   });
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   const tableEndRef = useRef<HTMLDivElement>(null);
   const gridFocusedRef = useRef(false);
 
@@ -120,46 +97,28 @@ export function LogTable({
   }, [entries.length, autoScroll]);
 
   // Sort entries
-  const sortedEntries = useMemo(() => {
-    return [...entries].sort((a, b) => {
-      const col = sortDescriptor.column as string;
-      let first: string | number;
-      let second: string | number;
+  const sortedEntries = [...entries].sort((a, b) => {
+    const col = sortDescriptor.column as string;
+    let first: string | number;
+    let second: string | number;
 
-      if (col === "date" || col === "time") {
-        first = a.timestamp;
-        second = b.timestamp;
-      } else if (col === "level") {
-        first = a.level;
-        second = b.level;
-      } else if (col === "tag") {
-        first = a.tag;
-        second = b.tag;
-      } else {
-        first = a.message;
-        second = b.message;
-      }
-
-      const cmp = first < second ? -1 : first > second ? 1 : 0;
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [entries, sortDescriptor]);
-
-  /**
-   * Build a flat items list: for each entry, emit a data item,
-   * and if expanded, a detail item immediately after.
-   * React Aria's TableBody renders this as a flat list of rows.
-   */
-  const tableItems: TableItem[] = useMemo(() => {
-    const items: TableItem[] = [];
-    for (const entry of sortedEntries) {
-      items.push({ type: "data", id: entry.id, entry });
-      if (expandedKeys.has(entry.id)) {
-        items.push({ type: "detail", id: `${entry.id}-detail`, entry });
-      }
+    if (col === "date" || col === "time") {
+      first = a.timestamp;
+      second = b.timestamp;
+    } else if (col === "level") {
+      first = a.level;
+      second = b.level;
+    } else if (col === "tag") {
+      first = a.tag;
+      second = b.tag;
+    } else {
+      first = a.message;
+      second = b.message;
     }
-    return items;
-  }, [sortedEntries, expandedKeys]);
+
+    const cmp = first < second ? -1 : first > second ? 1 : 0;
+    return sortDescriptor.direction === "descending" ? -cmp : cmp;
+  });
 
   const handleSortChange = (descriptor: SortDescriptor) => {
     setSortDescriptor(descriptor);
@@ -169,22 +128,14 @@ export function LogTable({
   };
 
   const handleRowAction = (key: Key) => {
-    const keyStr = String(key);
-    // Ignore actions on detail rows
-    if (keyStr.endsWith("-detail")) return;
-
     setExpandedKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(keyStr)) {
-        next.delete(keyStr);
-        const entry = sortedEntries.find((e) => e.id === keyStr);
-        const label = entry ? entry.message.slice(0, 40) : keyStr;
-        announce(`Row collapsed: ${label}`, "polite");
+      if (next.has(key)) {
+        next.delete(key);
+        announce("Row collapsed", "polite");
       } else {
-        next.add(keyStr);
-        const entry = sortedEntries.find((e) => e.id === keyStr);
-        const label = entry ? entry.message.slice(0, 40) : keyStr;
-        announce(`Row expanded: ${label}. Press Down Arrow to read details.`, "polite");
+        next.add(key);
+        announce("Row expanded", "polite");
       }
       return next;
     });
@@ -218,35 +169,6 @@ export function LogTable({
     }
   };
 
-  /** Render the detail content for an expanded row. */
-  const renderDetailContent = (entry: LogEntry): React.ReactNode => {
-    return (
-      <div className="detail-content">
-        {entry.data && (
-          <div>
-            <strong>Data:</strong>
-            {"\n"}
-            {JSON.stringify(entry.data, null, 2)}
-          </div>
-        )}
-        {entry.error && (
-          <div>
-            <strong>Error:</strong> {entry.error.name}: {entry.error.message}
-            {entry.error.stack && (
-              <>
-                {"\n"}
-                <strong>Stack:</strong>
-                {"\n"}
-                {entry.error.stack}
-              </>
-            )}
-          </div>
-        )}
-        {!entry.data && !entry.error && <div>No additional details for this entry.</div>}
-      </div>
-    );
-  };
-
   return (
     <div>
       <CheckboxGroup
@@ -265,7 +187,7 @@ export function LogTable({
       <VisuallyHidden id="grid-instructions">
         {isLiveSession ? "Live session. " : "Historical session. "}
         Showing {entries.length} of {totalCount} entries. Use arrow keys to navigate rows. Press
-        Enter to expand a row and show details inline. Press Enter again to collapse.
+        Enter to expand a row. Press Escape to collapse.
       </VisuallyHidden>
 
       <div
@@ -280,7 +202,6 @@ export function LogTable({
         <Table
           aria-label="Log entries"
           aria-describedby="grid-instructions"
-          aria-rowcount={entries.length}
           sortDescriptor={sortDescriptor}
           onSortChange={handleSortChange}
           onRowAction={handleRowAction}
@@ -292,30 +213,53 @@ export function LogTable({
               </Column>
             ))}
           </TableHeader>
-          <TableBody items={tableItems}>
-            {(item) => {
-              if (item.type === "detail") {
-                // Detail row: single cell spanning all columns
-                return (
-                  <Row key={item.id} id={item.id} className="detail-row">
-                    <Cell>{renderDetailContent(item.entry)}</Cell>
-                  </Row>
-                );
-              }
-
-              // Data row: normal cells with aria-expanded
-              const isExpanded = expandedKeys.has(item.id);
-              return (
-                <Row key={item.id} id={item.id} aria-expanded={isExpanded}>
-                  {activeColumns.map((col) => (
-                    <Cell key={col.id}>{getCellContent(item.entry, col.id)}</Cell>
-                  ))}
-                </Row>
-              );
-            }}
+          <TableBody items={sortedEntries}>
+            {(entry) => (
+              <Row key={entry.id} id={entry.id}>
+                {activeColumns.map((col) => (
+                  <Cell key={col.id}>{getCellContent(entry, col.id)}</Cell>
+                ))}
+              </Row>
+            )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Expanded row details rendered outside the table */}
+      {sortedEntries
+        .filter((entry) => expandedKeys.has(entry.id))
+        .map((entry) => (
+          <div
+            key={`detail-${entry.id}`}
+            role="region"
+            aria-label={`Details for ${LEVEL_LABELS[entry.level]} entry: ${entry.message}`}
+            className="detail-row"
+          >
+            <div className="detail-content">
+              {entry.data && (
+                <div>
+                  <strong>Data:</strong>
+                  {"\n"}
+                  {JSON.stringify(entry.data, null, 2)}
+                </div>
+              )}
+              {entry.error && (
+                <div>
+                  <strong>Error:</strong> {entry.error.name}: {entry.error.message}
+                  {entry.error.stack && (
+                    <>
+                      {"\n"}
+                      <strong>Stack:</strong>
+                      {"\n"}
+                      {entry.error.stack}
+                    </>
+                  )}
+                </div>
+              )}
+              {!entry.data && !entry.error && <div>No additional details for this entry.</div>}
+            </div>
+          </div>
+        ))}
 
       <div ref={tableEndRef} />
     </div>
