@@ -136,13 +136,20 @@ export default defineBackground(() => {
   async function connectLogServer(logger: Logger): Promise<void> {
     try {
       const stored = await browser.storage.local.get("general.logServerUrl");
-      const url =
+      const wsUrl =
         (stored["general.logServerUrl"] as string) || DEFAULT_SETTINGS.general.logServerUrl;
 
-      // Add the WebSocket transport via the proper Logger.addTransport() API.
-      // It auto-reconnects with exponential backoff, so even if the server
-      // isn't running now, it'll connect when it starts.
-      const wsTransport = new WebSocketTransport({ url });
+      // Check if the log server is reachable via HTTP before creating a WebSocket.
+      // HTTP fetch failures don't show as Chrome extension errors (unlike WebSocket).
+      const httpUrl = wsUrl.replace(/^ws/, "http");
+      const probe = await fetch(httpUrl, { method: "HEAD" }).catch(() => null);
+      if (!probe || !probe.ok) {
+        // Server not running — skip silently, no Chrome error
+        return;
+      }
+
+      // Server is reachable — add the WebSocket transport
+      const wsTransport = new WebSocketTransport({ url: wsUrl });
       logger.addTransport(wsTransport);
       logger.info("WebSocket log transport added", { url });
     } catch {
