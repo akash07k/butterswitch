@@ -1,16 +1,20 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  Table,
-  TableHeader,
-  Column,
-  TableBody,
-  Row,
-  Cell,
-  CheckboxGroup,
-  Checkbox,
-  type SortDescriptor,
-  type Key,
-} from "react-aria-components";
+/**
+ * @module log-table
+ *
+ * Accessible log table with plain HTML semantics.
+ *
+ * Uses a standard `<table>` (NOT role="grid") so NVDA's native table
+ * navigation (Ctrl+Alt+Arrow) works. Each row has:
+ * - ID column (first) — entry position number for reference
+ * - Details button (last) — expands inline disclosure showing data/error/stack
+ *
+ * Sorting via `<button>` inside `<th>` with `aria-sort`.
+ * Detail rows use `hidden` attribute when collapsed, `aria-expanded`
+ * + `aria-controls` on the toggle button.
+ */
+
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { CheckboxGroup, Checkbox } from "react-aria-components";
 import { VisuallyHidden } from "react-aria";
 import { announce } from "@react-aria/live-announcer";
 import type { LogEntry } from "../../types.js";
@@ -48,6 +52,9 @@ const ALL_COLUMNS = [
   { id: "message", label: "Message" },
 ];
 
+/** Sort direction for column headers. */
+type SortDirection = "ascending" | "descending" | "none";
+
 function formatDate(timestamp: string): string {
   const d = new Date(timestamp);
   const day = d.getDate();
@@ -81,15 +88,13 @@ export function LogTable({
   isLiveSession,
   autoScroll,
 }: LogTableProps) {
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "date",
-    direction: "descending",
-  });
-  const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
+  const [sortColumn, setSortColumn] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("descending");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const tableEndRef = useRef<HTMLDivElement>(null);
   const gridFocusedRef = useRef(false);
 
-  // Auto-scroll when new entries arrive (only if enabled and grid not focused)
+  // Auto-scroll when new entries arrive (only if enabled and table not focused)
   useEffect(() => {
     if (autoScroll && !gridFocusedRef.current) {
       tableEndRef.current?.scrollIntoView({ behavior: "auto" });
@@ -97,45 +102,61 @@ export function LogTable({
   }, [entries.length, autoScroll]);
 
   // Sort entries
-  const sortedEntries = [...entries].sort((a, b) => {
-    const col = sortDescriptor.column as string;
-    let first: string | number;
-    let second: string | number;
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      let first: string | number;
+      let second: string | number;
 
-    if (col === "date" || col === "time") {
-      first = a.timestamp;
-      second = b.timestamp;
-    } else if (col === "level") {
-      first = a.level;
-      second = b.level;
-    } else if (col === "tag") {
-      first = a.tag;
-      second = b.tag;
+      if (sortColumn === "date" || sortColumn === "time") {
+        first = a.timestamp;
+        second = b.timestamp;
+      } else if (sortColumn === "level") {
+        first = a.level;
+        second = b.level;
+      } else if (sortColumn === "tag") {
+        first = a.tag;
+        second = b.tag;
+      } else {
+        first = a.message;
+        second = b.message;
+      }
+
+      const cmp = first < second ? -1 : first > second ? 1 : 0;
+      return sortDirection === "descending" ? -cmp : cmp;
+    });
+  }, [entries, sortColumn, sortDirection]);
+
+  /** Toggle sort on a column header. */
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      const newDir = sortDirection === "ascending" ? "descending" : "ascending";
+      setSortDirection(newDir);
+      const label = ALL_COLUMNS.find((c) => c.id === columnId)?.label ?? columnId;
+      announce(`Sorted by ${label}, ${newDir}`, "polite");
     } else {
-      first = a.message;
-      second = b.message;
+      setSortColumn(columnId);
+      setSortDirection("ascending");
+      const label = ALL_COLUMNS.find((c) => c.id === columnId)?.label ?? columnId;
+      announce(`Sorted by ${label}, ascending`, "polite");
     }
-
-    const cmp = first < second ? -1 : first > second ? 1 : 0;
-    return sortDescriptor.direction === "descending" ? -cmp : cmp;
-  });
-
-  const handleSortChange = (descriptor: SortDescriptor) => {
-    setSortDescriptor(descriptor);
-    const colLabel =
-      ALL_COLUMNS.find((c) => c.id === descriptor.column)?.label ?? descriptor.column;
-    announce(`Sorted by ${colLabel}, ${descriptor.direction}`, "polite");
   };
 
-  const handleRowAction = (key: Key) => {
-    setExpandedKeys((prev) => {
+  /** Toggle detail row visibility for an entry. */
+  const toggleDetails = (entryId: string, entryIndex: number, entry: LogEntry) => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-        announce("Row collapsed", "polite");
+      const levelLabel = LEVEL_LABELS[entry.level] ?? "LOG";
+      const msgPreview = entry.message.slice(0, 50);
+
+      if (next.has(entryId)) {
+        next.delete(entryId);
+        announce(`Details hidden for entry ${entryIndex + 1}`, "polite");
       } else {
-        next.add(key);
-        announce("Row expanded", "polite");
+        next.add(entryId);
+        announce(
+          `Details shown for entry ${entryIndex + 1}, ${levelLabel}: ${msgPreview}`,
+          "polite",
+        );
       }
       return next;
     });
@@ -147,6 +168,9 @@ export function LogTable({
   };
 
   const activeColumns = ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id));
+
+  /** Total column count: # + visible data columns + Details */
+  const totalColCount = activeColumns.length + 2;
 
   const getCellContent = (entry: LogEntry, columnId: string): React.ReactNode => {
     switch (columnId) {
@@ -171,6 +195,7 @@ export function LogTable({
 
   return (
     <div>
+      {/* Column visibility controls */}
       <CheckboxGroup
         value={visibleColumns}
         onChange={handleColumnVisibilityChange}
@@ -184,12 +209,13 @@ export function LogTable({
         ))}
       </CheckboxGroup>
 
-      <VisuallyHidden id="grid-instructions">
+      <VisuallyHidden id="table-instructions">
         {isLiveSession ? "Live session. " : "Historical session. "}
-        Showing {entries.length} of {totalCount} entries. Use arrow keys to navigate rows. Press
-        Enter to expand a row. Press Escape to collapse.
+        Showing {entries.length} of {totalCount} entries. Use Ctrl+Alt+Arrow keys to navigate the
+        table. Each row has a Details button to expand additional information.
       </VisuallyHidden>
 
+      {/* Plain HTML table — NVDA native table navigation works */}
       <div
         id="log-grid"
         onFocus={() => {
@@ -199,67 +225,101 @@ export function LogTable({
           gridFocusedRef.current = false;
         }}
       >
-        <Table
-          aria-label="Log entries"
-          aria-describedby="grid-instructions"
-          sortDescriptor={sortDescriptor}
-          onSortChange={handleSortChange}
-          onRowAction={handleRowAction}
+        <table
+          className="log-grid"
+          aria-describedby="table-instructions"
+          aria-rowcount={entries.length}
         >
-          <TableHeader>
-            {activeColumns.map((col) => (
-              <Column key={col.id} id={col.id} isRowHeader={col.id === "message"} allowsSorting>
-                {col.label}
-              </Column>
-            ))}
-          </TableHeader>
-          <TableBody items={sortedEntries}>
-            {(entry) => (
-              <Row key={entry.id} id={entry.id}>
-                {activeColumns.map((col) => (
-                  <Cell key={col.id}>{getCellContent(entry, col.id)}</Cell>
-                ))}
-              </Row>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          <caption className="sr-only">Log entries</caption>
+          <thead>
+            <tr>
+              {/* ID column — entry position number */}
+              <th scope="col">#</th>
 
-      {/* Expanded row details rendered outside the table */}
-      {sortedEntries
-        .filter((entry) => expandedKeys.has(entry.id))
-        .map((entry) => (
-          <div
-            key={`detail-${entry.id}`}
-            role="region"
-            aria-label={`Details for ${LEVEL_LABELS[entry.level]} entry: ${entry.message}`}
-            className="detail-row"
-          >
-            <div className="detail-content">
-              {entry.data && (
-                <div>
-                  <strong>Data:</strong>
-                  {"\n"}
-                  {JSON.stringify(entry.data, null, 2)}
-                </div>
-              )}
-              {entry.error && (
-                <div>
-                  <strong>Error:</strong> {entry.error.name}: {entry.error.message}
-                  {entry.error.stack && (
-                    <>
-                      {"\n"}
-                      <strong>Stack:</strong>
-                      {"\n"}
-                      {entry.error.stack}
-                    </>
-                  )}
-                </div>
-              )}
-              {!entry.data && !entry.error && <div>No additional details for this entry.</div>}
-            </div>
-          </div>
-        ))}
+              {/* Data columns — sortable */}
+              {activeColumns.map((col) => (
+                <th
+                  key={col.id}
+                  scope="col"
+                  aria-sort={sortColumn === col.id ? sortDirection : "none"}
+                >
+                  <button type="button" onClick={() => handleSort(col.id)}>
+                    {col.label}
+                    {sortColumn === col.id && (
+                      <span aria-hidden="true">{sortDirection === "ascending" ? " ▲" : " ▼"}</span>
+                    )}
+                  </button>
+                </th>
+              ))}
+
+              {/* Details column */}
+              <th scope="col">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedEntries.map((entry, index) => {
+              const isExpanded = expandedIds.has(entry.id);
+              const levelLabel = LEVEL_LABELS[entry.level] ?? "LOG";
+              const msgPreview = entry.message.slice(0, 50);
+              const detailsId = `details-${entry.id}`;
+
+              return (
+                <React.Fragment key={entry.id}>
+                  {/* Data row */}
+                  <tr aria-rowindex={index + 1}>
+                    <td>{index + 1}</td>
+                    {activeColumns.map((col) => (
+                      <td key={col.id}>{getCellContent(entry, col.id)}</td>
+                    ))}
+                    <td>
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={detailsId}
+                        aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
+                        onClick={() => toggleDetails(entry.id, index, entry)}
+                      >
+                        {isExpanded ? "Hide details" : "Show details"}
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* Detail row — hidden when collapsed */}
+                  <tr id={detailsId} hidden={!isExpanded} className="detail-row">
+                    <td colSpan={totalColCount}>
+                      <div className="detail-content">
+                        {entry.data && (
+                          <div>
+                            <strong>Data:</strong>
+                            {"\n"}
+                            {JSON.stringify(entry.data, null, 2)}
+                          </div>
+                        )}
+                        {entry.error && (
+                          <div>
+                            <strong>Error:</strong> {entry.error.name}: {entry.error.message}
+                            {entry.error.stack && (
+                              <>
+                                {"\n"}
+                                <strong>Stack:</strong>
+                                {"\n"}
+                                {entry.error.stack}
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {!entry.data && !entry.error && (
+                          <div>No additional details for this entry.</div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <div ref={tableEndRef} />
     </div>
