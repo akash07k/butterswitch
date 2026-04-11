@@ -45,11 +45,13 @@ const LEVEL_CLASSES: Record<number, string> = {
 };
 
 const ALL_COLUMNS = [
+  { id: "id", label: "#" },
   { id: "date", label: "Date" },
   { id: "time", label: "Time" },
   { id: "level", label: "Level" },
   { id: "tag", label: "Tag" },
   { id: "message", label: "Message" },
+  { id: "details", label: "Details" },
 ];
 
 /** Sort direction for column headers. */
@@ -169,8 +171,15 @@ export function LogTable({
 
   const activeColumns = ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id));
 
-  /** Total column count: # + visible data columns + Details */
-  const totalColCount = activeColumns.length + 2;
+  /** Total column count for detail row colspan. */
+  const totalColCount = activeColumns.length;
+
+  /** Which special columns are visible. */
+  const showIdColumn = visibleColumns.includes("id");
+  const showDetailsColumn = visibleColumns.includes("details");
+
+  /** Data columns only (exclude id and details for sort headers). */
+  const sortableColumns = activeColumns.filter((c) => c.id !== "id" && c.id !== "details");
 
   const getCellContent = (entry: LogEntry, columnId: string): React.ReactNode => {
     switch (columnId) {
@@ -234,10 +243,10 @@ export function LogTable({
           <thead>
             <tr>
               {/* ID column — entry position number */}
-              <th scope="col">#</th>
+              {showIdColumn && <th scope="col">#</th>}
 
               {/* Data columns — sortable */}
-              {activeColumns.map((col) => (
+              {sortableColumns.map((col) => (
                 <th
                   key={col.id}
                   scope="col"
@@ -253,7 +262,7 @@ export function LogTable({
               ))}
 
               {/* Details column */}
-              <th scope="col">Details</th>
+              {showDetailsColumn && <th scope="col">Details</th>}
             </tr>
           </thead>
           <tbody>
@@ -267,21 +276,23 @@ export function LogTable({
                 <React.Fragment key={entry.id}>
                   {/* Data row */}
                   <tr aria-rowindex={index + 1}>
-                    <td>{index + 1}</td>
-                    {activeColumns.map((col) => (
+                    {showIdColumn && <td>{index + 1}</td>}
+                    {sortableColumns.map((col) => (
                       <td key={col.id}>{getCellContent(entry, col.id)}</td>
                     ))}
-                    <td>
-                      <button
-                        type="button"
-                        aria-expanded={isExpanded}
-                        aria-controls={detailsId}
-                        aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
-                        onClick={() => toggleDetails(entry.id, index, entry)}
-                      >
-                        {isExpanded ? "Hide details" : "Show details"}
-                      </button>
-                    </td>
+                    {showDetailsColumn && (
+                      <td>
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          aria-controls={detailsId}
+                          aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
+                          onClick={() => toggleDetails(entry.id, index, entry)}
+                        >
+                          {isExpanded ? "Hide details" : "Show details"}
+                        </button>
+                      </td>
+                    )}
                   </tr>
 
                   {/* Detail row — hidden when collapsed */}

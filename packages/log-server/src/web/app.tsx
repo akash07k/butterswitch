@@ -25,11 +25,13 @@ function App() {
   const [search, setSearch] = useState("");
   const [enabledLevels, setEnabledLevels] = useState<number[]>(ALL_LEVELS);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    "id",
     "date",
     "time",
     "level",
     "tag",
     "message",
+    "details",
   ]);
   const [autoScroll, setAutoScroll] = useState(true);
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
