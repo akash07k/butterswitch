@@ -89,6 +89,20 @@ const TIER_1_EVENTS: EventDefinition[] = [
       (changeInfo as { status?: string })?.status === "complete",
   },
   {
+    id: "tabs.onUpdated.title",
+    namespace: "tabs",
+    event: "onUpdated",
+    label: "Tab Title Changed",
+    description: "A tab's page title changed (useful for screen reader users).",
+    tier: 1,
+    category: "tabs",
+    platforms: ["chrome", "firefox"],
+    defaultEnabled: true,
+    permissions: ["tabs"],
+    filter: (_tabId: unknown, changeInfo: unknown) =>
+      (changeInfo as { title?: string })?.title !== undefined,
+  },
+  {
     id: "tabs.onMoved",
     namespace: "tabs",
     event: "onMoved",
@@ -290,6 +304,20 @@ const TIER_1_EVENTS: EventDefinition[] = [
     permissions: ["downloads"],
     filter: (delta: unknown) =>
       (delta as { paused?: { current?: boolean } })?.paused?.current === true,
+  },
+  {
+    id: "downloads.onChanged.resumed",
+    namespace: "downloads",
+    event: "onChanged",
+    label: "Download Resumed",
+    description: "A paused download was resumed.",
+    tier: 1,
+    category: "downloads",
+    platforms: ["chrome", "firefox"],
+    defaultEnabled: true,
+    permissions: ["downloads"],
+    filter: (delta: unknown) =>
+      (delta as { paused?: { current?: boolean } })?.paused?.current === false,
   },
   {
     id: "downloads.onChanged.failed",
