@@ -107,10 +107,16 @@ export default defineBackground(() => {
         platform: platform.browser,
       });
 
-      // 8. Try to connect WebSocket transport after startup
-      //    Done after a delay to avoid ERR_CONNECTION_REFUSED at startup.
-      //    If the log server isn't running, this silently skips.
-      setTimeout(() => connectLogServer(logger), 2000);
+      // 8. Connect WebSocket log transport ONLY if user has enabled it.
+      //    The setting "general.logStreamEnabled" persists across restarts.
+      //    Default is false — no connection, no Chrome errors.
+      //    Users who want log streaming enable it once in the Logging tab.
+      const logStreamEnabled = (await browser.storage.local.get("general.logStreamEnabled"))[
+        "general.logStreamEnabled"
+      ];
+      if (logStreamEnabled) {
+        connectLogServer(logger);
+      }
 
       // 10. Clean up on service worker suspension
       browser.runtime.onSuspend.addListener(() => {
@@ -126,12 +132,16 @@ export default defineBackground(() => {
   }
 
   /**
-   * Attempts to add a WebSocket transport to the logger for
-   * streaming logs to the accessible log viewer.
+   * Adds a WebSocket transport to the logger for streaming logs
+   * to the accessible log viewer.
    *
-   * Reads the URL from browser.storage.local. Only connects if
-   * the server is reachable. Silently skips if not.
-   * Called on a delay after startup and whenever the URL setting changes.
+   * Only called when the user has enabled log streaming in settings.
+   * The WebSocket transport auto-reconnects with exponential backoff,
+   * so if the server is not running yet, it will connect when it starts.
+   *
+   * NOTE: Creating a WebSocket that fails WILL show as a Chrome
+   * extension error. This is acceptable because the user explicitly
+   * opted in by enabling log streaming.
    */
   async function connectLogServer(logger: Logger): Promise<void> {
     try {
@@ -139,21 +149,11 @@ export default defineBackground(() => {
       const wsUrl =
         (stored["general.logServerUrl"] as string) || DEFAULT_SETTINGS.general.logServerUrl;
 
-      // Check if the log server is reachable via HTTP before creating a WebSocket.
-      // HTTP fetch failures don't show as Chrome extension errors (unlike WebSocket).
-      const httpUrl = wsUrl.replace(/^ws/, "http");
-      const probe = await fetch(httpUrl, { method: "HEAD" }).catch(() => null);
-      if (!probe || !probe.ok) {
-        // Server not running — skip silently, no Chrome error
-        return;
-      }
-
-      // Server is reachable — add the WebSocket transport
       const wsTransport = new WebSocketTransport({ url: wsUrl });
       logger.addTransport(wsTransport);
-      logger.info("WebSocket log transport added", { url });
+      logger.info("WebSocket log transport connected", { url: wsUrl });
     } catch {
-      // Silently skip — log server not configured or not reachable
+      // Silently skip
     }
   }
 
@@ -192,6 +192,11 @@ export default defineBackground(() => {
           }
           sendResponse({ success: true });
           return false;
+        }
+
+        if (msg.type === "CONNECT_LOG_SERVER") {
+          connectLogServer(logger).then(() => sendResponse({ success: true }));
+          return true; // async response
         }
 
         if (msg.type === "PREVIEW_SOUND") {
