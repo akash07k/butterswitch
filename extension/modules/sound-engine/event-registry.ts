@@ -184,6 +184,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     category: "navigation",
     platforms: ["chrome", "firefox"],
     defaultEnabled: true,
+    isError: true,
     permissions: ["webNavigation"],
   },
   {
@@ -300,6 +301,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     category: "downloads",
     platforms: ["chrome", "firefox"],
     defaultEnabled: true,
+    isError: true,
     permissions: ["downloads"],
     filter: (delta: unknown) =>
       (delta as { state?: { current?: string } })?.state?.current === "interrupted",
@@ -806,18 +808,9 @@ const TIER_3_EVENTS: EventDefinition[] = [
     defaultEnabled: false,
     permissions: [],
   },
-  {
-    id: "runtime.onMessage",
-    namespace: "runtime",
-    event: "onMessage",
-    label: "Message Received",
-    description: "A message was received from another extension context.",
-    tier: 3,
-    category: "runtime",
-    platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
-    permissions: [],
-  },
+  // NOTE: runtime.onMessage intentionally excluded — registering a listener
+  // on it would intercept the extension's own LOG and PREVIEW_SOUND messages,
+  // causing audio feedback loops where each sound triggers a log which triggers a sound.
   {
     id: "runtime.onSuspend",
     namespace: "runtime",

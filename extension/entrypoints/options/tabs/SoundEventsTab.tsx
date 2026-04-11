@@ -13,7 +13,7 @@
  * full context when tabbing through controls.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -48,14 +48,10 @@ const TIER_OPTIONS = [
   { value: "all", label: "All events" },
 ] as const;
 
-/** Debounce delay for search announcements (ms). */
-const SEARCH_DEBOUNCE_MS = 500;
-
 export function SoundEventsTab() {
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("1");
   const [configs, setConfigs] = useState<Record<string, EventConfig>>({});
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load per-event configs from storage
   useEffect(() => {
@@ -112,16 +108,9 @@ export function SoundEventsTab() {
     });
   }, [search, tierFilter]);
 
-  // Debounced search announcement
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      announce(`Showing ${filteredEvents.length} of ${EVENT_REGISTRY.length} events`, "polite");
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [filteredEvents.length]);
+  // Note: search result count announcements are handled by the role="status"
+  // div in the UI (#event-count). No separate announce() call needed —
+  // that would cause NVDA to read the count twice.
 
   /** Save a single event config to storage. */
   const saveEventConfig = (eventId: string, config: EventConfig) => {
@@ -304,16 +293,17 @@ export function SoundEventsTab() {
       {/* Reset */}
       <Button
         variant="outline"
-        onClick={() => {
+        onClick={async () => {
           const defaults: Record<string, EventConfig> = {};
+          const keysToRemove = EVENT_REGISTRY.map((e) => `sounds.events.${e.id}`);
           for (const event of EVENT_REGISTRY) {
             defaults[event.id] = {
               enabled: event.defaultEnabled,
               volume: 100,
               pitch: 1.0,
             };
-            browser.storage.local.remove(`sounds.events.${event.id}`);
           }
+          await browser.storage.local.remove(keysToRemove);
           setConfigs(defaults);
           announce("All sound event settings reset to defaults", "polite");
           sendLog("warn", "Sound event settings reset to defaults", { source: "options" });

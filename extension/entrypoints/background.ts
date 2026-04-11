@@ -112,6 +112,12 @@ export default defineBackground(() => {
       //    If the log server isn't running, this silently skips.
       setTimeout(() => connectLogServer(logger), 2000);
 
+      // 10. Clean up on service worker suspension
+      browser.runtime.onSuspend.addListener(() => {
+        logger.info("Service worker suspending — disposing modules");
+        loader.disposeAll().catch(console.error);
+      });
+
       // 9. Listen for messages from popup/options page
       setupMessageListener(logger);
     } catch (error) {
@@ -133,17 +139,12 @@ export default defineBackground(() => {
       const url =
         (stored["general.logServerUrl"] as string) || DEFAULT_SETTINGS.general.logServerUrl;
 
-      // Add the WebSocket transport — it auto-reconnects with exponential backoff,
-      // so even if the server isn't running now, it'll connect when it starts.
+      // Add the WebSocket transport via the proper Logger.addTransport() API.
+      // It auto-reconnects with exponential backoff, so even if the server
+      // isn't running now, it'll connect when it starts.
       const wsTransport = new WebSocketTransport({ url });
-
-      // Access the internal transports array to add dynamically.
-      // The Logger interface doesn't expose this, but we know it's there.
-      const loggerAny = logger as unknown as { transports: unknown[] };
-      if (Array.isArray(loggerAny.transports)) {
-        loggerAny.transports.push(wsTransport);
-        logger.info("WebSocket log transport added", { url });
-      }
+      logger.addTransport(wsTransport);
+      logger.info("WebSocket log transport added", { url });
     } catch {
       // Silently skip — log server not configured or not reachable
     }
@@ -187,15 +188,53 @@ export default defineBackground(() => {
         }
 
         if (msg.type === "PREVIEW_SOUND") {
-          // Preview handled by the offscreen document's onMessage listener.
-          // We don't need to intercept it here — let it pass through.
-          return false;
+          const previewMsg = message as { eventId: string };
+          handlePreviewSound(previewMsg.eventId, logger)
+            .then((result) => sendResponse(result))
+            .catch(() => sendResponse({ success: false, error: "Preview failed" }));
+          return true; // async response
         }
 
         // Unknown message type — don't respond (might be for offscreen document)
         return false;
       },
     );
+  }
+
+  /**
+   * Handle a sound preview request from the options page.
+   * Resolves the sound for the given event and plays it through the audio backend.
+   */
+  async function handlePreviewSound(
+    eventId: string,
+    logger: Logger,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const themeManager = soundEngineModule.getThemeManager();
+      const backend = soundEngineModule.getBackend();
+
+      if (!themeManager || !backend) {
+        return { success: false, error: "Sound engine not initialized" };
+      }
+
+      const { EVENT_REGISTRY } = await import("../modules/sound-engine/event-registry.js");
+      const eventDef = EVENT_REGISTRY.find((e) => e.id === eventId);
+      if (!eventDef) {
+        return { success: false, error: `Unknown event: ${eventId}` };
+      }
+
+      const soundUrl = themeManager.resolveSound(eventId, eventDef.tier, eventDef.isError ?? false);
+
+      if (!soundUrl) {
+        return { success: false, error: "No sound mapped for this event" };
+      }
+
+      const result = await backend.play(soundUrl);
+      logger.info(`Preview: ${eventDef.label}`, { eventId, sound: soundUrl });
+      return { success: result.success, error: result.error };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   /**

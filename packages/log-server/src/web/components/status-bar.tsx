@@ -114,7 +114,11 @@ export function StatusBar({
 
   return (
     <div className="status-bar">
-      <span className={connected ? "status-connected" : "status-disconnected"}>
+      <span
+        role="status"
+        aria-live="polite"
+        className={connected ? "status-connected" : "status-disconnected"}
+      >
         {connected ? "Connected" : "Disconnected"}
       </span>
 

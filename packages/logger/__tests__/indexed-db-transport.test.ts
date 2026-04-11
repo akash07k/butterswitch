@@ -78,15 +78,18 @@ describe("IndexedDBTransport", () => {
   it("rotates entries when maxEntries is reached", async () => {
     const smallTransport = new IndexedDBTransport({
       dbName: `rotation-${Date.now()}`,
-      maxEntries: 5,
+      maxEntries: 50,
     });
 
-    for (let i = 0; i < 8; i++) {
+    // Write 200 entries — rotation runs every 100 writes.
+    // After write 100: has 100, removes 50, left with 50.
+    // Writes 101-200 add 100 more = 150. At write 200: removes 100, left with 50.
+    for (let i = 0; i < 200; i++) {
       await smallTransport.log(makeEntry({ message: `msg-${i}` }));
     }
 
     const entries = await smallTransport.query({});
-    expect(entries.length).toBeLessThanOrEqual(5);
+    expect(entries.length).toBeLessThanOrEqual(50);
     await smallTransport.dispose();
   });
 

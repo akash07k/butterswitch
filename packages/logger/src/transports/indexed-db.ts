@@ -22,10 +22,18 @@ export class IndexedDBTransport implements Transport {
     this.dbReady = this.open();
   }
 
+  private writeCount = 0;
+
   async log(entry: LogEntry): Promise<void> {
     const db = await this.dbReady;
     await this.put(db, entry);
-    await this.rotate(db);
+
+    // Only check rotation every 100 writes to avoid expensive
+    // cursor scans on every single log entry.
+    this.writeCount++;
+    if (this.writeCount % 100 === 0) {
+      await this.rotate(db);
+    }
   }
 
   async query(query: LogQuery): Promise<LogEntry[]> {

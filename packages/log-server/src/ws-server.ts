@@ -6,7 +6,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, resolve } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { LogEntry } from "./types.js";
 import type { SessionStore } from "./session-store.js";
@@ -69,6 +69,11 @@ export class LogServer extends EventEmitter {
         for (const entry of this.entryBuffer) {
           ws.send(JSON.stringify(entry));
         }
+
+        ws.on("error", () => {
+          // Absorb connection-level errors to prevent process crash.
+          // The "close" event fires after "error" and handles cleanup.
+        });
 
         ws.on("message", (data) => {
           try {
@@ -155,6 +160,15 @@ export class LogServer extends EventEmitter {
 
     const url = reqUrl === "/" ? "/index.html" : reqUrl;
     const filePath = join(this.config.webDir, url);
+
+    // Path traversal protection — ensure resolved path stays within webDir
+    const resolvedPath = resolve(filePath);
+    const resolvedWebDir = resolve(this.config.webDir);
+    if (!resolvedPath.startsWith(resolvedWebDir)) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Forbidden");
+      return;
+    }
 
     if (!existsSync(filePath)) {
       // SPA fallback — serve index.html for unknown routes

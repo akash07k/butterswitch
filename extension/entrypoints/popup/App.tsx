@@ -83,13 +83,17 @@ export default function App() {
     sendLog("info", newMuted ? "Sound muted via popup" : "Sound unmuted via popup");
   };
 
-  /** Update volume and save to storage. */
+  /** Update volume UI state on drag (does NOT save to storage yet). */
   const handleVolumeChange = (values: number[]) => {
+    setVolume(values[0] ?? 80);
+  };
+
+  /** Save volume to storage when user releases the slider. */
+  const handleVolumeCommit = (values: number[]) => {
     const newVolume = values[0] ?? 80;
     setVolume(newVolume);
     browser.storage.local.set({ "general.masterVolume": newVolume });
-
-    // Announce boundary states
+    announce(`Volume set to ${newVolume} percent`, "polite");
     if (newVolume === 0) {
       announce("Volume muted", "polite");
     }
@@ -156,6 +160,7 @@ export default function App() {
             max={100}
             step={1}
             onValueChange={handleVolumeChange}
+            onValueCommit={handleVolumeCommit}
             disabled={muted}
           />
         </div>

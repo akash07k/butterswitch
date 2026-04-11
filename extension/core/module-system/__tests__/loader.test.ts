@@ -48,6 +48,7 @@ function createMockContext(): ModuleContext {
       error: () => {},
       fatal: () => {},
       child: () => createMockContext().logger,
+      addTransport: () => {},
       flush: async () => {},
       dispose: async () => {},
     },

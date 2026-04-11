@@ -60,6 +60,7 @@ function createMockLogger(): Logger {
     error: vi.fn(),
     fatal: vi.fn(),
     child: () => createMockLogger(),
+    addTransport: vi.fn(),
     flush: async () => {},
     dispose: async () => {},
   };

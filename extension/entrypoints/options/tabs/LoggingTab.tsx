@@ -100,13 +100,14 @@ export function LoggingTab() {
           <Label htmlFor="log-server-url">Log Server URL</Label>
           <Input
             id="log-server-url"
-            type="url"
+            type="text"
             value={logServerUrl}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder="ws://localhost:8089"
+            aria-describedby="log-server-hint"
           />
-          <p className="text-sm text-muted-foreground">
-            Start the log server with: pnpm log-server
+          <p id="log-server-hint" className="text-sm text-muted-foreground">
+            WebSocket URL (ws:// or wss://). Start the log server with: pnpm log-server
           </p>
         </div>
       </fieldset>

@@ -8,7 +8,7 @@
  * to avoid conflicts with screen reader shortcuts.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -61,12 +61,20 @@ export function HotkeysTab() {
     load();
   }, []);
 
-  /** Save a single hotkey binding. */
+  /** Debounce timer for hotkey change announcements. */
+  const announceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Save a single hotkey binding (debounced announcement to avoid noise). */
   const handleBindingChange = (commandId: string, newBinding: string) => {
     setBindings((prev) => ({ ...prev, [commandId]: newBinding }));
     browser.storage.local.set({ [`hotkeys.bindings.${commandId}`]: newBinding });
-    const name = COMMAND_NAMES[commandId] ?? commandId;
-    announce(`${name} hotkey set to ${newBinding}`, "polite");
+
+    // Debounce the announcement — fires only after 500ms of no typing
+    if (announceTimerRef.current) clearTimeout(announceTimerRef.current);
+    announceTimerRef.current = setTimeout(() => {
+      const name = COMMAND_NAMES[commandId] ?? commandId;
+      announce(`${name} hotkey set to ${newBinding}`, "polite");
+    }, 500);
   };
 
   /** Reset all bindings to defaults. */

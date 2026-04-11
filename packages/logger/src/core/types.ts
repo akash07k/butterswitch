@@ -83,6 +83,8 @@ export interface Logger {
   fatal(message: string, dataOrError?: Record<string, unknown> | Error): void;
   /** Create a child logger with an appended tag segment */
   child(options: { tag: string }): Logger;
+  /** Add a transport dynamically after logger creation */
+  addTransport(transport: Transport): void;
   /** Flush all transports */
   flush(): Promise<void>;
   /** Dispose all transports and release resources */

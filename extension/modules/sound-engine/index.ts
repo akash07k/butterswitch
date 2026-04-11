@@ -69,6 +69,16 @@ export class SoundEngineModule implements ButterSwitchModule {
     this.backend = backend;
   }
 
+  /** Get the theme manager (for preview sound). Null if not initialized. */
+  getThemeManager(): ThemeManager | null {
+    return this.themeManager;
+  }
+
+  /** Get the audio backend (for preview sound). Null if not injected. */
+  getBackend(): AudioBackend | null {
+    return this.backend;
+  }
+
   async initialize(context: ModuleContext): Promise<void> {
     this.context = context;
     const { logger } = context;
@@ -86,11 +96,17 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     try {
       // Load the "subtle" theme from bundled extension assets.
-      // Using chrome.runtime.getURL directly because WXT's browser.runtime.getURL
-      // has strict PublicPath typing that doesn't include dynamic sound file paths.
-      const getURL = chrome.runtime.getURL.bind(chrome.runtime);
+      // Use the cross-browser runtime global (browser or chrome) to avoid
+      // crashing on Firefox where `chrome` may not be defined.
+      // Use chrome.runtime.getURL (available on both Chrome and Firefox via polyfill).
+      // WXT's browser.runtime.getURL has strict PublicPath typing that rejects
+      // dynamic asset paths, so we use the underlying chrome API directly.
+      const getURL = (path: string): string => chrome.runtime.getURL(path);
       const themeUrl = getURL("sounds/subtle/theme.json");
       const response = await fetch(themeUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} loading theme: ${themeUrl}`);
+      }
       const manifest = await response.json();
 
       const basePath = getURL("sounds/subtle");
@@ -189,14 +205,12 @@ export class SoundEngineModule implements ButterSwitchModule {
     }>(`sounds.events.${message.eventId}`);
     if (eventConfig && !eventConfig.enabled) return;
 
-    // Determine if this is an error event
-    const isError =
-      message.eventId.includes("error") ||
-      message.eventId.includes("Error") ||
-      message.eventId.includes("failed");
-
-    // Resolve which sound to play
-    const soundUrl = this.themeManager.resolveSound(message.eventId, eventDef.tier, isError);
+    // Resolve which sound to play (uses isError field from registry, not string matching)
+    const soundUrl = this.themeManager.resolveSound(
+      message.eventId,
+      eventDef.tier,
+      eventDef.isError ?? false,
+    );
 
     if (!soundUrl) {
       logger.debug("No sound mapped for event", { eventId: message.eventId });

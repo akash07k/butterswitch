@@ -41,6 +41,9 @@ export interface EventDefinition {
   /** Category for grouping in the settings UI. */
   category: EventCategory;
 
+  /** Whether this is an error-type event (uses error fallback sound). */
+  isError?: boolean;
+
   /** Which browsers support this event. */
   platforms: ("chrome" | "firefox")[];
 

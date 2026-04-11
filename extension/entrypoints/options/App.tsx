@@ -13,7 +13,7 @@
  * announcer utility.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
 import { focusFirst } from "@/shared/a11y/focus";
@@ -34,6 +34,14 @@ const TAB_DEFINITIONS = [
 
 export default function App() {
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Focus the first control in the default tab on initial load
+  useEffect(() => {
+    setTimeout(() => {
+      const panel = panelRefs.current["general"];
+      if (panel) focusFirst(panel);
+    }, 100);
+  }, []);
 
   /**
    * Handle tab change — announce the new tab and move focus

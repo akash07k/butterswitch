@@ -9,7 +9,7 @@ function generateId(): string {
 
 class LoggerImpl implements Logger {
   private readonly level: LogLevel;
-  private readonly transports: Transport[];
+  private readonly transports: Transport[]; // readonly prevents reassignment; push() still allowed for addTransport()
   private readonly tag: string;
 
   constructor(config: LoggerConfig) {
@@ -45,6 +45,10 @@ class LoggerImpl implements Logger {
       transports: this.transports,
       tag: childTag,
     });
+  }
+
+  addTransport(transport: Transport): void {
+    this.transports.push(transport);
   }
 
   async flush(): Promise<void> {

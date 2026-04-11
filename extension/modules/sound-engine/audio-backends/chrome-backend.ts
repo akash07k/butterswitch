@@ -42,8 +42,11 @@ export class ChromeAudioBackend implements AudioBackend {
   /** Whether the backend has been initialized at least once. */
   private initialized = false;
 
-  /** Mutex to prevent concurrent offscreen document creation. */
-  private creating = false;
+  /**
+   * Promise for in-progress offscreen document creation.
+   * All concurrent callers await the same promise — no race conditions.
+   */
+  private creatingPromise: Promise<void> | null = null;
 
   /**
    * Initialize the backend by ensuring the offscreen document exists.
@@ -134,28 +137,30 @@ export class ChromeAudioBackend implements AudioBackend {
   /**
    * Ensures the offscreen document exists, creating it if needed.
    *
-   * Uses a mutex flag to prevent race conditions when multiple
-   * events fire simultaneously and all try to create the document.
+   * Uses a shared promise so all concurrent callers await the same
+   * creation operation. No race conditions — the first caller creates,
+   * all others wait on the same promise.
    */
   private async ensureOffscreenDocument(): Promise<void> {
     if (await this.hasDocument()) return;
 
-    // Mutex: wait if another creation is in progress
-    if (this.creating) {
-      await this.waitForCreation();
+    // If creation is already in progress, all callers await the same promise
+    if (this.creatingPromise) {
+      await this.creatingPromise;
       return;
     }
 
-    this.creating = true;
-    try {
-      await chrome.offscreen.createDocument({
+    this.creatingPromise = chrome.offscreen
+      .createDocument({
         url: OFFSCREEN_DOCUMENT_PATH,
         reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
         justification: "ButterSwitch needs to play audio cues for browser events.",
+      })
+      .finally(() => {
+        this.creatingPromise = null;
       });
-    } finally {
-      this.creating = false;
-    }
+
+    await this.creatingPromise;
   }
 
   /**
@@ -171,21 +176,6 @@ export class ChromeAudioBackend implements AudioBackend {
       return contexts.length > 0;
     } catch {
       return false;
-    }
-  }
-
-  /**
-   * Wait for an in-progress offscreen document creation to complete.
-   * Polls every 50ms for up to 2 seconds.
-   */
-  private async waitForCreation(): Promise<void> {
-    const maxWait = 2000;
-    const interval = 50;
-    let waited = 0;
-
-    while (this.creating && waited < maxWait) {
-      await new Promise((resolve) => setTimeout(resolve, interval));
-      waited += interval;
     }
   }
 

@@ -143,17 +143,23 @@ export class ModuleLoader {
   }
 
   /**
-   * Dispose all modules. Called during extension shutdown.
-   * After disposal, modules cannot be used again.
+   * Dispose all modules in reverse-dependency order.
+   * Dependents are disposed before their dependencies.
+   * Called during extension shutdown.
    */
   async disposeAll(): Promise<void> {
-    for (const entry of this.registry.getAll()) {
+    // Reverse the initialization order so dependents are disposed first
+    const order = this.resolveOrder().reverse();
+
+    for (const id of order) {
+      const entry = this.registry.get(id);
+      if (!entry) continue;
       try {
         await entry.module.dispose();
-        this.registry.setState(entry.module.id, "disposed");
+        this.registry.setState(id, "disposed");
       } catch {
         // Best-effort disposal — don't let one failure block others
-        this.registry.setState(entry.module.id, "disposed");
+        this.registry.setState(id, "disposed");
       }
     }
   }

@@ -39,11 +39,17 @@ export class BrowserSettingsStore implements SettingsStore {
   /**
    * @param defaults - Default values for all settings (used on fresh install).
    */
+  /** Bound handler for storage.onChanged — stored as field for removeListener. */
+  private readonly onStorageChanged: (
+    changes: Record<string, { newValue?: unknown }>,
+    areaName: string,
+  ) => void;
+
   constructor(defaults: Record<string, unknown>) {
     this.defaults = defaults;
 
     // Listen for storage changes to notify watchers
-    browser.storage.onChanged.addListener((changes, areaName) => {
+    this.onStorageChanged = (changes, areaName) => {
       if (areaName !== "local") return;
 
       for (const [key, change] of Object.entries(changes)) {
@@ -54,7 +60,15 @@ export class BrowserSettingsStore implements SettingsStore {
           }
         }
       }
-    });
+    };
+
+    browser.storage.onChanged.addListener(this.onStorageChanged);
+  }
+
+  /** Remove the storage change listener to prevent memory leaks. */
+  dispose(): void {
+    browser.storage.onChanged.removeListener(this.onStorageChanged);
+    this.watchers.clear();
   }
 
   /**
