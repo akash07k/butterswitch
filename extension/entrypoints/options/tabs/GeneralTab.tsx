@@ -40,10 +40,11 @@ export function GeneralTab() {
           "general.activeTheme",
           "general.enabledModules",
         ]);
-        if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"]);
-        if (stored["general.masterVolume"] !== undefined) setVolume(stored["general.masterVolume"]);
+        if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"] as boolean);
+        if (stored["general.masterVolume"] !== undefined)
+          setVolume(stored["general.masterVolume"] as number);
         if (stored["general.activeTheme"] !== undefined)
-          setActiveTheme(stored["general.activeTheme"]);
+          setActiveTheme(stored["general.activeTheme"] as string);
         if (stored["general.enabledModules"] !== undefined) {
           const modules = stored["general.enabledModules"] as string[];
           setSoundEngineEnabled(modules.includes("sound-engine"));

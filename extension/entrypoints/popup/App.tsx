@@ -62,10 +62,11 @@ export default function App() {
           "general.masterVolume",
           "general.activeTheme",
         ]);
-        if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"]);
-        if (stored["general.masterVolume"] !== undefined) setVolume(stored["general.masterVolume"]);
+        if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"] as boolean);
+        if (stored["general.masterVolume"] !== undefined)
+          setVolume(stored["general.masterVolume"] as number);
         if (stored["general.activeTheme"] !== undefined)
-          setActiveTheme(stored["general.activeTheme"]);
+          setActiveTheme(stored["general.activeTheme"] as string);
       } catch {
         // Storage might not be available yet — use defaults
       }
@@ -105,7 +106,7 @@ export default function App() {
   /** Open the popup UI in a separate persistent window. */
   const handlePopOut = () => {
     browser.windows.create({
-      url: browser.runtime.getURL("popup.html"),
+      url: browser.runtime.getURL("/popup.html"),
       type: "popup",
       width: 400,
       height: 500,

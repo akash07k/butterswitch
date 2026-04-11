@@ -28,22 +28,34 @@ export const SOUND_ENGINE_MODULE_ID = "sound-engine";
  * Sound engine module — implements ButterSwitchModule.
  *
  * Lifecycle:
- * - **initialize**: Select audio backend, load default theme, wire event listeners
+ * - **initialize**: Load theme, wire event listeners
  * - **activate**: Subscribe to browser-event messages and start playing sounds
  * - **deactivate**: Unsubscribe from messages, stop all sounds
  * - **dispose**: Release audio backend and all resources
+ *
+ * The audio backend must be injected via setAudioBackend() before
+ * initialize() is called. This is done by the background script
+ * to avoid bundling Howler.js into Chrome's service worker.
  */
-export const soundEngineModule: ButterSwitchModule = {
-  id: SOUND_ENGINE_MODULE_ID,
-  name: "Sound Engine",
-  version: "1.0.0",
+export class SoundEngineModule implements ButterSwitchModule {
+  readonly id = SOUND_ENGINE_MODULE_ID;
+  readonly name = "Sound Engine";
+  readonly version = "1.0.0";
 
-  // -- Internal state (set during initialize) --
-  /** @internal */ _context: undefined as unknown as ModuleContext,
-  /** @internal */ _backend: undefined as unknown as AudioBackend,
-  /** @internal */ _eventEngine: undefined as unknown as EventEngine,
-  /** @internal */ _themeManager: undefined as unknown as ThemeManager,
-  /** @internal */ _unsubscribe: undefined as unknown as (() => void) | null,
+  /** Module context provided during initialization. */
+  private context: ModuleContext | null = null;
+
+  /** Platform-specific audio playback backend. */
+  private backend: AudioBackend | null = null;
+
+  /** Wires browser API listeners from the event registry. */
+  private eventEngine: EventEngine | null = null;
+
+  /** Resolves event IDs to sound file URLs. */
+  private themeManager: ThemeManager | null = null;
+
+  /** Unsubscribe function for the message bus subscription. */
+  private unsubscribe: (() => void) | null = null;
 
   /**
    * Inject the platform-specific audio backend.
@@ -54,40 +66,38 @@ export const soundEngineModule: ButterSwitchModule = {
    * Howler.js in Chrome's service worker (which has no DOM).
    */
   setAudioBackend(backend: AudioBackend): void {
-    this._backend = backend;
-  },
+    this.backend = backend;
+  }
 
   async initialize(context: ModuleContext): Promise<void> {
-    this._context = context;
-    const logger = context.logger;
+    this.context = context;
+    const { logger } = context;
 
     // 1. Audio backend must be injected before initialization.
-    //    The background script creates the correct backend (Chrome or Firefox)
-    //    and sets it via setAudioBackend() before calling initialize().
-    //    This avoids importing Howler.js in Chrome's service worker (no DOM).
-    if (!this._backend) {
+    if (!this.backend) {
       throw new Error("Audio backend not set. Call setAudioBackend() before initialize().");
     }
 
-    await this._backend.initialize();
+    await this.backend.initialize();
     logger.info("Audio backend initialized", { browser: context.platform.browser });
 
     // 2. Set up the theme manager and load the default theme
-    this._themeManager = new ThemeManager();
+    this.themeManager = new ThemeManager();
 
     try {
       // Load the "subtle" theme from bundled extension assets.
-      // browser.runtime.getURL() resolves the path relative to the extension root.
-      // Using WXT's cross-browser `browser` global (not `chrome`) for Firefox compat.
-      const themeUrl = browser.runtime.getURL("sounds/subtle/theme.json");
+      // Using chrome.runtime.getURL directly because WXT's browser.runtime.getURL
+      // has strict PublicPath typing that doesn't include dynamic sound file paths.
+      const getURL = chrome.runtime.getURL.bind(chrome.runtime);
+      const themeUrl = getURL("sounds/subtle/theme.json");
       const response = await fetch(themeUrl);
       const manifest = await response.json();
 
-      const basePath = browser.runtime.getURL("sounds/subtle");
-      const result = this._themeManager.loadTheme("subtle", manifest, basePath);
+      const basePath = getURL("sounds/subtle");
+      const result = this.themeManager.loadTheme("subtle", manifest, basePath);
 
       if (result.success) {
-        this._themeManager.setActiveTheme("subtle");
+        this.themeManager.setActiveTheme("subtle");
         logger.info("Theme loaded: subtle");
       } else {
         logger.error("Failed to validate subtle theme", { errors: result.errors });
@@ -97,80 +107,71 @@ export const soundEngineModule: ButterSwitchModule = {
     }
 
     // 3. Wire the event engine to the browser APIs
-    // The `browser` global is provided by WXT at runtime
     const browserGlobal =
       typeof browser !== "undefined"
         ? (browser as unknown as Record<string, unknown>)
         : ((globalThis as Record<string, unknown>).chrome as Record<string, unknown>);
 
-    this._eventEngine = new EventEngine(browserGlobal, context.messageBus, logger);
+    this.eventEngine = new EventEngine(browserGlobal, context.messageBus, logger);
 
     // Register listeners for all events supported on this platform
     const enabledEvents = EVENT_REGISTRY.filter((e) => e.defaultEnabled);
-    this._eventEngine.registerAll(enabledEvents, context.platform.browser);
+    this.eventEngine.registerAll(enabledEvents, context.platform.browser);
     logger.info("Event engine ready", { registeredEvents: enabledEvents.length });
 
-    this._unsubscribe = null;
-  },
+    this.unsubscribe = null;
+  }
 
   async activate(): Promise<void> {
-    const logger = this._context.logger;
+    if (!this.context || !this.backend) {
+      throw new Error("Module not initialized.");
+    }
+    const { logger, messageBus, settings } = this.context;
 
     // Subscribe to browser-event messages from the event engine
-    this._unsubscribe = this._context.messageBus.subscribe(
-      BROWSER_EVENT_CHANNEL,
-      (data: unknown) => {
-        const message = data as BrowserEventMessage;
-        this.handleBrowserEvent(message).catch((error) => {
-          logger.error(
-            "Failed to handle browser event",
-            error instanceof Error ? error : undefined,
-          );
-        });
-      },
-    );
+    this.unsubscribe = messageBus.subscribe(BROWSER_EVENT_CHANNEL, (data: unknown) => {
+      const message = data as BrowserEventMessage;
+      this.handleBrowserEvent(message).catch((error: unknown) => {
+        logger.error("Failed to handle browser event", error instanceof Error ? error : undefined);
+      });
+    });
 
     // Set global volume from settings
-    const masterVolume = (await this._context.settings.get<number>("general.masterVolume")) ?? 80;
-    await this._backend.setGlobalVolume(masterVolume / 100);
+    const masterVolume = (await settings.get<number>("general.masterVolume")) ?? 80;
+    await this.backend.setGlobalVolume(masterVolume / 100);
 
     logger.info("Sound engine activated");
-  },
+  }
 
   async deactivate(): Promise<void> {
-    // Unsubscribe from browser events
-    if (this._unsubscribe) {
-      this._unsubscribe();
-      this._unsubscribe = null;
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
     }
 
-    // Stop all playing sounds
-    await this._backend.stopAll();
-
-    this._context.logger.info("Sound engine deactivated");
-  },
+    await this.backend?.stopAll();
+    this.context?.logger.info("Sound engine deactivated");
+  }
 
   async dispose(): Promise<void> {
-    if (this._unsubscribe) {
-      this._unsubscribe();
-      this._unsubscribe = null;
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
     }
 
-    await this._backend.dispose();
-    this._context.logger.info("Sound engine disposed");
-  },
+    await this.backend?.dispose();
+    this.context?.logger.info("Sound engine disposed");
+  }
 
   /**
    * Handle a browser event by resolving and playing the appropriate sound.
-   *
-   * @internal
-   * @param message - The browser event message from the event engine.
    */
-  async handleBrowserEvent(message: BrowserEventMessage): Promise<void> {
-    const logger = this._context.logger;
+  private async handleBrowserEvent(message: BrowserEventMessage): Promise<void> {
+    if (!this.context || !this.backend || !this.themeManager) return;
+    const { logger, settings } = this.context;
 
     // Check if muted
-    const muted = (await this._context.settings.get<boolean>("general.muted")) ?? false;
+    const muted = (await settings.get<boolean>("general.muted")) ?? false;
     if (muted) return;
 
     // Find the event definition to get its tier
@@ -181,7 +182,7 @@ export const soundEngineModule: ButterSwitchModule = {
     }
 
     // Check per-event enabled setting
-    const eventConfig = await this._context.settings.get<{
+    const eventConfig = await settings.get<{
       enabled: boolean;
       volume?: number;
       pitch?: number;
@@ -195,7 +196,7 @@ export const soundEngineModule: ButterSwitchModule = {
       message.eventId.includes("failed");
 
     // Resolve which sound to play
-    const soundUrl = this._themeManager.resolveSound(message.eventId, eventDef.tier, isError);
+    const soundUrl = this.themeManager.resolveSound(message.eventId, eventDef.tier, isError);
 
     if (!soundUrl) {
       logger.debug("No sound mapped for event", { eventId: message.eventId });
@@ -203,7 +204,7 @@ export const soundEngineModule: ButterSwitchModule = {
     }
 
     // Play the sound with per-event overrides
-    const result = await this._backend.play(soundUrl, {
+    const result = await this.backend.play(soundUrl, {
       volume: eventConfig?.volume !== undefined ? eventConfig.volume / 100 : undefined,
       rate: eventConfig?.pitch,
     });
@@ -220,5 +221,8 @@ export const soundEngineModule: ButterSwitchModule = {
         sound: soundUrl,
       });
     }
-  },
-} as ButterSwitchModule & Record<string, unknown>;
+  }
+}
+
+/** Singleton instance of the sound engine module. */
+export const soundEngineModule = new SoundEngineModule();

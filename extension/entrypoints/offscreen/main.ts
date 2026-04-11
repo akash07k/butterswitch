@@ -17,6 +17,7 @@ import { Howl, Howler } from "howler";
 import type {
   AudioMessage,
   AudioResponse,
+  PlayOptions,
 } from "../../modules/sound-engine/audio-backends/types.js";
 
 /** Cache of loaded Howl instances to avoid re-creating for repeated sounds. */
@@ -66,10 +67,7 @@ chrome.runtime.onMessage.addListener(
  * @param options - Volume, rate, and interrupt options.
  * @returns Play result with success status and latency.
  */
-async function handlePlaySound(
-  url: string,
-  options: AudioMessage extends { type: "PLAY_SOUND"; options: infer O } ? O : never,
-): Promise<AudioResponse> {
+async function handlePlaySound(url: string, options: PlayOptions): Promise<AudioResponse> {
   const startTime = performance.now();
 
   return new Promise<AudioResponse>((resolve) => {

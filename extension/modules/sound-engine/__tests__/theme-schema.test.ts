@@ -76,7 +76,7 @@ describe("validateThemeManifest", () => {
 
   it("allows missing fallbacks (optional)", () => {
     const manifest = validManifest();
-    delete (manifest as Record<string, unknown>).fallbacks;
+    delete (manifest as unknown as Record<string, unknown>).fallbacks;
     const errors = validateThemeManifest(manifest);
     expect(errors).toHaveLength(0);
   });

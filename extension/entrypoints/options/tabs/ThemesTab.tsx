@@ -42,7 +42,7 @@ export function ThemesTab() {
       try {
         const stored = await browser.storage.local.get("general.activeTheme");
         if (stored["general.activeTheme"]) {
-          setActiveTheme(stored["general.activeTheme"]);
+          setActiveTheme(stored["general.activeTheme"] as string);
         }
       } catch {
         // Use default

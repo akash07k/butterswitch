@@ -46,7 +46,7 @@ export function LoggingTab() {
         if (stored["general.logLevel"] !== undefined)
           setLogLevel(String(stored["general.logLevel"]));
         if (stored["general.logServerUrl"] !== undefined)
-          setLogServerUrl(stored["general.logServerUrl"]);
+          setLogServerUrl(stored["general.logServerUrl"] as string);
       } catch {
         // Use defaults
       }
