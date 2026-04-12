@@ -108,12 +108,9 @@ export default defineBackground(() => {
       });
 
       // 8. Connect WebSocket log transport ONLY if user has enabled it.
-      //    The setting "general.logStreamEnabled" persists across restarts.
-      //    Default is false — no connection, no Chrome errors.
-      //    Users who want log streaming enable it once in the Logging tab.
-      const logStreamEnabled = (await browser.storage.local.get("general.logStreamEnabled"))[
-        "general.logStreamEnabled"
-      ];
+      //    Reads through the settings store so the default (false) is
+      //    applied consistently — no raw storage access needed.
+      const logStreamEnabled = await settings.get<boolean>("general.logStreamEnabled");
       if (logStreamEnabled) {
         connectLogServer(logger);
       }

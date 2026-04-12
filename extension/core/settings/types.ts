@@ -39,6 +39,9 @@ export interface GeneralSettings {
   /** Minimum log level for the logger. */
   logLevel: LogLevel;
 
+  /** Whether log streaming to the WebSocket server is enabled. */
+  logStreamEnabled: boolean;
+
   /** WebSocket server URL for log streaming. */
   logServerUrl: string;
 

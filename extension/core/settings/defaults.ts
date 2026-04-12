@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
     activeTheme: "subtle",
     muted: false,
     logLevel: 1, // LogLevel.INFO
+    logStreamEnabled: false,
     logServerUrl: "ws://localhost:8089",
     enabledModules: ["sound-engine"],
   },

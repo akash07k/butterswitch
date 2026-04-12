@@ -1,10 +1,8 @@
 import type { Logger, LoggerConfig, LogEntry, Transport } from "./types.js";
 import { LogLevel } from "./types.js";
 
-let idCounter = 0;
-
 function generateId(): string {
-  return `${Date.now()}-${++idCounter}`;
+  return crypto.randomUUID();
 }
 
 class LoggerImpl implements Logger {
@@ -42,7 +40,7 @@ class LoggerImpl implements Logger {
     const childTag = this.tag ? `${this.tag}.${options.tag}` : options.tag;
     return new LoggerImpl({
       level: this.level,
-      transports: this.transports,
+      transports: [...this.transports],
       tag: childTag,
     });
   }
@@ -100,7 +98,11 @@ class LoggerImpl implements Logger {
   private dispatch(entry: LogEntry): void {
     for (const transport of this.transports) {
       try {
-        transport.log(entry);
+        const result = transport.log(entry);
+        // Catch async transport rejections (e.g., IndexedDB, WebSocket)
+        if (result && typeof result.catch === "function") {
+          result.catch(() => {});
+        }
       } catch {
         // Transport errors must not crash the application
       }

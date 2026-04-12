@@ -76,6 +76,10 @@ export function StatusBar({
   };
 
   const handleExport = (format: "json" | "csv" | "html") => {
+    /** Escape HTML special characters to prevent XSS in exported files. */
+    const esc = (s: string): string =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
     let content: string;
     let mimeType: string;
     let extension: string;
@@ -93,7 +97,7 @@ export function StatusBar({
       mimeType = "text/csv";
       extension = "csv";
     } else {
-      content = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Log Export</title></head><body><table><thead><tr><th>Timestamp</th><th>Level</th><th>Tag</th><th>Message</th></tr></thead><tbody>${entries.map((e) => `<tr><td>${e.timestamp}</td><td>${e.level}</td><td>${e.tag}</td><td>${e.message}</td></tr>`).join("")}</tbody></table></body></html>`;
+      content = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Log Export</title></head><body><table><thead><tr><th>Timestamp</th><th>Level</th><th>Tag</th><th>Message</th></tr></thead><tbody>${entries.map((e) => `<tr><td>${esc(e.timestamp)}</td><td>${esc(String(e.level))}</td><td>${esc(e.tag)}</td><td>${esc(e.message)}</td></tr>`).join("")}</tbody></table></body></html>`;
       mimeType = "text/html";
       extension = "html";
     }

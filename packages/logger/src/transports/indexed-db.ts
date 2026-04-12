@@ -23,16 +23,23 @@ export class IndexedDBTransport implements Transport {
   }
 
   private writeCount = 0;
+  private rotating = false;
 
   async log(entry: LogEntry): Promise<void> {
     const db = await this.dbReady;
     await this.put(db, entry);
 
     // Only check rotation every 100 writes to avoid expensive
-    // cursor scans on every single log entry.
+    // cursor scans on every single log entry. The `rotating` flag
+    // prevents concurrent rotate() calls from racing each other.
     this.writeCount++;
-    if (this.writeCount % 100 === 0) {
-      await this.rotate(db);
+    if (this.writeCount % 100 === 0 && !this.rotating) {
+      this.rotating = true;
+      try {
+        await this.rotate(db);
+      } finally {
+        this.rotating = false;
+      }
     }
   }
 
