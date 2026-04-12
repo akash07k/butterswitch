@@ -32,8 +32,14 @@ export default defineConfig({
       "history",
       "management",
       "cookies",
-      "offscreen",
+      "offscreen", // Chrome-only; Firefox ignores unknown permissions
     ],
+    browser_specific_settings: {
+      gecko: {
+        id: "butterswitch@example.com",
+        strict_min_version: "109.0",
+      },
+    },
     web_accessible_resources: [
       {
         resources: ["sounds/**/*"],

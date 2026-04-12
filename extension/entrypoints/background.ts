@@ -25,7 +25,7 @@ import { BrowserSettingsStore } from "../core/settings/browser-store.js";
 import { DEFAULT_SETTINGS } from "../core/settings/defaults.js";
 import { detectPlatform } from "../shared/platform/detect.js";
 import { soundEngineModule } from "../modules/sound-engine/index.js";
-import { ChromeAudioBackend } from "../modules/sound-engine/audio-backends/chrome-backend.js";
+import type { AudioBackend } from "../modules/sound-engine/audio-backends/types.js";
 import type { ModuleContext } from "../core/module-system/types.js";
 
 export default defineBackground(() => {
@@ -68,13 +68,13 @@ export default defineBackground(() => {
         platform,
       };
 
-      // 5. Inject the audio backend before registering the module.
-      //    Chrome: uses ChromeAudioBackend (offscreen document, no Howler in SW).
-      //    Firefox: will use FirefoxAudioBackend (built separately via wxt build -b firefox).
-      //    NOTE: Firefox backend is NOT imported here to keep Howler.js out of
-      //    Chrome's service worker bundle. Firefox builds will have a separate
-      //    background entry or dynamic loading strategy.
-      soundEngineModule.setAudioBackend(new ChromeAudioBackend());
+      // 5. Inject the platform-specific audio backend before registering.
+      //    Chrome: offscreen document (service workers have no DOM).
+      //    Firefox: Howler.js directly in background page (has DOM access).
+      //    Dynamic import keeps Howler.js out of Chrome's service worker bundle —
+      //    Vite tree-shakes the unused branch at build time via import.meta.env.BROWSER.
+      const audioBackend = await createAudioBackend();
+      soundEngineModule.setAudioBackend(audioBackend);
 
       const registry = new ModuleRegistry();
       registry.register(soundEngineModule);
@@ -278,6 +278,25 @@ export default defineBackground(() => {
     }
 
     return new BrowserSettingsStore(flatDefaults);
+  }
+
+  /**
+   * Creates the platform-specific audio backend.
+   *
+   * Uses dynamic imports so Vite tree-shakes the unused backend at build time:
+   * - Chrome build: only ChromeAudioBackend is bundled (no Howler.js in SW)
+   * - Firefox build: only FirefoxAudioBackend is bundled (Howler.js in background page)
+   */
+  async function createAudioBackend(): Promise<AudioBackend> {
+    if (import.meta.env.BROWSER === "firefox") {
+      const { FirefoxAudioBackend } =
+        await import("../modules/sound-engine/audio-backends/firefox-backend.js");
+      return new FirefoxAudioBackend();
+    }
+
+    const { ChromeAudioBackend } =
+      await import("../modules/sound-engine/audio-backends/chrome-backend.js");
+    return new ChromeAudioBackend();
   }
 
   // Start the bootstrap process.
