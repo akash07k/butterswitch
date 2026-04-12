@@ -37,6 +37,13 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
       // Global shortcuts — handled by browser.commands API, work from any tab
       "global:toggle-mute": "Alt+M",
       "global:open-options": "Alt+Shift+O",
+      // Local shortcuts — handled by hotkeys-js, work in popup/options UI
+      "local:cycle-theme": "alt+t",
+      "local:tab-sound-events": "alt+1",
+      "local:tab-themes": "alt+2",
+      "local:tab-hotkeys": "alt+3",
+      "local:tab-logging": "alt+4",
+      "local:show-help": "shift+/",
     },
   },
 };

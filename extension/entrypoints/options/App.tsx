@@ -13,7 +13,8 @@
  * announcer utility.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import hotkeys from "hotkeys-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
 import { focusFirst } from "@/shared/a11y/focus";
@@ -33,6 +34,7 @@ const TAB_DEFINITIONS = [
 ] as const;
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState("general");
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Focus the first control in the default tab on initial load
@@ -48,6 +50,7 @@ export default function App() {
    * into the panel content for screen readers.
    */
   const handleTabChange = useCallback((tabId: string) => {
+    setActiveTab(tabId);
     const tab = TAB_DEFINITIONS.find((t) => t.id === tabId);
     if (tab) {
       announce(`${tab.label} settings loaded`, "polite");
@@ -61,11 +64,62 @@ export default function App() {
     }, 50);
   }, []);
 
+  /** Cycle through available themes. */
+  const handleCycleTheme = useCallback(async () => {
+    const stored = await browser.storage.local.get("general.activeTheme");
+    const current = (stored["general.activeTheme"] as string) ?? "subtle";
+    // For now only "subtle" is available; when "modern" ships this will cycle
+    const themes = ["subtle"];
+    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+    const next = themes[nextIndex]!;
+    await browser.storage.local.set({ "general.activeTheme": next });
+    announce(`Theme changed to ${next}`, "polite");
+  }, []);
+
+  // Register local keyboard shortcuts via hotkeys-js
+  useEffect(() => {
+    // Allow hotkeys to fire even when focus is in input/select/textarea
+    hotkeys.filter = () => true;
+
+    hotkeys("alt+1", (e) => {
+      e.preventDefault();
+      handleTabChange("sound-events");
+    });
+    hotkeys("alt+2", (e) => {
+      e.preventDefault();
+      handleTabChange("themes");
+    });
+    hotkeys("alt+3", (e) => {
+      e.preventDefault();
+      handleTabChange("hotkeys");
+    });
+    hotkeys("alt+4", (e) => {
+      e.preventDefault();
+      handleTabChange("logging");
+    });
+    hotkeys("alt+t", (e) => {
+      e.preventDefault();
+      handleCycleTheme();
+    });
+    hotkeys("shift+/", (e) => {
+      e.preventDefault();
+      announce(
+        "Keyboard shortcuts: Alt+1 through Alt+4 switch tabs. Alt+T cycles theme. " +
+          "Global shortcuts like Alt+M for mute work from any tab.",
+        "assertive",
+      );
+    });
+
+    return () => {
+      hotkeys.unbind("alt+1,alt+2,alt+3,alt+4,alt+t,shift+/");
+    };
+  }, [handleTabChange, handleCycleTheme]);
+
   return (
     <main className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">ButterSwitch Options</h1>
 
-      <Tabs defaultValue="general" onValueChange={handleTabChange} activationMode="manual">
+      <Tabs value={activeTab} onValueChange={handleTabChange} activationMode="manual">
         <TabsList className="w-full justify-start">
           {TAB_DEFINITIONS.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>

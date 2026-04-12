@@ -19,7 +19,8 @@
  * of `chrome.*` for Chrome + Firefox compatibility.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import hotkeys from "hotkeys-js";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,39 @@ export default function App() {
     }
     loadSettings();
   }, []);
+
+  /** Cycle through available themes via keyboard shortcut. */
+  const handleCycleTheme = useCallback(async () => {
+    const themes = ["subtle"];
+    const nextIndex = (themes.indexOf(activeTheme) + 1) % themes.length;
+    const next = themes[nextIndex]!;
+    setActiveTheme(next);
+    await browser.storage.local.set({ "general.activeTheme": next });
+    announce(`Theme changed to ${next}`, "polite");
+    sendLog("info", `Theme changed to ${next} via popup shortcut`);
+  }, [activeTheme]);
+
+  // Register local keyboard shortcuts
+  useEffect(() => {
+    hotkeys.filter = () => true;
+
+    hotkeys("alt+t", (e) => {
+      e.preventDefault();
+      handleCycleTheme();
+    });
+    hotkeys("shift+/", (e) => {
+      e.preventDefault();
+      announce(
+        "Alt+T cycles theme. Global shortcuts: Alt+M toggles mute, " +
+          "Alt+Up/Down adjusts volume. Alt+Shift+O opens options.",
+        "assertive",
+      );
+    });
+
+    return () => {
+      hotkeys.unbind("alt+t,shift+/");
+    };
+  }, [handleCycleTheme]);
 
   /** Toggle mute and announce the change. */
   const handleMuteChange = (checked: boolean) => {
