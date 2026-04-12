@@ -16,7 +16,7 @@ const LEVELS = [
 
 export function LevelFilter({ enabledLevels, onChange }: LevelFilterProps) {
   const handleChange = (selected: string[]) => {
-    const levels = selected.map(Number);
+    const levels = selected.map((s) => parseInt(s, 10)).filter((n) => !Number.isNaN(n));
     onChange(levels);
 
     const names = levels.map((l) => LEVELS.find((lv) => lv.value === l)?.label).filter(Boolean);
