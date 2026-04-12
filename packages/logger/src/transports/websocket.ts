@@ -43,6 +43,14 @@ export class WebSocketTransport implements Transport {
   }
 
   async flush(): Promise<void> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      if (this.buffer.length > 0) {
+        console.warn(
+          `[WebSocketTransport] flush() called while disconnected — ${this.buffer.length} buffered entries pending`,
+        );
+      }
+      return;
+    }
     this.flushBuffer();
   }
 

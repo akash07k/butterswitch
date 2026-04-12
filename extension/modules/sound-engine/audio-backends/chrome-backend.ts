@@ -137,18 +137,20 @@ export class ChromeAudioBackend implements AudioBackend {
   /**
    * Ensures the offscreen document exists, creating it if needed.
    *
-   * Uses a shared promise so all concurrent callers await the same
-   * creation operation. No race conditions — the first caller creates,
-   * all others wait on the same promise.
+   * The `creatingPromise` check is BEFORE the async `hasDocument()` call
+   * to prevent a race where two concurrent callers both pass hasDocument()
+   * and both attempt createDocument(). All concurrent callers await the
+   * same creation promise.
    */
   private async ensureOffscreenDocument(): Promise<void> {
-    if (await this.hasDocument()) return;
-
-    // If creation is already in progress, all callers await the same promise
+    // If creation is already in progress, all callers await the same promise.
+    // This check is synchronous — no async gap before the guard.
     if (this.creatingPromise) {
       await this.creatingPromise;
       return;
     }
+
+    if (await this.hasDocument()) return;
 
     this.creatingPromise = chrome.offscreen
       .createDocument({
