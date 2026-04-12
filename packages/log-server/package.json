@@ -1,9 +1,9 @@
 {
   "name": "@butterswitch/log-server",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "WebSocket log server with accessible web viewer for ButterSwitch.",
-  "author": "Akash Kakkar",
-  "license": "MIT",
+  "author": "Akash Kakkar (https://github.com/akash07k/)",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "bin": {
     "butterswitch-log-server": "./dist/bin.js"

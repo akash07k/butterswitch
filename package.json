@@ -1,13 +1,13 @@
 {
   "name": "butterswitch",
-  "version": "0.1.0",
-  "description": "Audio feedback browser extension for visually impaired users — sounds for tabs, bookmarks, downloads, and more.",
-  "author": "Akash Kakkar",
-  "license": "MIT",
-  "homepage": "https://github.com/AkashKakkar/butterswitch",
+  "version": "1.0.0",
+  "description": "Audio feedback browser extension — sounds for tabs, bookmarks, downloads, and navigation. A richer browsing experience for everyone.",
+  "author": "Akash Kakkar (https://github.com/akash07k/)",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/akash07k/butterswitch",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AkashKakkar/butterswitch.git"
+    "url": "https://github.com/akash07k/butterswitch.git"
   },
   "private": true,
   "type": "module",
