@@ -15,9 +15,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ShortcutRecorder } from "@/components/ui/shortcut-recorder";
 import {
   Table,
   TableBody,
@@ -187,9 +186,11 @@ export function HotkeysTab() {
       {/* Page Shortcuts — editable, managed by hotkeys-js */}
       <fieldset className="space-y-4 border rounded-lg p-4">
         <legend className="text-sm font-semibold px-2">Page Shortcuts</legend>
-        <p className="text-sm text-muted-foreground">
-          These shortcuts work when the popup or options page is open. Edit them below to avoid
-          conflicts with your screen reader.
+        <p id="page-shortcuts-instructions" className="text-sm text-muted-foreground">
+          These shortcuts work when the popup or options page is open. Focus a shortcut field and
+          press your desired key combination, or use the Type button to enter it manually. Press
+          Escape to cancel recording. Insert-based shortcuts are not supported because screen
+          readers reserve the Insert key.
         </p>
 
         <Table>
@@ -207,15 +208,11 @@ export function HotkeysTab() {
                   {LOCAL_COMMAND_NAMES[commandId] ?? commandId}
                 </TableCell>
                 <TableCell>
-                  <Label htmlFor={`hotkey-${commandId}`} className="sr-only">
-                    Shortcut for {LOCAL_COMMAND_NAMES[commandId] ?? commandId}
-                  </Label>
-                  <Input
+                  <ShortcutRecorder
                     id={`hotkey-${commandId}`}
                     aria-label={`Shortcut for ${LOCAL_COMMAND_NAMES[commandId] ?? commandId}`}
                     value={binding}
-                    onChange={(e) => handleLocalBindingChange(commandId, e.target.value)}
-                    className="w-40"
+                    onChange={(newBinding) => handleLocalBindingChange(commandId, newBinding)}
                   />
                 </TableCell>
               </TableRow>
