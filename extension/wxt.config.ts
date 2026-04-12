@@ -20,7 +20,10 @@ export default defineConfig({
   }),
   manifest: {
     name: "ButterSwitch",
-    description: "Smooth as butter, with every feature just a switch away.",
+    description:
+      "Audio feedback for browser events — hear your tabs, bookmarks, downloads, and navigation. Designed for visually impaired users.",
+    author: { email: "akashkakkar@example.com" },
+    homepage_url: "https://github.com/AkashKakkar/butterswitch",
     permissions: [
       "tabs",
       "bookmarks",
