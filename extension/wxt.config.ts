@@ -34,6 +34,16 @@ export default defineConfig({
       "cookies",
       "offscreen", // Chrome-only; Firefox ignores unknown permissions
     ],
+    commands: {
+      "toggle-mute": {
+        suggested_key: { default: "Alt+M" },
+        description: "Toggle sound mute on/off",
+      },
+      "open-options": {
+        suggested_key: { default: "Alt+Shift+O" },
+        description: "Open ButterSwitch options page",
+      },
+    },
     browser_specific_settings: {
       gecko: {
         id: "butterswitch@example.com",

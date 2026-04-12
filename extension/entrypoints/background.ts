@@ -118,7 +118,7 @@ export default defineBackground(() => {
         connectLogServer(logger);
       }
 
-      // 10. Clean up on service worker suspension
+      // 11. Clean up on service worker suspension
       browser.runtime.onSuspend.addListener(() => {
         logger.info("Service worker suspending — disposing modules");
         loader.disposeAll().catch(console.error);
@@ -126,6 +126,9 @@ export default defineBackground(() => {
 
       // 9. Listen for messages from popup/options page
       setupMessageListener(logger);
+
+      // 10. Global keyboard shortcuts via browser.commands API
+      setupCommandListener(logger);
     } catch (error) {
       logger.fatal("ButterSwitch failed to start", error instanceof Error ? error : undefined);
     }
@@ -211,6 +214,32 @@ export default defineBackground(() => {
         return false;
       },
     );
+  }
+
+  /**
+   * Listens for global keyboard shortcuts registered via browser.commands.
+   * These work from any tab — the browser captures them and forwards to us.
+   */
+  function setupCommandListener(logger: Logger): void {
+    browser.commands.onCommand.addListener(async (command: string) => {
+      logger.debug(`Command received: ${command}`);
+
+      switch (command) {
+        case "toggle-mute": {
+          const stored = await browser.storage.local.get("general.muted");
+          const wasMuted = (stored["general.muted"] as boolean) ?? false;
+          await browser.storage.local.set({ "general.muted": !wasMuted });
+          logger.info(wasMuted ? "Unmuted via shortcut" : "Muted via shortcut");
+          break;
+        }
+
+        case "open-options": {
+          browser.runtime.openOptionsPage();
+          logger.info("Opened options page via shortcut");
+          break;
+        }
+      }
+    });
   }
 
   /**

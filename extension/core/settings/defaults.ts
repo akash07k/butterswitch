@@ -34,14 +34,9 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
 
   hotkeys: {
     bindings: {
-      "global:toggle-mute": "Alt+m",
-      "global:volume-up": "Alt+ArrowUp",
-      "global:volume-down": "Alt+ArrowDown",
-      "global:cycle-theme": "Alt+t",
-      "global:open-sound-events": "Alt+1",
-      "global:open-themes": "Alt+2",
-      "global:open-hotkeys": "Alt+3",
-      "global:show-help": "?",
+      // Global shortcuts — handled by browser.commands API, work from any tab
+      "global:toggle-mute": "Alt+M",
+      "global:open-options": "Alt+Shift+O",
     },
   },
 };
