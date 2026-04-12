@@ -6,7 +6,7 @@ import {
   unlinkSync,
   existsSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import type { LogEntry } from "./types.js";
 
@@ -80,13 +80,25 @@ export class SessionStore {
 
   /** Load all entries from a specific session file. */
   loadSession(filename: string): LogEntry[] {
-    const filePath = join(this.logDir, filename);
+    const filePath = resolve(this.logDir, filename);
+
+    // Prevent path traversal — resolved path must stay within logDir
+    if (!filePath.startsWith(resolve(this.logDir))) return [];
+
     if (!existsSync(filePath)) return [];
 
     const content = readFileSync(filePath, "utf-8").trim();
     if (!content) return [];
 
-    return content.split("\n").map((line) => JSON.parse(line) as LogEntry);
+    const entries: LogEntry[] = [];
+    for (const line of content.split("\n")) {
+      try {
+        entries.push(JSON.parse(line) as LogEntry);
+      } catch {
+        // Skip malformed JSONL lines (partial writes, truncation)
+      }
+    }
+    return entries;
   }
 
   /** Get the current session filename. */

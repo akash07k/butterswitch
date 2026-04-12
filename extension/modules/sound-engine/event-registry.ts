@@ -316,8 +316,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
     defaultEnabled: true,
     permissions: ["downloads"],
-    filter: (delta: unknown) =>
-      (delta as { paused?: { current?: boolean } })?.paused?.current === false,
+    filter: (delta: unknown) => {
+      const d = delta as { paused?: { previous?: boolean; current?: boolean } };
+      return d?.paused?.previous === true && d?.paused?.current === false;
+    },
   },
   {
     id: "downloads.onChanged.failed",

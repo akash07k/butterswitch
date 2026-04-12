@@ -79,7 +79,7 @@ function formatTime(timestamp: string): string {
   const seconds = String(d.getSeconds()).padStart(2, "0");
   const ms = String(d.getMilliseconds()).padStart(3, "0");
   const ampm = d.getHours() >= 12 ? "PM" : "AM";
-  return `${hours}:${minutes}.${seconds}.${ms} ${ampm}`;
+  return `${hours}:${minutes}:${seconds}.${ms} ${ampm}`;
 }
 
 export function LogTable({
