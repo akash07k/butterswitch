@@ -1,6 +1,9 @@
 {
   "name": "@butterswitch/log-server",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "WebSocket log server with accessible web viewer for ButterSwitch.",
+  "author": "Akash Kakkar",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "butterswitch-log-server": "./dist/bin.js"
@@ -9,9 +12,14 @@
     "build": "vite build && vite build --config vite.web.config.ts",
     "build:cli": "vite build",
     "build:web": "vite build --config vite.web.config.ts",
+    "dev": "tsx src/bin.ts",
+    "dev:web": "vite --config vite.web.config.ts",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@react-aria/live-announcer": "^3.4.4",

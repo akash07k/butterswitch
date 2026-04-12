@@ -1,8 +1,11 @@
 {
   "name": "butterswitch-extension",
-  "description": "Smooth as butter, with every feature just a switch away.",
+  "description": "Audio feedback browser extension for visually impaired users — sounds for tabs, bookmarks, downloads, and more.",
+  "author": "Akash Kakkar",
+  "license": "MIT",
+  "homepage": "https://github.com/AkashKakkar/butterswitch",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -12,8 +15,11 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "clean": "rm -rf .output .wxt",
     "postinstall": "wxt prepare"
   },
   "dependencies": {

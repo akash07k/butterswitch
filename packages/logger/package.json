@@ -1,6 +1,9 @@
 {
   "name": "@butterswitch/logger",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Structured logger with Console, IndexedDB, and WebSocket transports for ButterSwitch.",
+  "author": "Akash Kakkar",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,9 +18,13 @@
   ],
   "scripts": {
     "build": "vite build",
+    "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",

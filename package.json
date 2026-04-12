@@ -1,5 +1,14 @@
 {
   "name": "butterswitch",
+  "version": "0.1.0",
+  "description": "Audio feedback browser extension for visually impaired users — sounds for tabs, bookmarks, downloads, and more.",
+  "author": "Akash Kakkar",
+  "license": "MIT",
+  "homepage": "https://github.com/AkashKakkar/butterswitch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AkashKakkar/butterswitch.git"
+  },
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +27,8 @@
     "build:logger": "pnpm --filter @butterswitch/logger build",
     "build:log-server": "pnpm --filter @butterswitch/log-server build",
     "log-server": "pnpm build:log-server && node packages/log-server/dist/bin.js",
-    "log-server:dev": "pnpm exec tsx packages/log-server/src/bin.ts"
+    "log-server:dev": "pnpm exec tsx packages/log-server/src/bin.ts",
+    "clean": "pnpm -r clean"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
