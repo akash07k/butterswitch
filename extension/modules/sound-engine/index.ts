@@ -175,6 +175,7 @@ export class SoundEngineModule implements ButterSwitchModule {
       this.unsubscribe = null;
     }
 
+    this.eventEngine?.dispose();
     await this.backend?.dispose();
     this.context?.logger.info("Sound engine disposed");
   }

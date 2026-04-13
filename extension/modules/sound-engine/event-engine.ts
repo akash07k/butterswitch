@@ -54,6 +54,15 @@ export class EventEngine {
   private readonly messageBus: MessageBus;
   private readonly logger: Logger;
 
+  /** Stored listener references for cleanup on dispose. */
+  private registeredListeners: {
+    eventApi: {
+      addListener: (fn: (...args: unknown[]) => void) => void;
+      removeListener: (fn: (...args: unknown[]) => void) => void;
+    };
+    handler: (...args: unknown[]) => void;
+  }[] = [];
+
   constructor(browser: Record<string, unknown>, messageBus: MessageBus, logger: Logger) {
     this.browser = browser;
     this.messageBus = messageBus;
@@ -89,7 +98,10 @@ export class EventEngine {
       }
 
       const eventApi = namespace[definition.event] as
-        | { addListener: (fn: (...args: unknown[]) => void) => void }
+        | {
+            addListener: (fn: (...args: unknown[]) => void) => void;
+            removeListener: (fn: (...args: unknown[]) => void) => void;
+          }
         | undefined;
       if (!eventApi || typeof eventApi.addListener !== "function") {
         this.logger.warn(`Event "${definition.event}" not available on "${definition.namespace}"`, {
@@ -98,13 +110,31 @@ export class EventEngine {
         continue;
       }
 
-      // Register the listener
-      eventApi.addListener((...args: unknown[]) => {
+      // Register the listener, keeping a reference for dispose()
+      const handler = (...args: unknown[]) => {
         this.handleEvent(definition, args);
-      });
+      };
+      eventApi.addListener(handler);
+      this.registeredListeners.push({ eventApi, handler });
 
       this.logger.debug(`Registered listener for ${definition.id}`);
     }
+  }
+
+  /**
+   * Remove all registered browser API listeners.
+   * Called during module dispose to prevent listener leaks.
+   */
+  dispose(): void {
+    for (const { eventApi, handler } of this.registeredListeners) {
+      try {
+        eventApi.removeListener(handler);
+      } catch {
+        // Event API may not support removeListener or may already be torn down
+      }
+    }
+    this.logger.debug(`Removed ${this.registeredListeners.length} event listeners`);
+    this.registeredListeners = [];
   }
 
   /**
