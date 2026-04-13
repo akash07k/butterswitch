@@ -18,6 +18,25 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
+  zip: {
+    // Firefox AMO requires source code for review. Since this is a monorepo
+    // and the extension depends on @butterswitch/logger (workspace package),
+    // the sources zip must include the entire repo root — not just extension/.
+    sourcesRoot: "..",
+    excludeSources: [
+      // Build outputs
+      "dist/**",
+      ".output/**",
+      ".wxt/**",
+      "coverage/**",
+      // IDE / editor
+      ".vscode/**",
+      ".idea/**",
+      // Scratch / temp
+      "tmp/**",
+      "docs/**",
+    ],
+  },
   manifest: {
     name: "ButterSwitch",
     description:

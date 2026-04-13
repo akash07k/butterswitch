@@ -1,0 +1,89 @@
+# Builds and submits the extension to Chrome Web Store and Firefox AMO.
+#
+# Triggered manually via workflow_dispatch so you control when releases happen.
+# Before first use, run `pnpm wxt submit init` locally to generate credentials,
+# then add the secrets listed below to your GitHub repo settings.
+#
+# Required secrets:
+#   Chrome Web Store:
+#     CHROME_EXTENSION_ID   — assigned after first manual upload
+#     CHROME_CLIENT_ID      — from Google Cloud Console OAuth
+#     CHROME_CLIENT_SECRET  — from Google Cloud Console OAuth
+#     CHROME_REFRESH_TOKEN  — from Google Cloud Console OAuth
+#   Firefox AMO:
+#     FIREFOX_EXTENSION_ID  — our gecko UUID: {a6e584fb-ab9a-4299-8be4-9beb56d39a03}
+#     FIREFOX_JWT_ISSUER    — from AMO API keys page
+#     FIREFOX_JWT_SECRET    — from AMO API keys page
+
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Zip Chrome extension
+        working-directory: extension
+        run: pnpm zip
+
+      - name: Zip Firefox extension
+        working-directory: extension
+        run: pnpm zip:firefox
+
+      - name: Dry-run submission (verify credentials)
+        working-directory: extension
+        run: |
+          pnpm wxt submit --dry-run \
+            --chrome-zip .output/*-chrome.zip \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+
+      - name: Submit to stores
+        working-directory: extension
+        run: |
+          pnpm wxt submit \
+            --chrome-zip .output/*-chrome.zip \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: |
+            extension/.output/*-chrome.zip
+            extension/.output/*-firefox.zip
+            extension/.output/*-sources.zip
