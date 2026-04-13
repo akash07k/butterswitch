@@ -15,6 +15,10 @@ export class IndexedDBTransport implements Transport {
   private readonly maxEntries: number;
   private dbReady: Promise<IDBDatabase>;
 
+  /**
+   * @param config - IndexedDB transport configuration. The database is
+   *   opened immediately; entries written before it is ready are queued.
+   */
   constructor(config: IndexedDBTransportConfig) {
     this.dbName = config.dbName;
     this.storeName = config.storeName ?? DEFAULT_STORE_NAME;
@@ -25,6 +29,12 @@ export class IndexedDBTransport implements Transport {
   private writeCount = 0;
   private rotating = false;
 
+  /**
+   * Persist a log entry to IndexedDB.
+   * Rotation (deletion of oldest records beyond maxEntries) triggers
+   * automatically every 100 writes.
+   * @param entry - The log entry to store.
+   */
   async log(entry: LogEntry): Promise<void> {
     const db = await this.dbReady;
     await this.put(db, entry);
@@ -43,11 +53,17 @@ export class IndexedDBTransport implements Transport {
     }
   }
 
+  /**
+   * Retrieve log entries matching the supplied query criteria.
+   * @param query - Filters: level, tag prefix, date range, and limit.
+   * @returns Matching LogEntry objects.
+   */
   async query(query: LogQuery): Promise<LogEntry[]> {
     const db = await this.dbReady;
     return this.getAll(db, query);
   }
 
+  /** Delete all log entries from the object store. */
   async clear(): Promise<void> {
     const db = await this.dbReady;
     return new Promise((resolve, reject) => {

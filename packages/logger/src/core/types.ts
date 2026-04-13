@@ -39,7 +39,18 @@ export interface LogEntry {
  * Consumers can provide custom formatters (e.g., ordinal dates).
  */
 export interface DateFormatter {
+  /**
+   * Format the date portion of a Date object.
+   * @param date - The date to format.
+   * @returns A formatted date string (e.g., "2026-04-05").
+   */
   formatDate(date: Date): string;
+
+  /**
+   * Format the time portion of a Date object.
+   * @param date - The date to format.
+   * @returns A formatted time string (e.g., "14:30:00.000").
+   */
   formatTime(date: Date): string;
 }
 
@@ -48,13 +59,27 @@ export interface DateFormatter {
  * A transport receives log entries and sends them somewhere.
  */
 export interface Transport {
-  /** Human-readable transport name (for diagnostics) */
+  /** Human-readable transport name (for diagnostics). */
   readonly name: string;
-  /** Process a log entry */
+
+  /**
+   * Process a single log entry. May be synchronous or return a Promise.
+   * Implementations must not throw synchronously; async rejections are
+   * silently swallowed by the dispatcher.
+   * @param entry - The log entry to process.
+   */
   log(entry: LogEntry): void | Promise<void>;
-  /** Flush any buffered entries */
+
+  /**
+   * Flush any buffered log entries to the underlying storage or network.
+   * @returns A promise that resolves when the flush is complete.
+   */
   flush?(): Promise<void>;
-  /** Release resources */
+
+  /**
+   * Release all resources held by this transport.
+   * @returns A promise that resolves when disposal is complete.
+   */
   dispose?(): Promise<void>;
 }
 
@@ -76,18 +101,68 @@ export interface LoggerConfig {
  * Public logger interface returned by createLogger.
  */
 export interface Logger {
+  /**
+   * Emit a debug-level log entry.
+   * @param message - Human-readable message describing the event.
+   * @param data - Optional structured key/value payload.
+   */
   debug(message: string, data?: Record<string, unknown>): void;
+
+  /**
+   * Emit an info-level log entry.
+   * @param message - Human-readable message describing the event.
+   * @param data - Optional structured key/value payload.
+   */
   info(message: string, data?: Record<string, unknown>): void;
+
+  /**
+   * Emit a warn-level log entry.
+   * @param message - Human-readable message describing the event.
+   * @param data - Optional structured key/value payload.
+   */
   warn(message: string, data?: Record<string, unknown>): void;
+
+  /**
+   * Emit an error-level log entry.
+   * Pass an Error to capture its name, message, and stack trace.
+   * @param message - Human-readable message describing the event.
+   * @param dataOrError - Optional structured data payload, or an Error instance.
+   */
   error(message: string, dataOrError?: Record<string, unknown> | Error): void;
+
+  /**
+   * Emit a fatal-level log entry.
+   * Pass an Error to capture its name, message, and stack trace.
+   * @param message - Human-readable message describing the event.
+   * @param dataOrError - Optional structured data payload, or an Error instance.
+   */
   fatal(message: string, dataOrError?: Record<string, unknown> | Error): void;
-  /** Create a child logger with an appended tag segment */
+
+  /**
+   * Create a child logger that inherits transports and minimum level,
+   * appending the given tag segment with a `.` separator.
+   * @param options - Object containing the tag segment to append.
+   * @returns A new Logger instance with the composed tag.
+   */
   child(options: { tag: string }): Logger;
-  /** Add a transport dynamically after logger creation */
+
+  /**
+   * Attach an additional transport at runtime.
+   * The transport immediately begins receiving new log entries.
+   * @param transport - The transport instance to add.
+   */
   addTransport(transport: Transport): void;
-  /** Flush all transports */
+
+  /**
+   * Flush all transports, waiting for any buffered entries to be written.
+   * @returns A promise that resolves when all transports have flushed.
+   */
   flush(): Promise<void>;
-  /** Dispose all transports and release resources */
+
+  /**
+   * Dispose all transports and release their underlying resources.
+   * @returns A promise that resolves when all transports have disposed.
+   */
   dispose(): Promise<void>;
 }
 

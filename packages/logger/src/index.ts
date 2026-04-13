@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ *
+ * `@butterswitch/logger` — structured, multi-transport logger for browser
+ * extensions and web applications.
+ *
+ * - {@link createLogger} — factory function for logger instances
+ * - {@link ConsoleTransport} — writes to the browser/Node.js console
+ * - {@link IndexedDBTransport} — persists to IndexedDB with querying
+ * - {@link WebSocketTransport} — streams over WebSocket with reconnect
+ * - {@link LogExporter} — exports entries to JSON, CSV, or HTML
+ */
+
 // Core
 export { createLogger } from "./core/logger.js";
 export { IsoDateFormatter } from "./core/formatter.js";

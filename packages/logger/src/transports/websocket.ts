@@ -22,6 +22,10 @@ export class WebSocketTransport implements Transport {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
 
+  /**
+   * @param config - WebSocket transport configuration. A connection
+   *   attempt is initiated immediately on construction.
+   */
   constructor(config: WebSocketTransportConfig) {
     this.url = config.url;
     this.bufferSize = config.bufferSize ?? DEFAULT_BUFFER_SIZE;
@@ -31,6 +35,11 @@ export class WebSocketTransport implements Transport {
     this.connect();
   }
 
+  /**
+   * Send a log entry over WebSocket. If disconnected, buffers the entry.
+   * When the buffer exceeds bufferSize, the oldest entry is dropped.
+   * @param entry - The log entry to send or buffer.
+   */
   log(entry: LogEntry): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(entry));

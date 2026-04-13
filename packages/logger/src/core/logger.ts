@@ -5,9 +5,13 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
+/**
+ * Concrete implementation of {@link Logger}.
+ * Instantiated exclusively through {@link createLogger}.
+ */
 class LoggerImpl implements Logger {
   private readonly level: LogLevel;
-  private readonly transports: Transport[]; // readonly prevents reassignment; push() still allowed for addTransport()
+  private readonly transports: Transport[];
   private readonly tag: string;
 
   constructor(config: LoggerConfig) {
@@ -95,6 +99,11 @@ class LoggerImpl implements Logger {
     };
   }
 
+  /**
+   * Fan out a log entry to every registered transport.
+   * Both synchronous throws and async rejections are silently
+   * swallowed so a failing transport never crashes the application.
+   */
   private dispatch(entry: LogEntry): void {
     for (const transport of this.transports) {
       try {
@@ -112,6 +121,10 @@ class LoggerImpl implements Logger {
 
 /**
  * Create a logger instance with the given configuration.
+ *
+ * @param config - Logger configuration including minimum level, transports,
+ *   optional tag, and optional date formatter.
+ * @returns A Logger instance ready to emit log entries.
  *
  * @example
  * ```ts

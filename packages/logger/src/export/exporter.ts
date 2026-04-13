@@ -29,10 +29,20 @@ function escapeHTML(value: string): string {
  * All methods are static — no instantiation needed.
  */
 export class LogExporter {
+  /**
+   * Serialize log entries as a pretty-printed JSON array.
+   * @param entries - The log entries to serialize.
+   * @returns A JSON string with 2-space indentation.
+   */
   static toJSON(entries: LogEntry[]): string {
     return JSON.stringify(entries, null, 2);
   }
 
+  /**
+   * Serialize log entries as CSV. Columns: id, timestamp, level, tag, message.
+   * @param entries - The log entries to serialize.
+   * @returns A CSV string including a header row.
+   */
   static toCSV(entries: LogEntry[]): string {
     const header = "id,timestamp,level,tag,message";
     if (entries.length === 0) return header;
@@ -50,6 +60,12 @@ export class LogExporter {
     return [header, ...rows].join("\n");
   }
 
+  /**
+   * Serialize log entries as a self-contained HTML page with an
+   * inline-styled table. All values are HTML-escaped to prevent XSS.
+   * @param entries - The log entries to render.
+   * @returns A complete HTML document string.
+   */
   static toHTML(entries: LogEntry[]): string {
     const rows = entries
       .map(
