@@ -35,6 +35,7 @@ import { ExternalLink, Settings, Volume2, VolumeOff } from "lucide-react";
 import { announce } from "@/shared/a11y/announcer";
 import { sendLog } from "@/core/messaging/send";
 import { focusFirst } from "@/shared/a11y/focus";
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 
 /**
  * Main popup component.
@@ -46,7 +47,7 @@ import { focusFirst } from "@/shared/a11y/focus";
 export default function App() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(80);
-  const [activeTheme, setActiveTheme] = useState("subtle");
+  const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
 
   // Focus the first control on mount (for screen readers)
   useEffect(() => {
@@ -77,9 +78,9 @@ export default function App() {
 
   /** Cycle through available themes via keyboard shortcut. */
   const handleCycleTheme = useCallback(async () => {
-    const themes = ["subtle"];
-    const nextIndex = (themes.indexOf(activeTheme) + 1) % themes.length;
-    const next = themes[nextIndex]!;
+    const themeIds = BUILT_IN_THEMES.map((t) => t.id);
+    const nextIndex = (themeIds.indexOf(activeTheme) + 1) % themeIds.length;
+    const next = themeIds[nextIndex]!;
     setActiveTheme(next);
     await browser.storage.local.set({ "general.activeTheme": next });
     announce(`Theme changed to ${next}`, "polite");
@@ -209,7 +210,11 @@ export default function App() {
               <SelectValue placeholder="Select theme" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="subtle">Subtle</SelectItem>
+              {BUILT_IN_THEMES.map((theme) => (
+                <SelectItem key={theme.id} value={theme.id}>
+                  {theme.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -33,7 +33,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
   {
@@ -45,7 +45,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
   {
@@ -57,7 +57,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
   {
@@ -69,7 +69,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { status?: string })?.status === "loading",
@@ -83,7 +83,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { status?: string })?.status === "complete",
@@ -97,7 +97,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { title?: string })?.title !== undefined,
@@ -111,7 +111,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
   {
@@ -123,7 +123,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
   {
@@ -135,7 +135,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["tabs"],
   },
 
@@ -149,7 +149,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["webNavigation"],
   },
   {
@@ -161,7 +161,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["webNavigation"],
   },
   {
@@ -173,7 +173,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["webNavigation"],
   },
   {
@@ -185,7 +185,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["webNavigation"],
   },
   {
@@ -197,7 +197,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     isError: true,
     permissions: ["webNavigation"],
   },
@@ -210,7 +210,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["webNavigation"],
   },
 
@@ -224,7 +224,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "bookmarks",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["bookmarks"],
   },
   {
@@ -236,7 +236,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "bookmarks",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["bookmarks"],
   },
   {
@@ -248,7 +248,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "bookmarks",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["bookmarks"],
   },
   {
@@ -260,7 +260,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "bookmarks",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["bookmarks"],
   },
 
@@ -274,7 +274,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "downloads",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["downloads"],
   },
   {
@@ -286,7 +286,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "downloads",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["downloads"],
     filter: (delta: unknown) =>
       (delta as { state?: { current?: string } })?.state?.current === "complete",
@@ -300,7 +300,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "downloads",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["downloads"],
     filter: (delta: unknown) =>
       (delta as { paused?: { current?: boolean } })?.paused?.current === true,
@@ -314,7 +314,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "downloads",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: ["downloads"],
     filter: (delta: unknown) => {
       const d = delta as { paused?: { previous?: boolean; current?: boolean } };
@@ -330,7 +330,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "downloads",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     isError: true,
     permissions: ["downloads"],
     filter: (delta: unknown) =>
@@ -347,7 +347,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "windows",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: [],
   },
   {
@@ -359,7 +359,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "windows",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: [],
   },
   {
@@ -371,7 +371,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "windows",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: [],
   },
 
@@ -385,7 +385,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "runtime",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: [],
   },
   {
@@ -397,7 +397,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     tier: 1,
     category: "runtime",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: true,
+
     permissions: [],
   },
 ];
@@ -417,7 +417,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { url?: string })?.url !== undefined,
@@ -431,7 +431,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { pinned?: boolean })?.pinned !== undefined,
@@ -445,7 +445,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { audible?: boolean })?.audible !== undefined,
@@ -459,7 +459,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { mutedInfo?: unknown })?.mutedInfo !== undefined,
@@ -473,7 +473,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
   },
   {
@@ -485,7 +485,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
   },
   {
@@ -497,7 +497,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tabs",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["tabs"],
   },
 
@@ -511,7 +511,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tab-groups",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -523,7 +523,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tab-groups",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -535,7 +535,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tab-groups",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -547,7 +547,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "tab-groups",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: [],
   },
 
@@ -561,7 +561,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "history",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["history"],
   },
   {
@@ -573,7 +573,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "history",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["history"],
   },
 
@@ -587,7 +587,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "omnibox",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -599,7 +599,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "omnibox",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -611,7 +611,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "omnibox",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
 
@@ -625,7 +625,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "idle",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["idle"],
     filter: (state: unknown) => state === "active",
   },
@@ -638,7 +638,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "idle",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["idle"],
     filter: (state: unknown) => state === "idle",
   },
@@ -651,7 +651,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "idle",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["idle"],
     filter: (state: unknown) => state === "locked",
   },
@@ -666,7 +666,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "permissions",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -678,7 +678,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "permissions",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
 
@@ -692,7 +692,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "management",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["management"],
   },
   {
@@ -704,7 +704,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "management",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["management"],
   },
   {
@@ -716,7 +716,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "management",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["management"],
   },
   {
@@ -728,7 +728,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "management",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["management"],
   },
 
@@ -742,7 +742,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["webNavigation"],
   },
   {
@@ -754,7 +754,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "navigation",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["webNavigation"],
   },
 
@@ -768,7 +768,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "other",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   {
@@ -780,7 +780,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "other",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["notifications"],
   },
   {
@@ -792,7 +792,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "other",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["notifications"],
   },
   {
@@ -804,7 +804,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "other",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: ["cookies"],
   },
   {
@@ -816,7 +816,7 @@ const TIER_2_EVENTS: EventDefinition[] = [
     tier: 2,
     category: "runtime",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
 ];
@@ -835,7 +835,7 @@ const TIER_3_EVENTS: EventDefinition[] = [
     tier: 3,
     category: "runtime",
     platforms: ["chrome", "firefox"],
-    defaultEnabled: false,
+
     permissions: [],
   },
   // NOTE: runtime.onMessage intentionally excluded — registering a listener
@@ -850,7 +850,7 @@ const TIER_3_EVENTS: EventDefinition[] = [
     tier: 3,
     category: "runtime",
     platforms: ["chrome"],
-    defaultEnabled: false,
+
     permissions: [],
   },
 ];

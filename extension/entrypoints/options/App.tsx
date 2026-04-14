@@ -18,6 +18,7 @@ import hotkeys from "hotkeys-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
 import { focusFirst } from "@/shared/a11y/focus";
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 import { GeneralTab } from "./tabs/GeneralTab.js";
 import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
 import { ThemesTab } from "./tabs/ThemesTab.js";
@@ -67,11 +68,10 @@ export default function App() {
   /** Cycle through available themes. */
   const handleCycleTheme = useCallback(async () => {
     const stored = await browser.storage.local.get("general.activeTheme");
-    const current = (stored["general.activeTheme"] as string) ?? "subtle";
-    // For now only "subtle" is available; when "modern" ships this will cycle
-    const themes = ["subtle"];
-    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-    const next = themes[nextIndex]!;
+    const current = (stored["general.activeTheme"] as string) ?? DEFAULT_THEME_ID;
+    const themeIds = BUILT_IN_THEMES.map((t) => t.id);
+    const nextIndex = (themeIds.indexOf(current) + 1) % themeIds.length;
+    const next = themeIds[nextIndex]!;
     await browser.storage.local.set({ "general.activeTheme": next });
     announce(`Theme changed to ${next}`, "polite");
   }, []);

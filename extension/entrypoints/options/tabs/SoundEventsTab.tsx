@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { sendLog, sendPreviewSound } from "@/core/messaging/send";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getEventDefaults } from "@/config/events";
 import { Play } from "lucide-react";
 import { announce } from "@/shared/a11y/announcer";
 import { EVENT_REGISTRY } from "@/modules/sound-engine/event-registry";
@@ -65,7 +66,7 @@ export function SoundEventsTab() {
             loadedConfigs[event.id] = stored[key] as EventConfig;
           } else {
             loadedConfigs[event.id] = {
-              enabled: event.defaultEnabled,
+              enabled: getEventDefaults(event.id).enabled,
               volume: 100,
               pitch: 1.0,
             };
@@ -77,7 +78,7 @@ export function SoundEventsTab() {
         const defaults: Record<string, EventConfig> = {};
         for (const event of EVENT_REGISTRY) {
           defaults[event.id] = {
-            enabled: event.defaultEnabled,
+            enabled: getEventDefaults(event.id).enabled,
             volume: 100,
             pitch: 1.0,
           };
@@ -231,7 +232,7 @@ export function SoundEventsTab() {
         <TableBody>
           {filteredEvents.map((event) => {
             const config = configs[event.id] ?? {
-              enabled: event.defaultEnabled,
+              enabled: getEventDefaults(event.id).enabled,
               volume: 100,
               pitch: 1.0,
             };
@@ -298,7 +299,7 @@ export function SoundEventsTab() {
           const keysToRemove = EVENT_REGISTRY.map((e) => `sounds.events.${e.id}`);
           for (const event of EVENT_REGISTRY) {
             defaults[event.id] = {
-              enabled: event.defaultEnabled,
+              enabled: getEventDefaults(event.id).enabled,
               volume: 100,
               pitch: 1.0,
             };

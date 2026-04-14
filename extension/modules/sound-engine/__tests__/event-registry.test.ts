@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { EVENT_REGISTRY, TIER_1_COUNT, TIER_2_COUNT, TIER_3_COUNT } from "../event-registry.js";
+import { getEventDefaults } from "../../../config/events.js";
 
 describe("EVENT_REGISTRY", () => {
   it("has events defined", () => {
@@ -29,19 +30,23 @@ describe("EVENT_REGISTRY", () => {
     }
   });
 
-  it("tier 1 events are enabled by default", () => {
+  it("tier 1 events are enabled by default in config", () => {
     const tier1 = EVENT_REGISTRY.filter((e) => e.tier === 1);
 
     for (const event of tier1) {
-      expect(event.defaultEnabled, `${event.id} should be enabled by default`).toBe(true);
+      expect(getEventDefaults(event.id).enabled, `${event.id} should be enabled by default`).toBe(
+        true,
+      );
     }
   });
 
-  it("tier 2 and 3 events are disabled by default", () => {
+  it("tier 2 and 3 events are disabled by default in config", () => {
     const nonTier1 = EVENT_REGISTRY.filter((e) => e.tier !== 1);
 
     for (const event of nonTier1) {
-      expect(event.defaultEnabled, `${event.id} should be disabled by default`).toBe(false);
+      expect(getEventDefaults(event.id).enabled, `${event.id} should be disabled by default`).toBe(
+        false,
+      );
     }
   });
 

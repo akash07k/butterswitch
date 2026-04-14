@@ -20,21 +20,10 @@ import {
 } from "@/components/ui/select";
 import { announce } from "@/shared/a11y/announcer";
 import { sendLog } from "@/core/messaging/send";
-
-/** Built-in theme metadata. */
-const BUILT_IN_THEMES = [
-  {
-    id: "subtle",
-    name: "Subtle",
-    description:
-      "Soft clicks and gentle chimes. Minimal, non-intrusive audio cues for everyday browsing.",
-    author: "ButterSwitch (sounds from Kenney.nl, CC0 license)",
-    soundCount: 28,
-  },
-];
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 
 export function ThemesTab() {
-  const [activeTheme, setActiveTheme] = useState("subtle");
+  const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
 
   // Load active theme from storage
   useEffect(() => {
@@ -91,12 +80,6 @@ export function ThemesTab() {
             <p>
               <strong>Description:</strong> {activeThemeInfo.description}
             </p>
-            <p>
-              <strong>Author:</strong> {activeThemeInfo.author}
-            </p>
-            <p>
-              <strong>Sounds:</strong> {activeThemeInfo.soundCount} audio files
-            </p>
           </div>
         )}
       </fieldset>
@@ -122,10 +105,13 @@ export function ThemesTab() {
       <Button
         variant="outline"
         onClick={() => {
-          setActiveTheme("subtle");
-          browser.storage.local.set({ "general.activeTheme": "subtle" });
-          announce("Theme reset to Subtle (default)", "polite");
-          sendLog("warn", "Theme reset to Subtle (default)", { source: "options" });
+          const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === DEFAULT_THEME_ID);
+          setActiveTheme(DEFAULT_THEME_ID);
+          browser.storage.local.set({ "general.activeTheme": DEFAULT_THEME_ID });
+          announce(`Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, "polite");
+          sendLog("warn", `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, {
+            source: "options",
+          });
         }}
       >
         Reset Theme Settings

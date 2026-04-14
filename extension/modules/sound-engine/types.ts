@@ -47,9 +47,6 @@ export interface EventDefinition {
   /** Which browsers support this event. */
   platforms: ("chrome" | "firefox")[];
 
-  /** Whether this event is enabled in a fresh install. */
-  defaultEnabled: boolean;
-
   /** Browser permissions required to listen to this event. */
   permissions: string[];
 

@@ -102,7 +102,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome", "firefox"],
-        defaultEnabled: true,
+
         permissions: [],
       },
     ];
@@ -123,7 +123,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome", "firefox"],
-        defaultEnabled: true,
+
         permissions: [],
       },
     ];
@@ -147,7 +147,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome", "firefox"],
-        defaultEnabled: true,
+
         permissions: [],
         filter: (_tabId: unknown, changeInfo: unknown) =>
           (changeInfo as { status?: string })?.status === "loading",
@@ -176,7 +176,6 @@ describe("EventEngine", () => {
         tier: 2,
         category: "tab-groups",
         platforms: ["chrome"], // Chrome only
-        defaultEnabled: false,
         permissions: [],
       },
     ];
@@ -198,7 +197,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome"],
-        defaultEnabled: true,
+
         permissions: [],
         filter: (_t: unknown, c: unknown) => (c as { status?: string })?.status === "loading",
       },
@@ -211,7 +210,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome"],
-        defaultEnabled: true,
+
         permissions: [],
         filter: (_t: unknown, c: unknown) => (c as { status?: string })?.status === "complete",
       },
@@ -244,7 +243,7 @@ describe("EventEngine", () => {
         tier: 1,
         category: "tabs",
         platforms: ["chrome"],
-        defaultEnabled: true,
+
         permissions: [],
         extractData: (tab: unknown) => ({
           tabId: (tab as { id?: number })?.id,

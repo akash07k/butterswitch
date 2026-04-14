@@ -20,6 +20,8 @@ import type { AudioBackend } from "./audio-backends/types.js";
 import { EventEngine, BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "./event-engine.js";
 import { ThemeManager } from "./theme-manager.js";
 import { EVENT_REGISTRY } from "./event-registry.js";
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
+import { getEventDefaults } from "../../config/events.js";
 
 /** Module ID used for registration and dependency references. */
 export const SOUND_ENGINE_MODULE_ID = "sound-engine";
@@ -100,32 +102,39 @@ export class SoundEngineModule implements ButterSwitchModule {
     // 2. Set up the theme manager and load the default theme
     this.themeManager = new ThemeManager();
 
-    try {
-      // Load the "subtle" theme from bundled extension assets.
-      // Use chrome.runtime.getURL directly (not browser.runtime.getURL) because
-      // WXT's browser.runtime.getURL has strict PublicPath typing that rejects
-      // dynamic asset paths. The chrome global is available on both Chrome and
-      // Firefox via WXT's polyfill.
-      const getURL = (path: string): string => chrome.runtime.getURL(path);
-      const themeUrl = getURL("sounds/subtle/theme.json");
-      const response = await fetch(themeUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} loading theme: ${themeUrl}`);
-      }
-      const manifest = await response.json();
+    // Use chrome.runtime.getURL directly (not browser.runtime.getURL) because
+    // WXT's browser.runtime.getURL has strict PublicPath typing that rejects
+    // dynamic asset paths. The chrome global is available on both Chrome and
+    // Firefox via WXT's polyfill.
+    const getURL = (path: string): string => chrome.runtime.getURL(path);
 
-      const basePath = getURL("sounds/subtle");
-      const result = this.themeManager.loadTheme("subtle", manifest, basePath);
+    // Load all built-in themes from the theme registry
+    for (const theme of BUILT_IN_THEMES) {
+      try {
+        const themeUrl = getURL(`${theme.path}/theme.json`);
+        const response = await fetch(themeUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} loading theme: ${themeUrl}`);
+        }
+        const manifest = await response.json();
 
-      if (result.success) {
-        this.themeManager.setActiveTheme("subtle");
-        logger.info("Theme loaded: subtle");
-      } else {
-        logger.error("Failed to validate subtle theme", { errors: result.errors });
+        const basePath = getURL(theme.path);
+        const result = this.themeManager.loadTheme(theme.id, manifest, basePath);
+
+        if (result.success) {
+          logger.info(`Theme loaded: ${theme.id}`);
+        } else {
+          logger.error(`Failed to validate ${theme.id} theme`, { errors: result.errors });
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to load ${theme.id} theme`,
+          error instanceof Error ? error : undefined,
+        );
       }
-    } catch (error) {
-      logger.error("Failed to load subtle theme", error instanceof Error ? error : undefined);
     }
+
+    this.themeManager.setActiveTheme(DEFAULT_THEME_ID);
 
     // 3. Wire the event engine to the browser APIs
     const browserGlobal =
@@ -135,8 +144,8 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     this.eventEngine = new EventEngine(browserGlobal, context.messageBus, logger);
 
-    // Register listeners for all events supported on this platform
-    const enabledEvents = EVENT_REGISTRY.filter((e) => e.defaultEnabled);
+    // Register listeners for events that are enabled by default (from config)
+    const enabledEvents = EVENT_REGISTRY.filter((e) => getEventDefaults(e.id).enabled);
     this.eventEngine.registerAll(enabledEvents, context.platform.browser);
     logger.info("Event engine ready", { registeredEvents: enabledEvents.length });
 

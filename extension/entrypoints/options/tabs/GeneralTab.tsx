@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 import { sendLog } from "@/core/messaging/send";
 import {
   Select,
@@ -27,7 +28,7 @@ import { announce } from "@/shared/a11y/announcer";
 export function GeneralTab() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(80);
-  const [activeTheme, setActiveTheme] = useState("subtle");
+  const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
 
   // Load settings on mount
@@ -129,7 +130,11 @@ export function GeneralTab() {
               <SelectValue placeholder="Select theme" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="subtle">Subtle</SelectItem>
+              {BUILT_IN_THEMES.map((theme) => (
+                <SelectItem key={theme.id} value={theme.id}>
+                  {theme.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -160,12 +165,12 @@ export function GeneralTab() {
         onClick={() => {
           setMuted(false);
           setVolume(80);
-          setActiveTheme("subtle");
+          setActiveTheme(DEFAULT_THEME_ID);
           setSoundEngineEnabled(true);
           browser.storage.local.set({
             "general.muted": false,
             "general.masterVolume": 80,
-            "general.activeTheme": "subtle",
+            "general.activeTheme": DEFAULT_THEME_ID,
             "general.enabledModules": ["sound-engine"],
           });
           announce("General settings reset to defaults", "polite");
@@ -181,7 +186,7 @@ export function GeneralTab() {
           await browser.storage.local.clear();
           setMuted(false);
           setVolume(80);
-          setActiveTheme("subtle");
+          setActiveTheme(DEFAULT_THEME_ID);
           setSoundEngineEnabled(true);
           announce(
             "All settings reset to factory defaults. Reload the extension for full effect.",
