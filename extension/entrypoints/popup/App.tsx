@@ -3,8 +3,8 @@
  *
  * ButterSwitch popup UI — the primary quick-access interface.
  *
- * Opens when the user clicks the extension icon or presses the
- * global shortcut (Alt+Shift+B). Provides immediate access to:
+ * Opens when the user clicks the extension icon in the toolbar.
+ * Provides immediate access to:
  * - Mute toggle (Sound on/off)
  * - Master volume slider
  * - Theme switcher

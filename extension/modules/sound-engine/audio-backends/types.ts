@@ -61,7 +61,7 @@ export interface AudioBackend {
    * Initialize the audio backend.
    *
    * Chrome: creates/ensures the offscreen document exists.
-   * Firefox: sets up the background page audio context.
+   * Firefox: no-op — Howler.js initializes lazily on first play.
    *
    * Must be called before any play() calls.
    */

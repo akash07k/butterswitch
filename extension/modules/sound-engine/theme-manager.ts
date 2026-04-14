@@ -9,7 +9,8 @@
  * mappings first, then falls back to tier-based defaults.
  *
  * Built-in themes are loaded from extension assets.
- * Custom themes are stored in IndexedDB (imported as .zip by user).
+ * Custom themes (planned, not yet implemented) will be stored in
+ * IndexedDB and imported by the user as .zip files.
  */
 
 import {

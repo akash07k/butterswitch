@@ -4,12 +4,16 @@
  * ButterSwitch service worker — the extension's entry point.
  *
  * This is where the module system boots up. On extension load:
- * 1. Creates the logger with Console + WebSocket transports
+ * 1. Creates the logger with a Console transport
  * 2. Detects the platform (Chrome/Firefox, OS)
  * 3. Creates the module registry, message bus, and settings store
- * 4. Registers the sound engine module
- * 5. Initializes all modules in dependency order
+ * 4. Injects the platform-specific audio backend
+ * 5. Registers and initializes all modules in dependency order
  * 6. Activates enabled modules
+ * 7. Connects WebSocket log transport if user has enabled log streaming
+ * 8. Registers message listener for popup/options page communication
+ * 9. Registers global keyboard shortcut listener (browser.commands)
+ * 10. Registers service worker suspension cleanup
  *
  * WXT's defineBackground() is the entry point. The main function
  * CANNOT be async (MV3 constraint), so we call the async bootstrap

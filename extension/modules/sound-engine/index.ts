@@ -102,11 +102,10 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     try {
       // Load the "subtle" theme from bundled extension assets.
-      // Use the cross-browser runtime global (browser or chrome) to avoid
-      // crashing on Firefox where `chrome` may not be defined.
-      // Use chrome.runtime.getURL (available on both Chrome and Firefox via polyfill).
+      // Use chrome.runtime.getURL directly (not browser.runtime.getURL) because
       // WXT's browser.runtime.getURL has strict PublicPath typing that rejects
-      // dynamic asset paths, so we use the underlying chrome API directly.
+      // dynamic asset paths. The chrome global is available on both Chrome and
+      // Firefox via WXT's polyfill.
       const getURL = (path: string): string => chrome.runtime.getURL(path);
       const themeUrl = getURL("sounds/subtle/theme.json");
       const response = await fetch(themeUrl);

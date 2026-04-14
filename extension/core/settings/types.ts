@@ -5,7 +5,7 @@
  *
  * These types define the shape of all user-configurable settings.
  * The settings are stored in the browser's extension storage via
- * WXT's storage API and accessed by modules through the SettingsStore
+ * browser.storage.local and accessed by modules through the SettingsStore
  * interface in their ModuleContext.
  */
 

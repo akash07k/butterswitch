@@ -7,8 +7,9 @@
  * sound files (OGG format). The manifest maps event IDs to sound
  * filenames and provides fallbacks for unmapped events.
  *
- * Built-in themes live in extension/assets/sounds/.
- * Custom themes are stored in IndexedDB (imported by the user as .zip).
+ * Built-in themes live in extension/public/sounds/.
+ * Custom themes (planned, not yet implemented) will be stored in
+ * IndexedDB and imported by the user as .zip files.
  */
 
 /**
