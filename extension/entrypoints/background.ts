@@ -115,17 +115,17 @@ export default defineBackground(() => {
         connectLogServer(logger);
       }
 
-      // 11. Clean up on service worker suspension
-      browser.runtime.onSuspend.addListener(() => {
-        logger.info("Service worker suspending — disposing modules");
-        loader.disposeAll().catch(console.error);
-      });
-
       // 9. Listen for messages from popup/options page
       setupMessageListener(logger);
 
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
+
+      // 11. Clean up on service worker suspension
+      browser.runtime.onSuspend.addListener(() => {
+        logger.info("Service worker suspending — disposing modules");
+        loader.disposeAll().catch(console.error);
+      });
     } catch (error) {
       logger.fatal("ButterSwitch failed to start", error instanceof Error ? error : undefined);
     }

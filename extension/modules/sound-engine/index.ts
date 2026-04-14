@@ -79,6 +79,12 @@ export class SoundEngineModule implements ButterSwitchModule {
     return this.backend;
   }
 
+  /**
+   * Initialize the sound engine: set up audio backend, load the default
+   * theme, and register browser event listeners from the event registry.
+   * @param context - Module context providing logger, messageBus, settings, and platform.
+   * @throws Error if setAudioBackend() was not called before this method.
+   */
   async initialize(context: ModuleContext): Promise<void> {
     this.context = context;
     const { logger } = context;
@@ -138,6 +144,11 @@ export class SoundEngineModule implements ButterSwitchModule {
     this.unsubscribe = null;
   }
 
+  /**
+   * Subscribe to browser-event messages and start playing sounds.
+   * Reads masterVolume from settings and applies it to the audio backend.
+   * @throws Error if the module has not been initialized.
+   */
   async activate(): Promise<void> {
     if (!this.context || !this.backend) {
       throw new Error("Module not initialized.");
@@ -159,6 +170,7 @@ export class SoundEngineModule implements ButterSwitchModule {
     logger.info("Sound engine activated");
   }
 
+  /** Unsubscribe from browser-event messages and stop all playing sounds. */
   async deactivate(): Promise<void> {
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -169,6 +181,7 @@ export class SoundEngineModule implements ButterSwitchModule {
     this.context?.logger.info("Sound engine deactivated");
   }
 
+  /** Dispose event engine and audio backend, releasing all resources. */
   async dispose(): Promise<void> {
     if (this.unsubscribe) {
       this.unsubscribe();

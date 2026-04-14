@@ -1,15 +1,11 @@
 /**
  * @module settings/store
  *
- * Settings store implementations.
+ * In-memory settings store implementation.
  *
- * Provides two implementations of the SettingsStore interface:
- *
- * 1. **WxtSettingsStore** — production implementation using WXT's
- *    reactive storage API (chrome.storage under the hood).
- *
- * 2. **InMemorySettingsStore** — in-memory implementation for testing
- *    and for use in contexts where browser storage isn't available.
+ * Provides an in-memory implementation of the SettingsStore interface
+ * for use in tests and non-browser contexts. Production code uses
+ * {@link BrowserSettingsStore} from `./browser-store`.
  *
  * Modules access settings through the SettingsStore interface in their
  * ModuleContext — they never know which implementation is behind it.

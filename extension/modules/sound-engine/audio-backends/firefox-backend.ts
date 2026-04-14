@@ -40,22 +40,27 @@ export class FirefoxAudioBackend implements AudioBackend {
     this.initialized = true;
   }
 
+  /** Play a sound file directly via HowlerPlayer. */
   async play(soundUrl: string, options: PlayOptions = {}): Promise<PlayResult> {
     return this.player.play(soundUrl, options);
   }
 
+  /** Stop all currently playing sounds. */
   async stopAll(): Promise<void> {
     this.player.stopAll();
   }
 
+  /** Set the global volume for all sounds (0.0 to 1.0). */
   async setGlobalVolume(volume: number): Promise<void> {
     this.player.setGlobalVolume(volume);
   }
 
+  /** Whether the backend has been initialized. */
   isReady(): boolean {
     return this.initialized;
   }
 
+  /** Dispose HowlerPlayer, unloading all cached sounds. */
   async dispose(): Promise<void> {
     this.player.dispose();
     this.initialized = false;

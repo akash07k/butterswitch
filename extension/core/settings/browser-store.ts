@@ -36,15 +36,13 @@ export class BrowserSettingsStore implements SettingsStore {
   /** Watch handlers keyed by setting path. */
   private readonly watchers = new Map<string, Set<WatchHandler>>();
 
-  /**
-   * @param defaults - Default values for all settings (used on fresh install).
-   */
   /** Bound handler for storage.onChanged — stored as field for removeListener. */
   private readonly onStorageChanged: (
     changes: Record<string, { newValue?: unknown }>,
     areaName: string,
   ) => void;
 
+  /** @param defaults - Default values for all settings (used on fresh install). */
   constructor(defaults: Record<string, unknown>) {
     this.defaults = defaults;
 
