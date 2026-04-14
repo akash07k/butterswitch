@@ -12,13 +12,15 @@
  * so the extension can override library defaults from a single place.
  */
 
+import { LogLevel } from "@butterswitch/logger";
+
 export const CONFIG = {
   /** Default user-facing settings (written to browser.storage.local on first install). */
   settings: {
     masterVolume: 80,
     activeTheme: "subtle",
     muted: false,
-    logLevel: 1, // LogLevel.INFO
+    logLevel: LogLevel.INFO,
     logStreamEnabled: false,
     logServerUrl: "ws://localhost:8089",
     enabledModules: ["sound-engine"],

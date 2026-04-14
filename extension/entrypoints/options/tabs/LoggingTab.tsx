@@ -177,9 +177,11 @@ export function LoggingTab() {
         onClick={() => {
           setLogLevel("1");
           setLogServerUrl("ws://localhost:8089");
+          setLogStreamEnabled(false);
           browser.storage.local.set({
             "general.logLevel": 1,
             "general.logServerUrl": "ws://localhost:8089",
+            "general.logStreamEnabled": false,
           });
           announce("Logging settings reset to defaults", "polite");
           sendLog("warn", "Logging settings reset to defaults", { source: "options" });

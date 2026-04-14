@@ -80,6 +80,7 @@ export default function App() {
   // Register local keyboard shortcuts via hotkeys-js
   useEffect(() => {
     // Allow hotkeys to fire even when focus is in input/select/textarea
+    const originalFilter = hotkeys.filter;
     hotkeys.filter = () => true;
 
     hotkeys("alt+1", (e) => {
@@ -113,6 +114,7 @@ export default function App() {
 
     return () => {
       hotkeys.unbind("alt+1,alt+2,alt+3,alt+4,alt+t,shift+/");
+      hotkeys.filter = originalFilter;
     };
   }, [handleTabChange, handleCycleTheme]);
 

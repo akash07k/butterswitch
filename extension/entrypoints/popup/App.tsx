@@ -78,17 +78,20 @@ export default function App() {
 
   /** Cycle through available themes via keyboard shortcut. */
   const handleCycleTheme = useCallback(async () => {
+    const stored = await browser.storage.local.get("general.activeTheme");
+    const current = (stored["general.activeTheme"] as string) ?? DEFAULT_THEME_ID;
     const themeIds = BUILT_IN_THEMES.map((t) => t.id);
-    const nextIndex = (themeIds.indexOf(activeTheme) + 1) % themeIds.length;
+    const nextIndex = (themeIds.indexOf(current) + 1) % themeIds.length;
     const next = themeIds[nextIndex]!;
     setActiveTheme(next);
     await browser.storage.local.set({ "general.activeTheme": next });
     announce(`Theme changed to ${next}`, "polite");
     sendLog("info", `Theme changed to ${next} via popup shortcut`);
-  }, [activeTheme]);
+  }, []);
 
   // Register local keyboard shortcuts
   useEffect(() => {
+    const originalFilter = hotkeys.filter;
     hotkeys.filter = () => true;
 
     hotkeys("alt+t", (e) => {
@@ -106,6 +109,7 @@ export default function App() {
 
     return () => {
       hotkeys.unbind("alt+t,shift+/");
+      hotkeys.filter = originalFilter;
     };
   }, [handleCycleTheme]);
 
