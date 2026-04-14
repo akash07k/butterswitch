@@ -90,7 +90,9 @@ export default defineBackground(() => {
       logger.info("Modules initialized");
 
       // 7. Activate enabled modules
-      const enabledModules = DEFAULT_SETTINGS.general.enabledModules;
+      const enabledModules =
+        (await settings.get<string[]>("general.enabledModules")) ??
+        DEFAULT_SETTINGS.general.enabledModules;
       for (const moduleId of enabledModules) {
         const entry = registry.get(moduleId);
         if (entry && entry.state === "initialized") {
@@ -116,11 +118,11 @@ export default defineBackground(() => {
       //    applied consistently — no raw storage access needed.
       const logStreamEnabled = await settings.get<boolean>("general.logStreamEnabled");
       if (logStreamEnabled) {
-        connectLogServer(logger);
+        connectLogServer(logger, settings);
       }
 
       // 9. Listen for messages from popup/options page
-      setupMessageListener(logger);
+      setupMessageListener(logger, settings);
 
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
@@ -147,11 +149,14 @@ export default defineBackground(() => {
    * extension error. This is acceptable because the user explicitly
    * opted in by enabling log streaming.
    */
-  async function connectLogServer(logger: Logger): Promise<void> {
+  async function connectLogServer(
+    logger: Logger,
+    settingsStore: BrowserSettingsStore,
+  ): Promise<void> {
     try {
-      const stored = await browser.storage.local.get("general.logServerUrl");
       const wsUrl =
-        (stored["general.logServerUrl"] as string) || DEFAULT_SETTINGS.general.logServerUrl;
+        (await settingsStore.get<string>("general.logServerUrl")) ??
+        DEFAULT_SETTINGS.general.logServerUrl;
 
       const wsTransport = new WebSocketTransport({ url: wsUrl });
       logger.addTransport(wsTransport);
@@ -165,7 +170,7 @@ export default defineBackground(() => {
    * Listens for messages from popup/options page contexts.
    * Routes LOG messages to the logger and handles other message types.
    */
-  function setupMessageListener(logger: Logger): void {
+  function setupMessageListener(logger: Logger, settings: BrowserSettingsStore): void {
     browser.runtime.onMessage.addListener(
       (message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
         const msg = message as { type?: string };
@@ -199,7 +204,7 @@ export default defineBackground(() => {
         }
 
         if (msg.type === "CONNECT_LOG_SERVER") {
-          connectLogServer(logger).then(() => sendResponse({ success: true }));
+          connectLogServer(logger, settings).then(() => sendResponse({ success: true }));
           return true; // async response
         }
 

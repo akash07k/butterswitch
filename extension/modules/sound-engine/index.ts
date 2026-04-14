@@ -136,7 +136,10 @@ export class SoundEngineModule implements ButterSwitchModule {
       }
     }
 
-    this.themeManager.setActiveTheme(DEFAULT_THEME_ID);
+    // Set active theme from user settings (falls back to config default)
+    const activeTheme =
+      (await context.settings.get<string>("general.activeTheme")) ?? DEFAULT_THEME_ID;
+    this.themeManager.setActiveTheme(activeTheme);
 
     // 3. Wire the event engine to the browser APIs
     const browserGlobal =
@@ -146,10 +149,12 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     this.eventEngine = new EventEngine(browserGlobal, context.messageBus, logger);
 
-    // Register listeners for events that are enabled by default (from config)
-    const enabledEvents = EVENT_REGISTRY.filter((e) => getEventDefaults(e.id).enabled);
-    this.eventEngine.registerAll(enabledEvents, context.platform.browser);
-    logger.info("Event engine ready", { registeredEvents: enabledEvents.length });
+    // Register listeners for ALL events on this platform. The runtime
+    // handler (handleBrowserEvent) checks per-event enabled state from
+    // user settings, so listeners must exist for Tier 2/3 events that
+    // the user may enable at runtime without requiring a restart.
+    this.eventEngine.registerAll(EVENT_REGISTRY, context.platform.browser);
+    logger.info("Event engine ready", { registeredEvents: EVENT_REGISTRY.length });
 
     this.unsubscribe = null;
   }
@@ -221,13 +226,14 @@ export class SoundEngineModule implements ButterSwitchModule {
       return;
     }
 
-    // Check per-event enabled setting
+    // Check per-event enabled setting: user override → config default
     const eventConfig = await settings.get<{
       enabled: boolean;
       volume?: number;
       pitch?: number;
     }>(`sounds.events.${message.eventId}`);
-    if (eventConfig && !eventConfig.enabled) return;
+    const isEnabled = eventConfig?.enabled ?? getEventDefaults(message.eventId).enabled;
+    if (!isEnabled) return;
 
     // Resolve which sound to play (uses isError field from registry, not string matching)
     const soundUrl = this.themeManager.resolveSound(
