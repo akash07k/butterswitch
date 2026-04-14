@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { announce } from "@/shared/a11y/announcer";
 
+/** General settings tab — master volume, mute, theme selector, and module toggles. */
 export function GeneralTab() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(80);

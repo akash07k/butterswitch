@@ -66,6 +66,8 @@ export class SoundEngineModule implements ButterSwitchModule {
    * The background script creates the right backend (Chrome offscreen
    * or Firefox direct) and injects it here. This avoids importing
    * Howler.js in Chrome's service worker (which has no DOM).
+   *
+   * @param backend - The platform-specific audio backend (Chrome or Firefox).
    */
   setAudioBackend(backend: AudioBackend): void {
     this.backend = backend;

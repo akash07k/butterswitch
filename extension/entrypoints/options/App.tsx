@@ -34,6 +34,7 @@ const TAB_DEFINITIONS = [
   { id: "logging", label: "Logging" },
 ] as const;
 
+/** Options page root — tabbed settings interface with local keyboard shortcuts. */
 export default function App() {
   const [activeTab, setActiveTab] = useState("general");
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});

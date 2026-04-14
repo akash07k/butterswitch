@@ -49,6 +49,7 @@ const TIER_OPTIONS = [
   { value: "all", label: "All events" },
 ] as const;
 
+/** Sound Events settings tab — filterable table of all browser events with per-event controls. */
 export function SoundEventsTab() {
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("1");

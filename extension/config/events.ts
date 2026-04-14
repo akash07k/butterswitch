@@ -134,8 +134,8 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
 
 /**
  * Look up the default config for an event.
- * Returns `{ enabled: false }` for events not in the map.
  * @param eventId - The event ID from the event registry.
+ * @returns The default config for the event, or `{ enabled: false }` if not found.
  */
 export function getEventDefaults(eventId: string): EventDefaults {
   return EVENT_DEFAULTS[eventId] ?? { enabled: false };

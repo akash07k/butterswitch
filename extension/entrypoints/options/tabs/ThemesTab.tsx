@@ -22,6 +22,7 @@ import { announce } from "@/shared/a11y/announcer";
 import { sendLog } from "@/core/messaging/send";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 
+/** Themes settings tab — theme selector, active theme info, and custom theme import placeholder. */
 export function ThemesTab() {
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
 
