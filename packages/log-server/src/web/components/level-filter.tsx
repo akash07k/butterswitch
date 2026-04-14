@@ -14,6 +14,7 @@ const LEVELS = [
   { value: 4, label: "FATAL" },
 ];
 
+/** Checkbox group for toggling visible log levels. Announces filter state to screen readers. */
 export function LevelFilter({ enabledLevels, onChange }: LevelFilterProps) {
   const handleChange = (selected: string[]) => {
     const levels = selected.map((s) => parseInt(s, 10)).filter((n) => !Number.isNaN(n));

@@ -32,9 +32,12 @@ function formatTime12h(date: Date): string {
 }
 
 /**
- * Formats a log entry for terminal output.
+ * Format a log entry for terminal output.
  * Screen-reader-friendly: no ANSI color codes, clean flat structure.
  * Format: LEVEL: tag | message [error] at DATE at TIME
+ *
+ * @param entry - The log entry to format.
+ * @returns A single-line string suitable for terminal or plain-text file output.
  */
 export function formatForTerminal(entry: LogEntry): string {
   const level = LEVEL_LABELS[entry.level] ?? `LEVEL${entry.level}`;

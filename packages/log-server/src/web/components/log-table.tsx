@@ -82,6 +82,7 @@ function formatTime(timestamp: string): string {
   return `${hours}:${minutes}:${seconds}.${ms} ${ampm}`;
 }
 
+/** Accessible log entry table with sortable columns, expandable detail rows, and configurable column visibility. */
 export function LogTable({
   entries,
   totalCount,

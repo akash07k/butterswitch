@@ -16,20 +16,32 @@ const LEVEL_MAP: Record<string, number> = {
   fatal: 4,
 };
 
+/** Typed options produced by {@link parseCliArgs} and consumed by {@link startServer}. */
 export interface CliOptions {
+  /** WebSocket port to listen on (default: 8089). */
   port: number;
+  /** Optional path to also write formatted logs to a file. */
   file?: string;
+  /** Minimum numeric log level to display (0=DEBUG, 4=FATAL; default: 0). */
   level: number;
+  /** Optional tag prefix filter. */
   tag?: string;
+  /** Whether to enable coloured terminal output (default: false). */
   color: boolean;
+  /** In-memory replay buffer size (default: 1000). */
   bufferSize: number;
+  /** Override for the session storage directory. */
   logDir?: string;
+  /** Maximum number of session files to retain (default: 50). */
   maxSessions: number;
 }
 
 /**
- * Parse CLI arguments into typed options.
- * Exported separately for testing without starting the server.
+ * Parse raw CLI arguments into typed {@link CliOptions}.
+ * Exported separately so tests can invoke the parser without spawning a server.
+ *
+ * @param argv - Raw argument strings, typically process.argv.slice(2).
+ * @returns Fully typed options with all defaults applied.
  */
 export function parseCliArgs(argv: string[]): CliOptions {
   const program = new Command();
@@ -68,6 +80,9 @@ export function parseCliArgs(argv: string[]): CliOptions {
 
 /**
  * Start the log server with the given options.
+ * Installs a SIGINT handler for graceful shutdown.
+ *
+ * @param options - Parsed CLI options (see {@link parseCliArgs}).
  */
 export async function startServer(options: CliOptions): Promise<void> {
   // Resolve web viewer directory (built files next to CLI)

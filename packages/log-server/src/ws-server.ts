@@ -11,6 +11,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import type { LogEntry } from "./types.js";
 import type { SessionStore } from "./session-store.js";
 
+/** Configuration options for {@link LogServer}. */
 export interface LogServerConfig {
   /** Port to listen on. Use 0 for a random available port. */
   port: number;
@@ -45,6 +46,7 @@ export class LogServer extends EventEmitter {
   private wss: WebSocketServer | null = null;
   private clients = new Set<WebSocket>();
 
+  /** @param config - Server configuration. Set port to 0 for a random available port. */
   constructor(config: LogServerConfig) {
     super();
     this.config = config;
@@ -56,7 +58,10 @@ export class LogServer extends EventEmitter {
     return this.clients.size;
   }
 
-  /** Start the server. Returns the actual port (useful when port is 0). */
+  /**
+   * Start the HTTP and WebSocket server.
+   * @returns The actual bound port (useful when config.port was 0).
+   */
   async start(): Promise<number> {
     return new Promise((resolve, reject) => {
       this.httpServer = createServer((req, res) => this.handleHttp(req, res));
@@ -121,7 +126,10 @@ export class LogServer extends EventEmitter {
     });
   }
 
-  /** Broadcast a log entry to all connected WebSocket clients and buffer for replay. */
+  /**
+   * Broadcast a log entry to all connected WebSocket clients and buffer for replay.
+   * @param entry - The log entry to broadcast and buffer.
+   */
   broadcast(entry: LogEntry): void {
     // Buffer for new clients that connect later
     this.entryBuffer.push(entry);

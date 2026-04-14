@@ -11,6 +11,7 @@ interface SearchBarProps {
 
 const ANNOUNCE_DEBOUNCE_MS = 500;
 
+/** Full-text search field for filtering log entries. Announces result counts to screen readers. */
 export function SearchBar({ value, onChange, resultCount, totalCount }: SearchBarProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevValueRef = useRef(value);

@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import type { LogEntry } from "./types.js";
 
+/** Configuration options for {@link SessionStore}. */
 export interface SessionStoreConfig {
   /** Directory for session files (default: ~/.butterswitch-logs) */
   logDir?: string;
@@ -17,6 +18,7 @@ export interface SessionStoreConfig {
   maxSessions?: number;
 }
 
+/** Metadata for a single persisted log session. Returned by {@link SessionStore.listSessions}. */
 export interface SessionInfo {
   /** Session filename (without path) */
   filename: string;
@@ -41,6 +43,10 @@ export class SessionStore {
   private readonly sessionId: string;
   private entryCount = 0;
 
+  /**
+   * @param config - Optional configuration. Creates the log directory
+   *   and prunes old sessions if count exceeds maxSessions.
+   */
   constructor(config: SessionStoreConfig = {}) {
     this.logDir = config.logDir ?? DEFAULT_LOG_DIR;
     this.maxSessions = config.maxSessions ?? DEFAULT_MAX_SESSIONS;
@@ -51,13 +57,19 @@ export class SessionStore {
     this.cleanOldSessions();
   }
 
-  /** Append an entry to the current session file. */
+  /**
+   * Append a log entry to the current session file as a JSONL line.
+   * @param entry - The log entry to persist.
+   */
   append(entry: LogEntry): void {
     appendFileSync(this.sessionFile, JSON.stringify(entry) + "\n");
     this.entryCount++;
   }
 
-  /** List all available sessions, newest first. */
+  /**
+   * List all available sessions, newest first.
+   * @returns Array of SessionInfo objects sorted by descending start time.
+   */
   listSessions(): SessionInfo[] {
     if (!existsSync(this.logDir)) return [];
 
@@ -78,7 +90,12 @@ export class SessionStore {
       });
   }
 
-  /** Load all entries from a specific session file. */
+  /**
+   * Load all entries from a specific session file.
+   * @param filename - Session filename (basename only). Path traversal
+   *   attempts return an empty array rather than throwing.
+   * @returns Parsed log entries, or empty array if file is missing/invalid.
+   */
   loadSession(filename: string): LogEntry[] {
     const filePath = resolve(this.logDir, filename);
 

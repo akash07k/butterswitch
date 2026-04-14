@@ -54,6 +54,7 @@ function formatSessionDate(isoString: string): string {
   }
 }
 
+/** Connection status bar with reconnect, session selection, auto-scroll toggle, and log export. */
 export function StatusBar({
   connected,
   autoScroll,
