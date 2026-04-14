@@ -42,21 +42,20 @@ describe("DEFAULT_SETTINGS", () => {
   });
 
   describe("hotkeys", () => {
-    it("has default bindings for core commands", () => {
+    it("has default bindings for global and local commands", () => {
       const bindings = DEFAULT_SETTINGS.hotkeys.bindings;
 
       expect(bindings["global:toggle-mute"]).toBeDefined();
-      expect(bindings["global:volume-up"]).toBeDefined();
-      expect(bindings["global:volume-down"]).toBeDefined();
-      expect(bindings["global:cycle-theme"]).toBeDefined();
+      expect(bindings["global:open-options"]).toBeDefined();
+      expect(bindings["local:cycle-theme"]).toBeDefined();
+      expect(bindings["local:tab-sound-events"]).toBeDefined();
     });
 
     it("uses Alt modifier for global shortcuts", () => {
       const bindings = DEFAULT_SETTINGS.hotkeys.bindings;
 
       expect(bindings["global:toggle-mute"]).toMatch(/^Alt\+/);
-      expect(bindings["global:volume-up"]).toMatch(/^Alt\+/);
-      expect(bindings["global:volume-down"]).toMatch(/^Alt\+/);
+      expect(bindings["global:open-options"]).toMatch(/^Alt\+/);
     });
   });
 });

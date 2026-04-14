@@ -104,6 +104,13 @@ export function HotkeysTab() {
   /** Debounce timer for hotkey change announcements. */
   const announceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clean up pending announce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (announceTimerRef.current) clearTimeout(announceTimerRef.current);
+    };
+  }, []);
+
   /** Save a single local hotkey binding. */
   const handleLocalBindingChange = (commandId: string, newBinding: string) => {
     setLocalBindings((prev) => ({ ...prev, [commandId]: newBinding }));
@@ -125,10 +132,14 @@ export function HotkeysTab() {
     announce("Page shortcuts reset to defaults", "polite");
   };
 
-  /** Open the browser's extension shortcut editor. */
+  /** Copy the browser's shortcut editor URL to inform the user. */
   const handleOpenShortcutEditor = () => {
-    browser.tabs.create({ url: "chrome://extensions/shortcuts" });
-    announce("Opening browser shortcut editor", "polite");
+    announce(
+      "To change global shortcuts, open your browser's extension shortcuts page. " +
+        "In Chrome, navigate to chrome://extensions/shortcuts. " +
+        "In Firefox, go to about:addons, click the gear icon, then Manage Extension Shortcuts.",
+      "assertive",
+    );
   };
 
   return (
@@ -179,7 +190,7 @@ export function HotkeysTab() {
         </Table>
 
         <Button variant="outline" size="sm" onClick={handleOpenShortcutEditor}>
-          Open Browser Shortcut Editor
+          How to Change Global Shortcuts
         </Button>
       </fieldset>
 

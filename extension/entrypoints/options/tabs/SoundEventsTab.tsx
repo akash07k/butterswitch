@@ -127,19 +127,31 @@ export function SoundEventsTab() {
     announce(`${event.label} ${checked ? "enabled" : "disabled"}`, "polite");
   };
 
-  /** Update an event's volume. */
+  /** Update volume UI state on drag (does NOT save to storage yet). */
   const handleVolume = (event: EventDefinition, values: number[]) => {
     const volume = values[0] ?? 100;
     const updated = { ...configs[event.id]!, volume };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
+  };
+
+  /** Save volume to storage when slider is released. */
+  const handleVolumeCommit = (event: EventDefinition, values: number[]) => {
+    const volume = values[0] ?? 100;
+    const updated = { ...configs[event.id]!, volume };
     saveEventConfig(event.id, updated);
   };
 
-  /** Update an event's pitch. */
+  /** Update pitch UI state on drag (does NOT save to storage yet). */
   const handlePitch = (event: EventDefinition, values: number[]) => {
     const pitch = values[0] ?? 1.0;
     const updated = { ...configs[event.id]!, pitch };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
+  };
+
+  /** Save pitch to storage when slider is released. */
+  const handlePitchCommit = (event: EventDefinition, values: number[]) => {
+    const pitch = values[0] ?? 1.0;
+    const updated = { ...configs[event.id]!, pitch };
     saveEventConfig(event.id, updated);
   };
 
@@ -260,6 +272,7 @@ export function SoundEventsTab() {
                     max={100}
                     step={5}
                     onValueChange={(v) => handleVolume(event, v)}
+                    onValueCommit={(v) => handleVolumeCommit(event, v)}
                     disabled={!config.enabled}
                   />
                 </TableCell>
@@ -272,6 +285,7 @@ export function SoundEventsTab() {
                     max={2.0}
                     step={0.1}
                     onValueChange={(v) => handlePitch(event, v)}
+                    onValueCommit={(v) => handlePitchCommit(event, v)}
                     disabled={!config.enabled}
                   />
                 </TableCell>

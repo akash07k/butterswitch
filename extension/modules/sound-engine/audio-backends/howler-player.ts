@@ -48,15 +48,9 @@ export class HowlerPlayer {
           sound.stop();
         }
 
-        const playId = sound.play();
-
-        if (options.volume !== undefined) {
-          sound.volume(options.volume, playId);
-        }
-        if (options.rate !== undefined) {
-          sound.rate(options.rate, playId);
-        }
-
+        // Register event handlers BEFORE calling play() to avoid a race
+        // where cached sounds fire the "play" event synchronously before
+        // the handler is attached, causing the promise to never resolve.
         sound.once("play", () => {
           const latencyMs = Math.round(performance.now() - startTime);
           resolve({ success: true, latencyMs });
@@ -71,6 +65,15 @@ export class HowlerPlayer {
           const latencyMs = Math.round(performance.now() - startTime);
           resolve({ success: false, latencyMs, error: `Play error: ${String(error)}` });
         });
+
+        const playId = sound.play();
+
+        if (options.volume !== undefined) {
+          sound.volume(options.volume, playId);
+        }
+        if (options.rate !== undefined) {
+          sound.rate(options.rate, playId);
+        }
       } catch (error) {
         const latencyMs = Math.round(performance.now() - startTime);
         resolve({
