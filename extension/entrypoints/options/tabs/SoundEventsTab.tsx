@@ -35,6 +35,11 @@ import { announce } from "@/shared/a11y/announcer";
 import { EVENT_REGISTRY } from "@/modules/sound-engine/event-registry";
 import type { EventDefinition } from "@/modules/sound-engine/types";
 
+/** Events supported on the current browser (filtered at build time). */
+const PLATFORM_EVENTS = EVENT_REGISTRY.filter((e) =>
+  e.platforms.includes(import.meta.env.BROWSER === "firefox" ? "firefox" : "chrome"),
+);
+
 /** Per-event config stored in settings. */
 interface EventConfig {
   enabled: boolean;
@@ -61,7 +66,7 @@ export function SoundEventsTab() {
       try {
         const stored = await browser.storage.local.get(null);
         const loadedConfigs: Record<string, EventConfig> = {};
-        for (const event of EVENT_REGISTRY) {
+        for (const event of PLATFORM_EVENTS) {
           const key = `sounds.events.${event.id}`;
           if (stored[key]) {
             loadedConfigs[event.id] = stored[key] as EventConfig;
@@ -77,7 +82,7 @@ export function SoundEventsTab() {
       } catch {
         // Use defaults
         const defaults: Record<string, EventConfig> = {};
-        for (const event of EVENT_REGISTRY) {
+        for (const event of PLATFORM_EVENTS) {
           defaults[event.id] = {
             enabled: getEventDefaults(event.id).enabled,
             volume: 100,
@@ -93,7 +98,7 @@ export function SoundEventsTab() {
   // Filter events by search + tier
   const filteredEvents = useMemo(() => {
     const query = search.toLowerCase();
-    return EVENT_REGISTRY.filter((event) => {
+    return PLATFORM_EVENTS.filter((event) => {
       // Tier filter
       if (tierFilter === "1" && event.tier !== 1) return false;
       if (tierFilter === "1-2" && event.tier > 2) return false;
@@ -223,7 +228,7 @@ export function SoundEventsTab() {
 
         {/* Result count */}
         <div id="event-count" role="status" className="text-sm text-muted-foreground">
-          Showing {filteredEvents.length} of {EVENT_REGISTRY.length} events
+          Showing {filteredEvents.length} of {PLATFORM_EVENTS.length} events
         </div>
       </fieldset>
 
@@ -311,8 +316,8 @@ export function SoundEventsTab() {
         variant="outline"
         onClick={async () => {
           const defaults: Record<string, EventConfig> = {};
-          const keysToRemove = EVENT_REGISTRY.map((e) => `sounds.events.${e.id}`);
-          for (const event of EVENT_REGISTRY) {
+          const keysToRemove = PLATFORM_EVENTS.map((e) => `sounds.events.${e.id}`);
+          for (const event of PLATFORM_EVENTS) {
             defaults[event.id] = {
               enabled: getEventDefaults(event.id).enabled,
               volume: 100,
