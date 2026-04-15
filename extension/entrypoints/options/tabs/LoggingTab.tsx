@@ -90,8 +90,28 @@ export function LoggingTab() {
 
   const handleExport = async (format: "json" | "csv" | "html") => {
     announce(`Exporting logs as ${format.toUpperCase()}...`, "polite");
-    // TODO: Wire to IndexedDB log export when available
-    announce(`Log export not yet implemented`, "polite");
+
+    const response = (await browser.runtime.sendMessage({
+      type: "EXPORT_LOGS",
+      format,
+    })) as { success: boolean; data?: string; error?: string };
+
+    if (!response.success || !response.data) {
+      announce(`Export failed: ${response.error ?? "unknown error"}`, "assertive");
+      return;
+    }
+
+    const mimeTypes = { json: "application/json", csv: "text/csv", html: "text/html" };
+    const blob = new Blob([response.data], { type: mimeTypes[format] });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `butterswitch-logs.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    announce(`Exported logs as ${format.toUpperCase()}`, "polite");
+    sendLog("info", `Logs exported as ${format}`, { source: "options" });
   };
 
   return (
@@ -157,8 +177,11 @@ export function LoggingTab() {
 
       {/* Export */}
       <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Export Logs</legend>
-        <div className="flex gap-2">
+        <legend className="text-sm font-semibold px-2">Stored Logs</legend>
+        <p className="text-sm text-muted-foreground">
+          Logs are stored locally in the browser. Export them for debugging or clear to free space.
+        </p>
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => handleExport("json")}>
             Export JSON
           </Button>
@@ -167,6 +190,22 @@ export function LoggingTab() {
           </Button>
           <Button variant="outline" onClick={() => handleExport("html")}>
             Export HTML
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const response = (await browser.runtime.sendMessage({ type: "CLEAR_LOGS" })) as {
+                success: boolean;
+              };
+              if (response.success) {
+                announce("All stored logs cleared", "polite");
+                sendLog("warn", "Logs cleared from IndexedDB", { source: "options" });
+              } else {
+                announce("Failed to clear logs", "assertive");
+              }
+            }}
+          >
+            Clear Logs
           </Button>
         </div>
       </fieldset>

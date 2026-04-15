@@ -20,7 +20,14 @@
  * function inside it and handle errors.
  */
 
-import { createLogger, LogLevel, ConsoleTransport, WebSocketTransport } from "@butterswitch/logger";
+import {
+  createLogger,
+  LogLevel,
+  ConsoleTransport,
+  WebSocketTransport,
+  IndexedDBTransport,
+  LogExporter,
+} from "@butterswitch/logger";
 import type { Logger } from "@butterswitch/logger";
 import { ModuleRegistry } from "../core/module-system/registry.js";
 import { ModuleLoader } from "../core/module-system/loader.js";
@@ -29,6 +36,7 @@ import { BrowserSettingsStore } from "../core/settings/browser-store.js";
 import { DEFAULT_SETTINGS } from "../core/settings/defaults.js";
 import { detectPlatform } from "../shared/platform/detect.js";
 import { soundEngineModule } from "../modules/sound-engine/index.js";
+import { CONFIG } from "../config/index.js";
 import type { AudioBackend } from "../modules/sound-engine/audio-backends/types.js";
 import type { ModuleContext } from "../core/module-system/types.js";
 
@@ -38,15 +46,19 @@ export default defineBackground(() => {
    * Called from the synchronous defineBackground main function.
    */
   async function bootstrap(): Promise<void> {
-    // 1. Create the logger
-    //    Console transport only by default. WebSocket transport can be
-    //    enabled later via the options page when the user starts the log server.
-    //    We don't attempt WebSocket here because Chrome logs ANY failed
-    //    WebSocket connection as an extension error — even caught ones.
+    // 1. Create the logger with Console + IndexedDB transports.
+    //    Console for developer visibility, IndexedDB for persistent storage
+    //    and log export. WebSocket transport is added later if the user
+    //    enables log streaming (to avoid Chrome errors from failed connections).
+    const idbTransport = new IndexedDBTransport({
+      dbName: "butterswitch-logs",
+      maxEntries: CONFIG.logger.idbMaxEntries,
+      storeName: CONFIG.logger.idbStoreName,
+    });
     const logger = createLogger({
       level: LogLevel.DEBUG,
       tag: "butterswitch",
-      transports: [new ConsoleTransport()],
+      transports: [new ConsoleTransport(), idbTransport],
     });
 
     logger.info("ButterSwitch starting up...");
@@ -122,7 +134,7 @@ export default defineBackground(() => {
       }
 
       // 9. Listen for messages from popup/options page
-      setupMessageListener(logger, settings);
+      setupMessageListener(logger, settings, idbTransport);
 
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
@@ -170,7 +182,11 @@ export default defineBackground(() => {
    * Listens for messages from popup/options page contexts.
    * Routes LOG messages to the logger and handles other message types.
    */
-  function setupMessageListener(logger: Logger, settings: BrowserSettingsStore): void {
+  function setupMessageListener(
+    logger: Logger,
+    settings: BrowserSettingsStore,
+    idbTransport: IndexedDBTransport,
+  ): void {
     browser.runtime.onMessage.addListener(
       (message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
         const msg = message as { type?: string };
@@ -213,6 +229,25 @@ export default defineBackground(() => {
           handlePreviewSound(previewMsg.eventId, logger)
             .then((result) => sendResponse(result))
             .catch(() => sendResponse({ success: false, error: "Preview failed" }));
+          return true; // async response
+        }
+
+        if (msg.type === "EXPORT_LOGS") {
+          const exportMsg = message as { format: "json" | "csv" | "html" };
+          handleExportLogs(idbTransport, exportMsg.format)
+            .then((result) => sendResponse(result))
+            .catch(() => sendResponse({ success: false, error: "Export failed" }));
+          return true; // async response
+        }
+
+        if (msg.type === "CLEAR_LOGS") {
+          idbTransport
+            .clear()
+            .then(() => {
+              logger.info("Logs cleared from IndexedDB");
+              sendResponse({ success: true });
+            })
+            .catch(() => sendResponse({ success: false, error: "Clear failed" }));
           return true; // async response
         }
 
@@ -279,6 +314,34 @@ export default defineBackground(() => {
       const result = await backend.play(soundUrl);
       logger.info(`Preview: ${eventDef.label}`, { eventId, sound: soundUrl });
       return { success: result.success, error: result.error };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /**
+   * Handle a log export request from the options page.
+   * Queries all entries from IndexedDB and formats them.
+   */
+  async function handleExportLogs(
+    transport: IndexedDBTransport,
+    format: "json" | "csv" | "html",
+  ): Promise<{ success: boolean; data?: string; error?: string }> {
+    try {
+      const entries = await transport.query({});
+      let data: string;
+      switch (format) {
+        case "json":
+          data = LogExporter.toJSON(entries);
+          break;
+        case "csv":
+          data = LogExporter.toCSV(entries);
+          break;
+        case "html":
+          data = LogExporter.toHTML(entries);
+          break;
+      }
+      return { success: true, data };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }

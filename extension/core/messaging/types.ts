@@ -12,7 +12,11 @@
 /**
  * Messages that UI contexts (popup, options) can send to the background script.
  */
-export type ExtensionMessage = LogMessage | PreviewSoundMessage;
+export type ExtensionMessage =
+  | LogMessage
+  | PreviewSoundMessage
+  | ExportLogsMessage
+  | ClearLogsMessage;
 
 /**
  * Request the background script to log a message.
@@ -35,9 +39,26 @@ export interface PreviewSoundMessage {
 }
 
 /**
+ * Request the background script to export stored logs.
+ * The background queries IndexedDB and returns formatted data.
+ */
+export interface ExportLogsMessage {
+  type: "EXPORT_LOGS";
+  format: "json" | "csv" | "html";
+}
+
+/**
+ * Request the background script to clear all stored logs.
+ */
+export interface ClearLogsMessage {
+  type: "CLEAR_LOGS";
+}
+
+/**
  * Response from the background script.
  */
 export interface ExtensionResponse {
   success: boolean;
   error?: string;
+  data?: string;
 }
