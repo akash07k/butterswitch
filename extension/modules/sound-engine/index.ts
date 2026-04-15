@@ -59,6 +59,9 @@ export class SoundEngineModule implements ButterSwitchModule {
   /** Unsubscribe function for the message bus subscription. */
   private unsubscribe: (() => void) | null = null;
 
+  /** Unwatch functions for settings watchers. */
+  private unwatchers: (() => void)[] = [];
+
   /**
    * Inject the platform-specific audio backend.
    * Must be called BEFORE initialize().
@@ -182,6 +185,27 @@ export class SoundEngineModule implements ButterSwitchModule {
     const masterVolume = (await settings.get<number>("general.masterVolume")) ?? 80;
     await this.backend.setGlobalVolume(masterVolume / 100);
 
+    // Watch for live settings changes (mute, volume, theme)
+    this.unwatchers.push(
+      settings.watch("general.masterVolume", (newValue) => {
+        const vol = (newValue as number) ?? 80;
+        this.backend?.setGlobalVolume(vol / 100);
+        logger.debug(`Volume changed to ${vol}%`);
+      }),
+      settings.watch("general.muted", (newValue) => {
+        const muted = (newValue as boolean) ?? false;
+        if (muted) this.backend?.stopAll();
+        logger.debug(muted ? "Muted" : "Unmuted");
+      }),
+      settings.watch("general.activeTheme", (newValue) => {
+        const themeId = (newValue as string) ?? DEFAULT_THEME_ID;
+        if (this.themeManager) {
+          this.themeManager.setActiveTheme(themeId);
+          logger.info(`Theme switched to ${themeId}`);
+        }
+      }),
+    );
+
     logger.info("Sound engine activated");
   }
 
@@ -191,6 +215,8 @@ export class SoundEngineModule implements ButterSwitchModule {
       this.unsubscribe();
       this.unsubscribe = null;
     }
+    for (const unwatch of this.unwatchers) unwatch();
+    this.unwatchers = [];
 
     await this.backend?.stopAll();
     this.context?.logger.info("Sound engine deactivated");
@@ -202,6 +228,8 @@ export class SoundEngineModule implements ButterSwitchModule {
       this.unsubscribe();
       this.unsubscribe = null;
     }
+    for (const unwatch of this.unwatchers) unwatch();
+    this.unwatchers = [];
 
     this.eventEngine?.dispose();
     await this.backend?.dispose();
