@@ -772,6 +772,18 @@ const TIER_2_EVENTS: EventDefinition[] = [
     permissions: [],
   },
   {
+    id: "notifications.onShown",
+    namespace: "notifications",
+    event: "onShown",
+    label: "Notification Shown",
+    description: "A notification was displayed to the user (Firefox only).",
+    tier: 2,
+    category: "other",
+    platforms: ["firefox"],
+
+    permissions: ["notifications"],
+  },
+  {
     id: "notifications.onClicked",
     namespace: "notifications",
     event: "onClicked",
