@@ -18,7 +18,7 @@ export const CONFIG = {
   /** Default user-facing settings (written to browser.storage.local on first install). */
   settings: {
     masterVolume: 80,
-    activeTheme: "subtle",
+    activeTheme: "pulse",
     muted: false,
     logLevel: LogLevel.INFO,
     logStreamEnabled: false,

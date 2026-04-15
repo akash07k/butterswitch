@@ -9,7 +9,7 @@ describe("DEFAULT_SETTINGS", () => {
     });
 
     it("has a default theme", () => {
-      expect(DEFAULT_SETTINGS.general.activeTheme).toBe("subtle");
+      expect(DEFAULT_SETTINGS.general.activeTheme).toBe("pulse");
     });
 
     it("is not muted by default", () => {

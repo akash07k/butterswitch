@@ -74,6 +74,9 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   "runtime.onInstalled": { enabled: true },
   "runtime.onStartup": { enabled: true },
 
+  // Notifications (Firefox only)
+  "notifications.onShown": { enabled: true },
+
   // ─── Tier 2: Useful (disabled by default) ─────────────────────
 
   // Tabs (extended)
@@ -121,7 +124,6 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
 
   // Other
   "commands.onCommand": { enabled: false },
-  "notifications.onShown": { enabled: false },
   "notifications.onClicked": { enabled: false },
   "notifications.onClosed": { enabled: false },
   "cookies.onChanged": { enabled: false },

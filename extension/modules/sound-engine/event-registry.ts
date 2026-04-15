@@ -400,6 +400,20 @@ const TIER_1_EVENTS: EventDefinition[] = [
 
     permissions: [],
   },
+
+  // === Notifications ===
+  {
+    id: "notifications.onShown",
+    namespace: "notifications",
+    event: "onShown",
+    label: "Notification Shown",
+    description: "A notification was displayed to the user (Firefox only).",
+    tier: 1,
+    category: "other",
+    platforms: ["firefox"],
+
+    permissions: ["notifications"],
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -770,18 +784,6 @@ const TIER_2_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: [],
-  },
-  {
-    id: "notifications.onShown",
-    namespace: "notifications",
-    event: "onShown",
-    label: "Notification Shown",
-    description: "A notification was displayed to the user (Firefox only).",
-    tier: 2,
-    category: "other",
-    platforms: ["firefox"],
-
-    permissions: ["notifications"],
   },
   {
     id: "notifications.onClicked",

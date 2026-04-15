@@ -23,18 +23,11 @@ export interface ThemeDefinition {
  */
 export const BUILT_IN_THEMES: readonly ThemeDefinition[] = [
   {
-    id: "subtle",
-    name: "Subtle",
-    description: "Soft clicks and gentle chimes. Minimal, non-intrusive audio cues.",
-    path: "sounds/subtle",
+    id: "pulse",
+    name: "Pulse",
+    description: "Responsive audio cues with a rhythmic, modern feel.",
+    path: "sounds/pulse",
   },
-  // To add a new theme, add an entry here:
-  // {
-  //   id: "modern",
-  //   name: "Modern",
-  //   description: "Crisp digital tones for a contemporary feel.",
-  //   path: "sounds/modern",
-  // },
 ];
 
 /** The default theme ID (first theme in the registry). */
