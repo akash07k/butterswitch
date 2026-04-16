@@ -19,6 +19,13 @@ export interface EventDefaults {
   volume?: number;
   /** Default pitch/playback rate (0.5-2.0). Omit for normal speed. */
   pitch?: number;
+  /**
+   * Debounce window in milliseconds. If the same event fires again
+   * within this window, the subsequent firing is suppressed.
+   * Useful for rapid-fire events like tabs.onUpdated or webNavigation.
+   * Omit or set to 0 for no debounce.
+   */
+  debounceMs?: number;
 }
 
 /**
@@ -37,20 +44,20 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   "tabs.onCreated": { enabled: true },
   "tabs.onRemoved": { enabled: true },
   "tabs.onActivated": { enabled: true },
-  "tabs.onUpdated.loading": { enabled: true },
-  "tabs.onUpdated.complete": { enabled: true },
-  "tabs.onUpdated.title": { enabled: true },
+  "tabs.onUpdated.loading": { enabled: true, debounceMs: 300 },
+  "tabs.onUpdated.complete": { enabled: true, debounceMs: 300 },
+  "tabs.onUpdated.title": { enabled: true, debounceMs: 500 },
   "tabs.onMoved": { enabled: true },
   "tabs.onDetached": { enabled: true },
   "tabs.onAttached": { enabled: true },
 
   // Navigation
-  "webNavigation.onBeforeNavigate": { enabled: true },
-  "webNavigation.onCommitted": { enabled: true },
-  "webNavigation.onDOMContentLoaded": { enabled: true },
-  "webNavigation.onCompleted": { enabled: true },
+  "webNavigation.onBeforeNavigate": { enabled: true, debounceMs: 300 },
+  "webNavigation.onCommitted": { enabled: true, debounceMs: 300 },
+  "webNavigation.onDOMContentLoaded": { enabled: true, debounceMs: 300 },
+  "webNavigation.onCompleted": { enabled: true, debounceMs: 300 },
   "webNavigation.onErrorOccurred": { enabled: true },
-  "webNavigation.onHistoryStateUpdated": { enabled: true },
+  "webNavigation.onHistoryStateUpdated": { enabled: true, debounceMs: 500 },
 
   // Bookmarks
   "bookmarks.onCreated": { enabled: true },
@@ -68,7 +75,7 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   // Windows
   "windows.onCreated": { enabled: true },
   "windows.onRemoved": { enabled: true },
-  "windows.onFocusChanged": { enabled: true },
+  "windows.onFocusChanged": { enabled: true, debounceMs: 200 },
 
   // Runtime
   "runtime.onInstalled": { enabled: true },

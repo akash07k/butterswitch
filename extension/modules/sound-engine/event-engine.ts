@@ -18,6 +18,7 @@
 import type { EventDefinition } from "./types.js";
 import type { MessageBus } from "../../core/module-system/types.js";
 import type { Logger } from "@butterswitch/logger";
+import { getEventDefaults } from "../../config/events.js";
 
 /**
  * Data published to the message bus for each browser event.
@@ -53,6 +54,9 @@ export class EventEngine {
   private readonly browser: Record<string, unknown>;
   private readonly messageBus: MessageBus;
   private readonly logger: Logger;
+
+  /** Last fire time per event ID for debounce tracking. */
+  private lastFireTime = new Map<string, number>();
 
   /** Stored listener references for cleanup on dispose. */
   private registeredListeners: {
@@ -135,16 +139,28 @@ export class EventEngine {
     }
     this.logger.debug(`Removed ${this.registeredListeners.length} event listeners`);
     this.registeredListeners = [];
+    this.lastFireTime.clear();
   }
 
   /**
    * Handles a browser event firing.
-   * Applies the filter, extracts data, and publishes to the message bus.
+   * Applies the filter, checks debounce, extracts data, and publishes to the message bus.
    */
   private handleEvent(definition: EventDefinition, args: unknown[]): void {
     // Apply filter if defined (for sub-events like tabs.onUpdated.loading)
     if (definition.filter && !definition.filter(...args)) {
       return;
+    }
+
+    // Debounce: suppress if the same event fired within the debounce window
+    const debounceMs = getEventDefaults(definition.id).debounceMs;
+    if (debounceMs && debounceMs > 0) {
+      const now = Date.now();
+      const lastFire = this.lastFireTime.get(definition.id) ?? 0;
+      if (now - lastFire < debounceMs) {
+        return;
+      }
+      this.lastFireTime.set(definition.id, now);
     }
 
     // Extract data for logging
