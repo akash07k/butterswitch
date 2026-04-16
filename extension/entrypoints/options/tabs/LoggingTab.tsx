@@ -107,11 +107,15 @@ export function LoggingTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `butterswitch-logs.${format}`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      a.download = `butterswitch-logs-${timestamp}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
 
-      announce(`Exported logs as ${format.toUpperCase()}`, "polite");
+      announce(
+        `Exported logs as ${format.toUpperCase()}. File saved to your Downloads folder.`,
+        "polite",
+      );
       sendLog("info", `Logs exported as ${format}`, { source: "options" });
     } catch {
       announce("Export failed. The extension may need to be reloaded.", "assertive");
@@ -183,7 +187,7 @@ export function LoggingTab() {
       <fieldset className="space-y-4 border rounded-lg p-4">
         <legend className="text-sm font-semibold px-2">Stored Logs</legend>
         <p className="text-sm text-muted-foreground">
-          Logs are stored locally in the browser. Export them for debugging or clear to free space.
+          Logs are stored locally in the browser. Exported files are saved to your Downloads folder.
         </p>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => handleExport("json")}>
