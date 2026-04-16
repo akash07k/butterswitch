@@ -111,5 +111,4 @@ export type EventCategory =
   | "idle"
   | "permissions"
   | "management"
-  | "web-request"
   | "other";

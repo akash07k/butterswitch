@@ -65,11 +65,11 @@ interface LoadedTheme {
  * @example
  * ```ts
  * const manager = new ThemeManager();
- * manager.loadTheme("subtle", manifest, "/assets/sounds/subtle");
- * manager.setActiveTheme("subtle");
+ * manager.loadTheme("pulse", manifest, "/sounds/pulse");
+ * manager.setActiveTheme("pulse");
  *
  * const soundUrl = manager.resolveSound("tabs.onCreated");
- * // => "/assets/sounds/subtle/tab-created.ogg"
+ * // => "/sounds/pulse/tab-created.ogg"
  * ```
  */
 export class ThemeManager {
@@ -87,7 +87,7 @@ export class ThemeManager {
    *
    * @param themeId - Unique identifier for this theme.
    * @param manifest - The parsed theme.json content.
-   * @param basePath - URL path prefix for sound files (e.g., "/assets/sounds/subtle").
+   * @param basePath - URL path prefix for sound files (e.g., "/sounds/pulse").
    * @returns Load result with success status and any validation errors.
    */
   loadTheme(themeId: string, manifest: ThemeManifest, basePath: string): ThemeLoadResult {

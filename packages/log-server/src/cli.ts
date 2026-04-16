@@ -86,10 +86,10 @@ export function parseCliArgs(argv: string[]): CliOptions {
  */
 export async function startServer(options: CliOptions): Promise<void> {
   // Resolve web viewer directory.
-  // In production (dist/bin.js), the web viewer is at dist/web/.
-  // In dev mode (tsx src/cli.ts), it's also at dist/web/ — the source
-  // src/web/ has unbuilt .tsx files that can't be served directly.
-  // Always resolve relative to the project root's dist/ directory.
+  // Primary: dist/web/ relative to the package root (works in both prod and dev).
+  // Fallback: web/ adjacent to thisDir (only in prod where dist/bin.js sits next to dist/web/).
+  // Dev mode (tsx src/cli.ts): thisDir is src/, so builtWebDir is src/web/
+  //   which has unbuilt .tsx files — distWebDir always wins in dev.
   const thisDir = dirname(fileURLToPath(import.meta.url));
   const distWebDir = join(thisDir, "..", "dist", "web");
   const builtWebDir = join(thisDir, "web");
