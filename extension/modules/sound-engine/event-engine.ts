@@ -73,6 +73,11 @@ export class EventEngine {
     handler: (...args: unknown[]) => void;
   }[] = [];
 
+  /**
+   * @param browser - The browser global object (injected for testability).
+   * @param messageBus - Message bus used to publish browser-event messages.
+   * @param logger - Logger for debug and warning output.
+   */
   constructor(browser: Record<string, unknown>, messageBus: MessageBus, logger: Logger) {
     this.browser = browser;
     this.messageBus = messageBus;
@@ -122,7 +127,12 @@ export class EventEngine {
 
       // Register the listener, keeping a reference for dispose()
       const handler = (...args: unknown[]) => {
-        this.handleEvent(definition, args);
+        this.handleEvent(definition, args).catch((error: unknown) => {
+          this.logger.error(
+            `Unhandled error in event handler for ${definition.id}`,
+            error instanceof Error ? error : undefined,
+          );
+        });
       };
       eventApi.addListener(handler);
       this.registeredListeners.push({ eventApi, handler });

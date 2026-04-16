@@ -185,23 +185,39 @@ export class SoundEngineModule implements ButterSwitchModule {
     const masterVolume = (await settings.get<number>("general.masterVolume")) ?? 80;
     await this.backend.setGlobalVolume(masterVolume / 100);
 
-    // Watch for live settings changes (mute, volume, theme)
+    // Watch for live settings changes (mute, volume, theme).
+    // All async backend calls have .catch() to prevent unhandled rejections.
     this.unwatchers.push(
       settings.watch("general.masterVolume", (newValue) => {
         const vol = (newValue as number) ?? 80;
-        this.backend?.setGlobalVolume(vol / 100);
+        this.backend?.setGlobalVolume(vol / 100).catch((e: unknown) => {
+          logger.error("Failed to update volume", e instanceof Error ? e : undefined);
+        });
         logger.debug(`Volume changed to ${vol}%`);
       }),
       settings.watch("general.muted", (newValue) => {
         const muted = (newValue as boolean) ?? false;
-        if (muted) this.backend?.stopAll();
+        if (muted) {
+          this.backend?.stopAll().catch((e: unknown) => {
+            logger.error("Failed to stop sounds", e instanceof Error ? e : undefined);
+          });
+        }
         logger.debug(muted ? "Muted" : "Unmuted");
       }),
       settings.watch("general.activeTheme", (newValue) => {
         const themeId = (newValue as string) ?? DEFAULT_THEME_ID;
         if (this.themeManager) {
-          this.themeManager.setActiveTheme(themeId);
-          logger.info(`Theme switched to ${themeId}`);
+          try {
+            this.themeManager.setActiveTheme(themeId);
+            logger.info(`Theme switched to ${themeId}`);
+          } catch {
+            logger.warn(`Unknown theme "${themeId}", falling back to default`);
+            try {
+              this.themeManager.setActiveTheme(DEFAULT_THEME_ID);
+            } catch {
+              /* no-op — default theme should always be loaded */
+            }
+          }
         }
       }),
     );
