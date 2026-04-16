@@ -85,10 +85,20 @@ export function parseCliArgs(argv: string[]): CliOptions {
  * @param options - Parsed CLI options (see {@link parseCliArgs}).
  */
 export async function startServer(options: CliOptions): Promise<void> {
-  // Resolve web viewer directory (built files next to CLI)
+  // Resolve web viewer directory.
+  // In production (dist/bin.js), the web viewer is at dist/web/.
+  // In dev mode (tsx src/cli.ts), it's also at dist/web/ — the source
+  // src/web/ has unbuilt .tsx files that can't be served directly.
+  // Always resolve relative to the project root's dist/ directory.
   const thisDir = dirname(fileURLToPath(import.meta.url));
-  const webDir = join(thisDir, "web");
-  const hasWebViewer = existsSync(webDir);
+  const distWebDir = join(thisDir, "..", "dist", "web");
+  const builtWebDir = join(thisDir, "web");
+  const webDir = existsSync(join(distWebDir, "index.html"))
+    ? distWebDir
+    : existsSync(join(builtWebDir, "index.html"))
+      ? builtWebDir
+      : null;
+  const hasWebViewer = webDir !== null;
 
   // Create session store for persistence
   const sessionStore = new SessionStore({
@@ -98,7 +108,7 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   const server = new LogServer({
     port: options.port,
-    webDir: hasWebViewer ? webDir : undefined,
+    webDir: hasWebViewer ? webDir! : undefined,
     bufferSize: options.bufferSize,
     sessionStore,
   });
