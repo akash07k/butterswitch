@@ -4,8 +4,8 @@
  * Logging settings tab — configure log level, WebSocket server URL
  * for streaming logs to the accessible log viewer, and export logs.
  *
- * The WebSocket transport is only connected when the user explicitly
- * provides a URL and the log server is running.
+ * The WebSocket transport is only connected when the user enables
+ * log streaming via the toggle. The URL defaults to ws://localhost:8089.
  */
 
 import { useEffect, useState } from "react";
@@ -37,6 +37,13 @@ export function LoggingTab() {
   const [logServerUrl, setLogServerUrl] = useState("ws://localhost:8089");
   const [logStreamEnabled, setLogStreamEnabled] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Auto-cancel Clear Logs confirmation after 5 seconds
+  useEffect(() => {
+    if (!confirmClear) return;
+    const timer = setTimeout(() => setConfirmClear(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmClear]);
 
   // Load settings on mount
   useEffect(() => {
@@ -109,8 +116,11 @@ export function LoggingTab() {
       a.href = url;
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       a.download = `butterswitch-logs-${timestamp}.${format}`;
+      // Append to DOM for Firefox compatibility, then clean up
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       announce(
         `Exported logs as ${format.toUpperCase()}. File saved to your Downloads folder.`,
