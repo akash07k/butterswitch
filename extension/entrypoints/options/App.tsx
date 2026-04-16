@@ -37,7 +37,25 @@ const TAB_DEFINITIONS = [
 /** Options page root — tabbed settings interface with local keyboard shortcuts. */
 export default function App() {
   const [activeTab, setActiveTab] = useState("general");
+  const [showWelcome, setShowWelcome] = useState(false);
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Check if this is the first visit (show welcome banner)
+  useEffect(() => {
+    async function checkFirstVisit() {
+      const stored = await browser.storage.local.get("onboarding.seen");
+      if (!stored["onboarding.seen"]) {
+        setShowWelcome(true);
+      }
+    }
+    checkFirstVisit();
+  }, []);
+
+  /** Dismiss the welcome banner and mark onboarding as seen. */
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    browser.storage.local.set({ "onboarding.seen": true });
+  };
 
   // Focus the first control in the default tab on initial load
   useEffect(() => {
@@ -121,6 +139,24 @@ export default function App() {
   return (
     <main className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">ButterSwitch Options</h1>
+
+      {showWelcome && (
+        <div role="region" aria-label="Welcome" className="mb-6 border rounded-lg p-4 space-y-2">
+          <h2 className="text-lg font-semibold">Welcome to ButterSwitch</h2>
+          <p className="text-muted-foreground">
+            ButterSwitch plays audio cues for browser events — tabs, bookmarks, downloads, and
+            navigation. Sounds play automatically as you browse. Use the General tab to adjust
+            volume and mute. Use Sound Events to enable or disable individual events. Press Shift+?
+            for keyboard shortcuts.
+          </p>
+          <button
+            onClick={dismissWelcome}
+            className="mt-2 px-4 py-2 rounded border border-input bg-transparent text-sm hover:bg-accent"
+          >
+            Got it
+          </button>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} activationMode="manual">
         <TabsList className="w-full justify-start">

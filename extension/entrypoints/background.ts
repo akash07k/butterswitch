@@ -139,7 +139,15 @@ export default defineBackground(() => {
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
 
-      // 11. Clean up on service worker suspension
+      // 11. Open options page on first install for onboarding
+      browser.runtime.onInstalled.addListener((details) => {
+        if (details.reason === "install") {
+          browser.runtime.openOptionsPage();
+          logger.info("First install — opened options page for onboarding");
+        }
+      });
+
+      // 12. Clean up on service worker suspension
       browser.runtime.onSuspend.addListener(() => {
         logger.info("Service worker suspending — disposing modules");
         loader.disposeAll().catch(console.error);
