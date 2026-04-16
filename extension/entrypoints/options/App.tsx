@@ -38,32 +38,50 @@ const TAB_DEFINITIONS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState("general");
   const [showWelcome, setShowWelcome] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const welcomeHeadingRef = useRef<HTMLHeadingElement>(null);
 
-  // Check if this is the first visit (show welcome banner)
+  // Check if this is the first visit, then set initial focus
   useEffect(() => {
-    async function checkFirstVisit() {
+    async function init() {
       const stored = await browser.storage.local.get("onboarding.seen");
-      if (!stored["onboarding.seen"]) {
+      const isFirstVisit = !stored["onboarding.seen"];
+      if (isFirstVisit) {
         setShowWelcome(true);
+        announce(
+          "Welcome to ButterSwitch. A welcome banner is available above the tabs.",
+          "polite",
+        );
       }
+      setLoaded(true);
     }
-    checkFirstVisit();
+    init();
   }, []);
+
+  // Set initial focus after loaded — welcome heading if banner shows, else tab panel
+  useEffect(() => {
+    if (!loaded) return;
+    setTimeout(() => {
+      if (showWelcome && welcomeHeadingRef.current) {
+        welcomeHeadingRef.current.focus();
+      } else {
+        const panel = panelRefs.current["general"];
+        if (panel) focusFirst(panel);
+      }
+    }, 100);
+  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Dismiss the welcome banner and mark onboarding as seen. */
   const dismissWelcome = () => {
     setShowWelcome(false);
     browser.storage.local.set({ "onboarding.seen": true });
+    announce("Welcome banner dismissed", "polite");
+    requestAnimationFrame(() => {
+      headingRef.current?.focus();
+    });
   };
-
-  // Focus the first control in the default tab on initial load
-  useEffect(() => {
-    setTimeout(() => {
-      const panel = panelRefs.current["general"];
-      if (panel) focusFirst(panel);
-    }, 100);
-  }, []);
 
   /**
    * Handle tab change — announce the new tab and move focus
@@ -138,11 +156,15 @@ export default function App() {
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">ButterSwitch Options</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold mb-6">
+        ButterSwitch Options
+      </h1>
 
       {showWelcome && (
         <div role="region" aria-label="Welcome" className="mb-6 border rounded-lg p-4 space-y-2">
-          <h2 className="text-lg font-semibold">Welcome to ButterSwitch</h2>
+          <h2 ref={welcomeHeadingRef} tabIndex={-1} className="text-lg font-semibold">
+            Welcome to ButterSwitch
+          </h2>
           <p className="text-muted-foreground">
             ButterSwitch plays audio cues for browser events — tabs, bookmarks, downloads, and
             navigation. Sounds play automatically as you browse. Use the General tab to adjust

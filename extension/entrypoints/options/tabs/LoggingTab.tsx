@@ -36,6 +36,7 @@ export function LoggingTab() {
   const [logLevel, setLogLevel] = useState("1");
   const [logServerUrl, setLogServerUrl] = useState("ws://localhost:8089");
   const [logStreamEnabled, setLogStreamEnabled] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   // Load settings on mount
   useEffect(() => {
@@ -90,28 +91,31 @@ export function LoggingTab() {
 
   const handleExport = async (format: "json" | "csv" | "html") => {
     announce(`Exporting logs as ${format.toUpperCase()}...`, "polite");
+    try {
+      const response = (await browser.runtime.sendMessage({
+        type: "EXPORT_LOGS",
+        format,
+      })) as { success: boolean; data?: string; error?: string };
 
-    const response = (await browser.runtime.sendMessage({
-      type: "EXPORT_LOGS",
-      format,
-    })) as { success: boolean; data?: string; error?: string };
+      if (!response.success || !response.data) {
+        announce(`Export failed: ${response.error ?? "unknown error"}`, "assertive");
+        return;
+      }
 
-    if (!response.success || !response.data) {
-      announce(`Export failed: ${response.error ?? "unknown error"}`, "assertive");
-      return;
+      const mimeTypes = { json: "application/json", csv: "text/csv", html: "text/html" };
+      const blob = new Blob([response.data], { type: mimeTypes[format] });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `butterswitch-logs.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      announce(`Exported logs as ${format.toUpperCase()}`, "polite");
+      sendLog("info", `Logs exported as ${format}`, { source: "options" });
+    } catch {
+      announce("Export failed. The extension may need to be reloaded.", "assertive");
     }
-
-    const mimeTypes = { json: "application/json", csv: "text/csv", html: "text/html" };
-    const blob = new Blob([response.data], { type: mimeTypes[format] });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `butterswitch-logs.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    announce(`Exported logs as ${format.toUpperCase()}`, "polite");
-    sendLog("info", `Logs exported as ${format}`, { source: "options" });
   };
 
   return (
@@ -191,22 +195,43 @@ export function LoggingTab() {
           <Button variant="outline" onClick={() => handleExport("html")}>
             Export HTML
           </Button>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              const response = (await browser.runtime.sendMessage({ type: "CLEAR_LOGS" })) as {
-                success: boolean;
-              };
-              if (response.success) {
-                announce("All stored logs cleared", "polite");
-                sendLog("warn", "Logs cleared from IndexedDB", { source: "options" });
-              } else {
-                announce("Failed to clear logs", "assertive");
-              }
-            }}
-          >
-            Clear Logs
-          </Button>
+          {!confirmClear ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmClear(true);
+                announce("Are you sure? Press Clear Logs again to confirm.", "assertive");
+              }}
+            >
+              Clear Logs
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+              onClick={async () => {
+                try {
+                  const response = (await browser.runtime.sendMessage({
+                    type: "CLEAR_LOGS",
+                  })) as { success: boolean };
+                  if (response.success) {
+                    announce("All stored logs cleared", "polite");
+                    sendLog("warn", "Logs cleared from IndexedDB", { source: "options" });
+                  } else {
+                    announce("Failed to clear logs", "assertive");
+                  }
+                } catch {
+                  announce(
+                    "Failed to clear logs. The extension may need to be reloaded.",
+                    "assertive",
+                  );
+                }
+                setConfirmClear(false);
+              }}
+            >
+              Confirm Clear Logs
+            </Button>
+          )}
         </div>
       </fieldset>
 
