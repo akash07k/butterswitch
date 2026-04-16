@@ -62,6 +62,36 @@ export interface EventDefinition {
    * Extracts relevant data from event arguments for structured logging.
    */
   extractData?: (...args: unknown[]) => Record<string, unknown>;
+
+  /**
+   * Optional custom handler called when the event fires.
+   *
+   * Receives the raw browser event arguments. Can perform any side effects
+   * (webhooks, notifications, storage writes) and control the sound behavior
+   * via the return value:
+   * - `null` or `undefined` — use default sound resolution
+   * - `{ suppress: true }` — suppress the sound entirely
+   * - `{ soundOverride: "filename.ogg" }` — play a specific sound file
+   *   from the active theme directory instead of the mapped sound
+   * - `{ data: {...} }` — attach extra data to the log entry
+   *
+   * All fields in the result are optional and can be combined.
+   * The handler can be async for webhook calls or other async operations.
+   */
+  handler?: (...args: unknown[]) => EventHandlerResult | Promise<EventHandlerResult>;
+}
+
+/**
+ * Result returned by a custom event handler.
+ * Controls sound behavior and attaches extra data.
+ */
+export interface EventHandlerResult {
+  /** If true, suppress the sound entirely (no playback). */
+  suppress?: boolean;
+  /** Override the resolved sound with a specific filename from the active theme. */
+  soundOverride?: string;
+  /** Extra data to attach to the log entry. */
+  data?: Record<string, unknown>;
 }
 
 /**

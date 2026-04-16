@@ -263,12 +263,25 @@ export class SoundEngineModule implements ButterSwitchModule {
     const isEnabled = eventConfig?.enabled ?? getEventDefaults(message.eventId).enabled;
     if (!isEnabled) return;
 
-    // Resolve which sound to play (uses isError field from registry, not string matching)
-    const soundUrl = this.themeManager.resolveSound(
-      message.eventId,
-      eventDef.tier,
-      eventDef.isError ?? false,
-    );
+    // Resolve which sound to play — handler soundOverride takes priority
+    let soundUrl: string | null;
+    if (message.soundOverride) {
+      // Handler specified a sound file — resolve relative to the active theme
+      const activeTheme = this.themeManager.getActiveThemeId();
+      const themeInfo = activeTheme ? BUILT_IN_THEMES.find((t) => t.id === activeTheme) : null;
+      if (themeInfo) {
+        const getURL = (path: string): string => chrome.runtime.getURL(path);
+        soundUrl = `${getURL(themeInfo.path)}/${message.soundOverride}`;
+      } else {
+        soundUrl = null;
+      }
+    } else {
+      soundUrl = this.themeManager.resolveSound(
+        message.eventId,
+        eventDef.tier,
+        eventDef.isError ?? false,
+      );
+    }
 
     if (!soundUrl) {
       logger.debug("No sound mapped for event", { eventId: message.eventId });
@@ -281,17 +294,17 @@ export class SoundEngineModule implements ButterSwitchModule {
       rate: eventConfig?.pitch,
     });
 
-    // Log the result with the event label in the message for readability
+    // Log the result with the event label and any handler data
+    const logData: Record<string, unknown> = {
+      eventId: message.eventId,
+      sound: soundUrl,
+      ...message.handlerData,
+    };
+
     if (result.success) {
-      logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, {
-        eventId: message.eventId,
-        sound: soundUrl,
-      });
+      logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, logData);
     } else {
-      logger.warn(`${eventDef.label} sound failed: ${result.error}`, {
-        eventId: message.eventId,
-        sound: soundUrl,
-      });
+      logger.warn(`${eventDef.label} sound failed: ${result.error}`, logData);
     }
   }
 }

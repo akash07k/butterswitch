@@ -33,6 +33,12 @@ export interface BrowserEventMessage {
 
   /** Timestamp when the event fired. */
   timestamp: string;
+
+  /** If set by a custom handler, override the resolved sound filename. */
+  soundOverride?: string;
+
+  /** Extra data from a custom handler, merged into the log entry. */
+  handlerData?: Record<string, unknown>;
 }
 
 /** Channel name used for browser event messages on the message bus. */
@@ -144,9 +150,10 @@ export class EventEngine {
 
   /**
    * Handles a browser event firing.
-   * Applies the filter, checks debounce, extracts data, and publishes to the message bus.
+   * Applies the filter, checks debounce, runs custom handler,
+   * extracts data, and publishes to the message bus.
    */
-  private handleEvent(definition: EventDefinition, args: unknown[]): void {
+  private async handleEvent(definition: EventDefinition, args: unknown[]): Promise<void> {
     // Apply filter if defined (for sub-events like tabs.onUpdated.loading)
     if (definition.filter && !definition.filter(...args)) {
       return;
@@ -163,6 +170,25 @@ export class EventEngine {
       this.lastFireTime.set(definition.id, now);
     }
 
+    // Run custom handler if defined
+    let soundOverride: string | undefined;
+    let handlerData: Record<string, unknown> | undefined;
+
+    if (definition.handler) {
+      try {
+        const result = await definition.handler(...args);
+        if (result) {
+          if (result.suppress) return;
+          soundOverride = result.soundOverride;
+          handlerData = result.data;
+        }
+      } catch (error) {
+        this.logger.warn(`Handler error for ${definition.id}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     // Extract data for logging
     const extractedData = definition.extractData?.(...args) ?? {};
 
@@ -171,6 +197,8 @@ export class EventEngine {
       eventId: definition.id,
       extractedData,
       timestamp: new Date().toISOString(),
+      soundOverride,
+      handlerData,
     };
 
     this.messageBus.publish(BROWSER_EVENT_CHANNEL, message);
