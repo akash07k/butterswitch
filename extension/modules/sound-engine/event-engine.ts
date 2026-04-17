@@ -19,6 +19,7 @@ import type { EventDefinition } from "./types.js";
 import type { MessageBus } from "../../core/module-system/types.js";
 import type { Logger } from "@butterswitch/logger";
 import { getEventDefaults } from "../../config/events.js";
+import { CONFIG } from "../../config/index.js";
 
 /**
  * Data published to the message bus for each browser event.
@@ -63,6 +64,9 @@ export class EventEngine {
 
   /** Last fire time per event ID for debounce tracking. */
   private lastFireTime = new Map<string, number>();
+
+  /** Last time ANY event played a sound (for global cooldown). */
+  private lastGlobalFireTime = 0;
 
   /** Stored listener references for cleanup on dispose. */
   private registeredListeners: {
@@ -156,6 +160,7 @@ export class EventEngine {
     this.logger.debug(`Removed ${this.registeredListeners.length} event listeners`);
     this.registeredListeners = [];
     this.lastFireTime.clear();
+    this.lastGlobalFireTime = 0;
   }
 
   /**
@@ -167,6 +172,18 @@ export class EventEngine {
     // Apply filter if defined (for sub-events like tabs.onUpdated.loading)
     if (definition.filter && !definition.filter(...args)) {
       return;
+    }
+
+    // Global cooldown: suppress ALL events for a window after any sound plays.
+    // Prevents cascading sounds from a single user action (e.g., Ctrl+T
+    // fires tab created + navigation + page load in quick succession).
+    const cooldownMs = CONFIG.soundEngine.globalCooldownMs;
+    if (cooldownMs > 0) {
+      const now = Date.now();
+      if (now - this.lastGlobalFireTime < cooldownMs) {
+        return;
+      }
+      this.lastGlobalFireTime = now;
     }
 
     // Debounce: suppress if the same event fired within the debounce window

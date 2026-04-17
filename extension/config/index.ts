@@ -26,6 +26,18 @@ export const CONFIG = {
     enabledModules: ["sound-engine"],
   },
 
+  /** Sound engine tuning. */
+  soundEngine: {
+    /**
+     * Global cooldown in milliseconds. After any sound plays, all subsequent
+     * events are suppressed until the cooldown expires. Prevents cascading
+     * sounds when a single user action triggers multiple browser events
+     * (e.g., Ctrl+T fires tab created + navigation + page load in quick succession).
+     * Set to 0 to disable.
+     */
+    globalCooldownMs: 150,
+  },
+
   /** Logger transport tuning (passed to transport constructors). */
   logger: {
     /** WebSocket transport: max buffered entries while disconnected. */

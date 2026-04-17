@@ -186,7 +186,7 @@ describe("EventEngine", () => {
     expect(mockBrowser.listeners.get("tabGroups.onCreated") ?? []).toHaveLength(0);
   });
 
-  it("handles multiple events on the same browser API", () => {
+  it("handles multiple events on the same browser API", async () => {
     const events: EventDefinition[] = [
       {
         id: "tabs.onUpdated.loading",
@@ -223,11 +223,13 @@ describe("EventEngine", () => {
 
     // Fire with "loading" — only the loading event publishes
     mockBrowser.fireEvent("tabs", "onUpdated", 1, { status: "loading" }, {});
+    await new Promise((r) => setTimeout(r, 200)); // Wait for async handler + global cooldown
     expect(bus.messages).toHaveLength(1);
     expect(bus.messages[0]!.data).toMatchObject({ eventId: "tabs.onUpdated.loading" });
 
     // Fire with "complete" — only the complete event publishes
     mockBrowser.fireEvent("tabs", "onUpdated", 1, { status: "complete" }, {});
+    await new Promise((r) => setTimeout(r, 200));
     expect(bus.messages).toHaveLength(2);
     expect(bus.messages[1]!.data).toMatchObject({ eventId: "tabs.onUpdated.complete" });
   });
