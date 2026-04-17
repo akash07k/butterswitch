@@ -3,75 +3,51 @@
  *
  * ButterSwitch Options page — full settings interface.
  *
- * Organized into tabs: General, Sound Events, Themes, Hotkeys, Logging.
- * Uses shadcn/ui Tabs (Radix) with manual activation mode —
- * arrow keys move focus between tabs, Enter/Space activates.
- * This is better for screen readers when tabs have heavy content.
- *
- * Each tab panel starts with an h2 heading for screen reader's heading
- * navigation (H key). Tab switches are announced via the
- * announcer utility.
+ * Organized into tabs: General, Sound Events, Themes, Logging.
+ * Uses shadcn/ui Tabs (Radix) with default automatic activation.
+ * Keyboard shortcuts (Alt+1-4) switch tabs via hotkeys-js.
+ * Press Shift+? for a help announcement.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import hotkeys from "hotkeys-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
-import { focusFirst } from "@/shared/a11y/focus";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 import { GeneralTab } from "./tabs/GeneralTab.js";
 import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
 import { ThemesTab } from "./tabs/ThemesTab.js";
-import { HotkeysTab } from "./tabs/HotkeysTab.js";
 import { LoggingTab } from "./tabs/LoggingTab.js";
 
-/** Tab definitions — id, label, and component. */
+/** Tab definitions — id, label, and keyboard shortcut. */
 const TAB_DEFINITIONS = [
-  { id: "general", label: "General" },
-  { id: "sound-events", label: "Sound Events" },
-  { id: "themes", label: "Themes" },
-  { id: "hotkeys", label: "Hotkeys" },
-  { id: "logging", label: "Logging" },
+  { id: "general", label: "General", shortcut: "Alt+1" },
+  { id: "sound-events", label: "Sound Events", shortcut: "Alt+2" },
+  { id: "themes", label: "Themes", shortcut: "Alt+3" },
+  { id: "logging", label: "Logging", shortcut: "Alt+4" },
 ] as const;
 
 /** Options page root — tabbed settings interface with local keyboard shortcuts. */
 export default function App() {
   const [activeTab, setActiveTab] = useState("general");
   const [showWelcome, setShowWelcome] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const panelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const headingRef = useRef<HTMLHeadingElement>(null);
   const welcomeHeadingRef = useRef<HTMLHeadingElement>(null);
 
-  // Check if this is the first visit, then set initial focus
+  // Check if this is the first visit (show welcome banner)
   useEffect(() => {
     async function init() {
       const stored = await browser.storage.local.get("onboarding.seen");
-      const isFirstVisit = !stored["onboarding.seen"];
-      if (isFirstVisit) {
+      if (!stored["onboarding.seen"]) {
         setShowWelcome(true);
         announce(
           "Welcome to ButterSwitch. A welcome banner is available above the tabs.",
           "polite",
         );
       }
-      setLoaded(true);
     }
     init();
   }, []);
-
-  // Set initial focus after loaded — welcome heading if banner shows, else tab panel
-  useEffect(() => {
-    if (!loaded) return;
-    setTimeout(() => {
-      if (showWelcome && welcomeHeadingRef.current) {
-        welcomeHeadingRef.current.focus();
-      } else {
-        const panel = panelRefs.current["general"];
-        if (panel) focusFirst(panel);
-      }
-    }, 100);
-  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Dismiss the welcome banner and mark onboarding as seen. */
   const dismissWelcome = () => {
@@ -83,23 +59,13 @@ export default function App() {
     });
   };
 
-  /**
-   * Handle tab change — announce the new tab and move focus
-   * into the panel content for screen readers.
-   */
+  /** Handle tab change — announce the new tab name. */
   const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
     const tab = TAB_DEFINITIONS.find((t) => t.id === tabId);
     if (tab) {
       announce(`${tab.label} settings loaded`, "polite");
     }
-
-    // Move focus into the panel after a short delay
-    // (Radix needs time to mount the panel content)
-    setTimeout(() => {
-      const panel = panelRefs.current[tabId];
-      if (panel) focusFirst(panel);
-    }, 50);
   }, []);
 
   /** Cycle through available themes. */
@@ -115,21 +81,20 @@ export default function App() {
 
   // Register local keyboard shortcuts via hotkeys-js
   useEffect(() => {
-    // Allow hotkeys to fire even when focus is in input/select/textarea
     const originalFilter = hotkeys.filter;
     hotkeys.filter = () => true;
 
     hotkeys("alt+1", (e) => {
       e.preventDefault();
-      handleTabChange("sound-events");
+      handleTabChange("general");
     });
     hotkeys("alt+2", (e) => {
       e.preventDefault();
-      handleTabChange("themes");
+      handleTabChange("sound-events");
     });
     hotkeys("alt+3", (e) => {
       e.preventDefault();
-      handleTabChange("hotkeys");
+      handleTabChange("themes");
     });
     hotkeys("alt+4", (e) => {
       e.preventDefault();
@@ -180,62 +145,28 @@ export default function App() {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} activationMode="manual">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="w-full justify-start">
           {TAB_DEFINITIONS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id}>
+            <TabsTrigger key={tab.id} value={tab.id} aria-keyshortcuts={tab.shortcut}>
               {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {/* General Tab */}
-        <TabsContent
-          value="general"
-          ref={(el) => {
-            panelRefs.current["general"] = el;
-          }}
-        >
+        <TabsContent value="general">
           <GeneralTab />
         </TabsContent>
 
-        {/* Sound Events Tab */}
-        <TabsContent
-          value="sound-events"
-          ref={(el) => {
-            panelRefs.current["sound-events"] = el;
-          }}
-        >
+        <TabsContent value="sound-events">
           <SoundEventsTab />
         </TabsContent>
 
-        {/* Themes Tab */}
-        <TabsContent
-          value="themes"
-          ref={(el) => {
-            panelRefs.current["themes"] = el;
-          }}
-        >
+        <TabsContent value="themes">
           <ThemesTab />
         </TabsContent>
 
-        {/* Hotkeys Tab */}
-        <TabsContent
-          value="hotkeys"
-          ref={(el) => {
-            panelRefs.current["hotkeys"] = el;
-          }}
-        >
-          <HotkeysTab />
-        </TabsContent>
-
-        {/* Logging Tab */}
-        <TabsContent
-          value="logging"
-          ref={(el) => {
-            panelRefs.current["logging"] = el;
-          }}
-        >
+        <TabsContent value="logging">
           <LoggingTab />
         </TabsContent>
       </Tabs>

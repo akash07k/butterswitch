@@ -41,9 +41,9 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
       "global:open-options": "Alt+Shift+O",
       // Local shortcuts — handled by hotkeys-js, work in popup/options UI
       "local:cycle-theme": "alt+t",
-      "local:tab-sound-events": "alt+1",
-      "local:tab-themes": "alt+2",
-      "local:tab-hotkeys": "alt+3",
+      "local:tab-general": "alt+1",
+      "local:tab-sound-events": "alt+2",
+      "local:tab-themes": "alt+3",
       "local:tab-logging": "alt+4",
       "local:show-help": "shift+/",
     },

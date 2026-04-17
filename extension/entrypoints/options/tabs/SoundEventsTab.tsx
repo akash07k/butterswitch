@@ -209,8 +209,8 @@ export function SoundEventsTab() {
         </div>
 
         {/* Tier filter */}
-        <div className="flex gap-4 items-center">
-          <span className="text-sm font-medium">Show:</span>
+        <fieldset className="flex gap-4 items-center border-0 p-0 m-0">
+          <legend className="text-sm font-medium">Show:</legend>
           {TIER_OPTIONS.map((option) => (
             <label key={option.value} className="flex items-center gap-1.5 text-sm">
               <input
@@ -224,7 +224,7 @@ export function SoundEventsTab() {
               {option.label}
             </label>
           ))}
-        </div>
+        </fieldset>
 
         {/* Result count */}
         <div id="event-count" role="status" className="text-sm text-muted-foreground">
@@ -257,7 +257,9 @@ export function SoundEventsTab() {
             };
             return (
               <TableRow key={event.id}>
-                <TableCell className="font-medium">{event.label}</TableCell>
+                <th scope="row" className="font-medium p-2 text-left">
+                  {event.label}
+                </th>
                 <TableCell className="text-muted-foreground">{event.description}</TableCell>
                 <TableCell className="capitalize">{event.category}</TableCell>
                 <TableCell>
