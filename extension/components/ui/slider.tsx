@@ -5,12 +5,23 @@ import { Slider as SliderPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * shadcn Slider component with aria-label and aria-valuetext forwarded
+ * to the Radix Thumb element (the focusable `role="slider"` span).
+ *
+ * Radix Slider's Root passes unknown props to a non-focusable container.
+ * The Thumb is the actual interactive element that screen readers read.
+ * We destructure aria-label and aria-valuetext from Root props and
+ * forward them explicitly to each Thumb.
+ */
 function Slider({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  "aria-label": ariaLabel,
+  "aria-valuetext": ariaValueText,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -48,6 +59,8 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          aria-label={ariaLabel}
+          aria-valuetext={ariaValueText}
           className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
