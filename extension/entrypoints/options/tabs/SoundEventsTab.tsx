@@ -240,6 +240,7 @@ export function SoundEventsTab() {
         <TableHeader>
           <TableRow>
             <TableHead scope="col">Event</TableHead>
+            <TableHead scope="col">Description</TableHead>
             <TableHead scope="col">Category</TableHead>
             <TableHead scope="col">Enabled</TableHead>
             <TableHead scope="col">Volume</TableHead>
@@ -256,10 +257,8 @@ export function SoundEventsTab() {
             };
             return (
               <TableRow key={event.id}>
-                <TableCell className="font-medium">
-                  {event.label}
-                  <span className="block text-xs text-muted-foreground">{event.description}</span>
-                </TableCell>
+                <TableCell className="font-medium">{event.label}</TableCell>
+                <TableCell className="text-muted-foreground">{event.description}</TableCell>
                 <TableCell className="capitalize">{event.category}</TableCell>
                 <TableCell>
                   <Switch
