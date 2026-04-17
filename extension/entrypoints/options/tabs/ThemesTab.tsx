@@ -92,12 +92,7 @@ export function ThemesTab() {
           Import custom sound themes from .zip files. Each theme contains a theme.json manifest and
           OGG sound files.
         </p>
-        <Button
-          variant="outline"
-          aria-disabled="true"
-          onClick={(e) => e.preventDefault()}
-          className="opacity-50 cursor-not-allowed"
-        >
+        <Button variant="outline" disabled>
           Import Theme (.zip) — Coming Soon
         </Button>
       </fieldset>

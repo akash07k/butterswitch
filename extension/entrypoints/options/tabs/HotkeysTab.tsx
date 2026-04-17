@@ -222,6 +222,7 @@ export function HotkeysTab() {
                   <ShortcutRecorder
                     id={`hotkey-${commandId}`}
                     aria-label={`Shortcut for ${LOCAL_COMMAND_NAMES[commandId] ?? commandId}`}
+                    aria-describedby="page-shortcuts-instructions"
                     value={binding}
                     onChange={(newBinding) => handleLocalBindingChange(commandId, newBinding)}
                   />

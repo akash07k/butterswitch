@@ -31,6 +31,14 @@ export function GeneralTab() {
   const [volume, setVolume] = useState(80);
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  // Auto-cancel factory reset confirmation after 5 seconds
+  useEffect(() => {
+    if (!confirmReset) return;
+    const timer = setTimeout(() => setConfirmReset(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmReset]);
 
   // Load settings on mount
   useEffect(() => {
@@ -71,11 +79,17 @@ export function GeneralTab() {
     saveSetting("general.muted", newMuted, newMuted ? "All sounds muted" : "Sounds unmuted");
   };
 
+  /** Update volume UI state on drag (does NOT save to storage yet). */
   const handleVolumeChange = (values: number[]) => {
+    setVolume(values[0] ?? 80);
+  };
+
+  /** Save volume to storage when slider is released. */
+  const handleVolumeCommit = (values: number[]) => {
     const newVolume = values[0] ?? 80;
     setVolume(newVolume);
     saveSetting("general.masterVolume", newVolume);
-    if (newVolume === 0) announce("Volume muted", "polite");
+    announce(`Volume set to ${newVolume} percent`, "polite");
   };
 
   const handleThemeChange = (themeId: string) => {
@@ -119,6 +133,7 @@ export function GeneralTab() {
             max={100}
             step={1}
             onValueChange={handleVolumeChange}
+            onValueCommit={handleVolumeCommit}
             disabled={muted}
           />
         </div>
@@ -148,12 +163,13 @@ export function GeneralTab() {
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="sound-engine-toggle">Sound Engine</Label>
-            <p className="text-sm text-muted-foreground">
+            <p id="sound-engine-desc" className="text-sm text-muted-foreground">
               Plays audio cues for browser events like tab switching, page loading, and downloads.
             </p>
           </div>
           <Switch
             id="sound-engine-toggle"
+            aria-describedby="sound-engine-desc"
             checked={soundEngineEnabled}
             onCheckedChange={handleSoundEngineToggle}
           />
@@ -181,23 +197,36 @@ export function GeneralTab() {
         Reset General Settings
       </Button>
 
-      <Button
-        variant="destructive"
-        onClick={async () => {
-          await browser.storage.local.clear();
-          setMuted(false);
-          setVolume(80);
-          setActiveTheme(DEFAULT_THEME_ID);
-          setSoundEngineEnabled(true);
-          announce(
-            "All settings reset to factory defaults. Reload the extension for full effect.",
-            "assertive",
-          );
-          sendLog("warn", "Factory reset: all settings cleared", { source: "options" });
-        }}
-      >
-        Reset All Settings (Factory Reset)
-      </Button>
+      {!confirmReset ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setConfirmReset(true);
+            announce("Are you sure? Press Factory Reset again to confirm.", "assertive");
+          }}
+        >
+          Reset All Settings (Factory Reset)
+        </Button>
+      ) : (
+        <Button
+          variant="destructive"
+          onClick={async () => {
+            await browser.storage.local.clear();
+            setMuted(false);
+            setVolume(80);
+            setActiveTheme(DEFAULT_THEME_ID);
+            setSoundEngineEnabled(true);
+            announce(
+              "All settings reset to factory defaults. Reload the extension for full effect.",
+              "assertive",
+            );
+            sendLog("warn", "Factory reset: all settings cleared", { source: "options" });
+            setConfirmReset(false);
+          }}
+        >
+          Confirm Factory Reset
+        </Button>
+      )}
     </div>
   );
 }

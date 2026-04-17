@@ -58,13 +58,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="text-muted-foreground mb-4">
               ButterSwitch encountered an error. Try reloading the extension.
             </p>
+            <pre
+              className="text-sm bg-muted p-3 rounded overflow-auto max-h-40"
+              aria-label="Error details"
+            >
+              {this.state.error?.message ?? "Unknown error"}
+            </pre>
           </div>
-          <pre
-            className="text-sm bg-muted p-3 rounded overflow-auto max-h-40"
-            aria-label="Error details"
-          >
-            {this.state.error?.message ?? "Unknown error"}
-          </pre>
           {this.retryCount > 0 && (
             <p className="text-sm text-muted-foreground mt-2" id="retry-hint">
               This error persists after retrying. Try reloading the extension page.

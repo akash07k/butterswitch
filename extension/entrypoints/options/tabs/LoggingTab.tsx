@@ -8,7 +8,7 @@
  * log streaming via the toggle. The URL defaults to ws://localhost:8089.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,10 +37,12 @@ export function LoggingTab() {
   const [logServerUrl, setLogServerUrl] = useState("ws://localhost:8089");
   const [logStreamEnabled, setLogStreamEnabled] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const confirmClearRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-cancel Clear Logs confirmation after 5 seconds
+  // Auto-cancel Clear Logs confirmation after 5 seconds, focus confirm button
   useEffect(() => {
     if (!confirmClear) return;
+    requestAnimationFrame(() => confirmClearRef.current?.focus());
     const timer = setTimeout(() => setConfirmClear(false), 5000);
     return () => clearTimeout(timer);
   }, [confirmClear]);
@@ -143,13 +145,14 @@ export function LoggingTab() {
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="log-stream-toggle">Stream logs to server</Label>
-            <p className="text-sm text-muted-foreground">
+            <p id="log-stream-desc" className="text-sm text-muted-foreground">
               When enabled, extension logs stream to the log server for accessible viewing. This
               setting persists across restarts.
             </p>
           </div>
           <Switch
             id="log-stream-toggle"
+            aria-describedby="log-stream-desc"
             checked={logStreamEnabled}
             onCheckedChange={handleLogStreamToggle}
           />
@@ -221,6 +224,7 @@ export function LoggingTab() {
             </Button>
           ) : (
             <Button
+              ref={confirmClearRef}
               variant="outline"
               className="border-destructive text-destructive"
               onClick={async () => {

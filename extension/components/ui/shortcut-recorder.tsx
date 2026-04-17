@@ -125,6 +125,8 @@ interface ShortcutRecorderProps {
   onChange: (shortcut: string) => void;
   /** Accessible label for the recorder. */
   "aria-label": string;
+  /** ID of the instructions element for aria-describedby. */
+  "aria-describedby"?: string;
   /** HTML id attribute. */
   id?: string;
   /** Additional class names. */
@@ -135,6 +137,7 @@ export function ShortcutRecorder({
   value,
   onChange,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   id,
   className,
 }: ShortcutRecorderProps) {
@@ -143,7 +146,6 @@ export function ShortcutRecorder({
   const [manualText, setManualText] = useState(value);
   const previousValueRef = useRef(value);
   const inputRef = useRef<HTMLInputElement>(null);
-  const instructionsId = id ? `${id}-instructions` : undefined;
 
   /** Enter recording mode when the recorder input gains focus. */
   const handleRecorderFocus = useCallback(() => {
@@ -262,7 +264,7 @@ export function ShortcutRecorder({
           id={id}
           type="text"
           aria-label={ariaLabel}
-          aria-describedby={instructionsId}
+          aria-describedby={ariaDescribedBy}
           value={manualText}
           onChange={(e) => setManualText(e.target.value)}
           onBlur={handleManualBlur}
@@ -283,7 +285,7 @@ export function ShortcutRecorder({
           readOnly
           aria-label={ariaLabel}
           aria-roledescription="shortcut recorder"
-          aria-describedby={instructionsId}
+          aria-describedby={ariaDescribedBy}
           value={displayText}
           onFocus={handleRecorderFocus}
           onBlur={handleRecorderBlur}

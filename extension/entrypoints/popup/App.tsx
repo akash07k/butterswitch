@@ -165,7 +165,11 @@ export default function App() {
   };
 
   return (
-    <main aria-label="ButterSwitch controls" className="w-[320px] p-4 space-y-4">
+    <main
+      aria-label="ButterSwitch controls"
+      aria-keyshortcuts="Shift+? Alt+T"
+      className="w-[320px] p-4 space-y-4"
+    >
       <h1 className="text-lg font-bold">ButterSwitch</h1>
 
       {/* Sound Controls — grouped for screen reader context */}
@@ -232,7 +236,7 @@ export default function App() {
           size="sm"
           className="flex-1"
           onClick={handlePopOut}
-          aria-label="Open in separate window"
+          aria-label="Pop out: open in separate window"
         >
           <ExternalLink className="h-4 w-4 mr-1" aria-hidden="true" />
           Pop out
@@ -242,7 +246,7 @@ export default function App() {
           size="sm"
           className="flex-1"
           onClick={handleOpenSettings}
-          aria-label="Open full settings page"
+          aria-label="Settings: open full settings page"
         >
           <Settings className="h-4 w-4 mr-1" aria-hidden="true" />
           Settings
