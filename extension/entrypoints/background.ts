@@ -280,14 +280,17 @@ export default defineBackground(() => {
           const wasMuted = (stored["general.muted"] as boolean) ?? false;
           await browser.storage.local.set({ "general.muted": !wasMuted });
           const message = wasMuted ? "ButterSwitch unmuted" : "ButterSwitch muted";
-          // Show badge text on extension icon
-          browser.action.setBadgeText({ text: wasMuted ? "" : "M" });
-          browser.action.setBadgeBackgroundColor({ color: "#8b0000" });
+          // Show badge text on extension icon (action for MV3, browserAction for MV2)
+          const badgeApi = browser.action ?? browser.browserAction;
+          if (badgeApi) {
+            badgeApi.setBadgeText({ text: wasMuted ? "" : "M" });
+            badgeApi.setBadgeBackgroundColor({ color: "#8b0000" });
+          }
 
           try {
             await browser.notifications.create({
               type: "basic",
-              iconUrl: (browser.runtime.getURL as (path: string) => string)("icon/128.png"),
+              iconUrl: chrome.runtime.getURL("icon/128.png"),
               title: "ButterSwitch",
               message,
             });
