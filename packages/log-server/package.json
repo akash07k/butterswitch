@@ -22,12 +22,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@react-aria/live-announcer": "^3.4.4",
+    "@react-aria/live-announcer": "^3.5.0",
     "commander": "^14.0.3",
-    "react": "^19.2.4",
-    "react-aria": "^3.47.0",
-    "react-aria-components": "^1.16.0",
-    "react-dom": "^19.2.4",
+    "react": "^19.2.5",
+    "react-aria": "^3.48.0",
+    "react-aria-components": "^1.17.0",
+    "react-dom": "^19.2.5",
     "ws": "^8.20.0"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "vite": "^8.0.3",
-    "vitest": "^4.1.2"
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4"
   }
 }
