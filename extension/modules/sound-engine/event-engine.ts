@@ -68,6 +68,10 @@ export class EventEngine {
   /** Last time ANY event played a sound (for global cooldown). */
   private lastGlobalFireTime = 0;
 
+  /** Event id that owned the most recent global fire — recorded alongside
+   *  the timestamp so suppression logs can identify what "won" the window. */
+  private lastGlobalFiredEventId: string | null = null;
+
   /** Stored listener references for cleanup on dispose. */
   private registeredListeners: {
     eventApi: {
@@ -161,6 +165,7 @@ export class EventEngine {
     this.registeredListeners = [];
     this.lastFireTime.clear();
     this.lastGlobalFireTime = 0;
+    this.lastGlobalFiredEventId = null;
   }
 
   /**
@@ -180,7 +185,16 @@ export class EventEngine {
     const cooldownMs = CONFIG.soundEngine.globalCooldownMs;
     if (cooldownMs > 0) {
       const now = Date.now();
-      if (now - this.lastGlobalFireTime < cooldownMs) {
+      const msSinceLastFire = now - this.lastGlobalFireTime;
+      if (msSinceLastFire < cooldownMs) {
+        this.logger.debug(`Suppressed by global cooldown: ${definition.id}`, {
+          suppression: "globalCooldown",
+          eventId: definition.id,
+          msSinceLastFire,
+          cooldownMs,
+          msRemaining: cooldownMs - msSinceLastFire,
+          previousEventId: this.lastGlobalFiredEventId,
+        });
         return;
       }
       // Timestamp is set just before publish (below), not here —
@@ -192,7 +206,14 @@ export class EventEngine {
     if (debounceMs && debounceMs > 0) {
       const now = Date.now();
       const lastFire = this.lastFireTime.get(definition.id) ?? 0;
-      if (now - lastFire < debounceMs) {
+      const msSinceLastFire = now - lastFire;
+      if (msSinceLastFire < debounceMs) {
+        this.logger.debug(`Suppressed by debounce: ${definition.id}`, {
+          suppression: "debounce",
+          eventId: definition.id,
+          msSinceLastFire,
+          debounceMs,
+        });
         return;
       }
       this.lastFireTime.set(definition.id, now);
@@ -206,7 +227,13 @@ export class EventEngine {
       try {
         const result = await definition.handler(...args);
         if (result) {
-          if (result.suppress) return;
+          if (result.suppress) {
+            this.logger.debug(`Suppressed by handler: ${definition.id}`, {
+              suppression: "handler",
+              eventId: definition.id,
+            });
+            return;
+          }
           soundOverride = result.soundOverride;
           handlerData = result.data;
         }
@@ -232,6 +259,7 @@ export class EventEngine {
     // Record the global cooldown timestamp only when actually publishing
     if (cooldownMs > 0) {
       this.lastGlobalFireTime = Date.now();
+      this.lastGlobalFiredEventId = definition.id;
     }
     this.messageBus.publish(BROWSER_EVENT_CHANNEL, message);
   }
