@@ -96,6 +96,12 @@ export default defineConfig({
       if (wxt.config.browser === "firefox" && manifest.permissions) {
         manifest.permissions = manifest.permissions.filter((p) => p !== "offscreen");
       }
+
+      // Strip the development key from production builds — the Chrome Web Store
+      // assigns its own key, and rejects uploads that include one.
+      if (wxt.config.mode === "production") {
+        delete (manifest as Record<string, unknown>).key;
+      }
     },
   },
 });
