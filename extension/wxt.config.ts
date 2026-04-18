@@ -72,7 +72,15 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: "{a6e584fb-ab9a-4299-8be4-9beb56d39a03}",
-        strict_min_version: "140.0",
+        strict_min_version: "142.0",
+        // Required by Firefox AMO for new extensions (WXT types don't include it yet)
+        ...({
+          data_collection_permissions: {
+            required: ["none"],
+            techdata_collected: false,
+            interactiondata_collected: false,
+          },
+        } as Record<string, unknown>),
       },
     },
     web_accessible_resources: [
@@ -81,5 +89,13 @@ export default defineConfig({
         matches: ["<all_urls>"],
       },
     ],
+  },
+  hooks: {
+    "build:manifestGenerated": (wxt, manifest) => {
+      // Remove Chrome-only "offscreen" permission from Firefox builds
+      if (wxt.config.browser === "firefox" && manifest.permissions) {
+        manifest.permissions = manifest.permissions.filter((p) => p !== "offscreen");
+      }
+    },
   },
 });
