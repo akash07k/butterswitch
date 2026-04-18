@@ -183,7 +183,8 @@ export class EventEngine {
       if (now - this.lastGlobalFireTime < cooldownMs) {
         return;
       }
-      this.lastGlobalFireTime = now;
+      // Timestamp is set just before publish (below), not here —
+      // so debounce/handler suppression don't consume the cooldown window.
     }
 
     // Debounce: suppress if the same event fired within the debounce window
@@ -228,6 +229,10 @@ export class EventEngine {
       handlerData,
     };
 
+    // Record the global cooldown timestamp only when actually publishing
+    if (cooldownMs > 0) {
+      this.lastGlobalFireTime = Date.now();
+    }
     this.messageBus.publish(BROWSER_EVENT_CHANNEL, message);
   }
 }

@@ -13,7 +13,8 @@
  * 7. Connects WebSocket log transport if user has enabled log streaming
  * 8. Registers message listener for popup/options page communication
  * 9. Registers global keyboard shortcut listener (browser.commands)
- * 10. Registers service worker suspension cleanup
+ * 10. Opens options page on first install (onboarding)
+ * 11. Registers service worker suspension cleanup
  *
  * WXT's defineBackground() is the entry point. The main function
  * CANNOT be async (MV3 constraint), so we call the async bootstrap
@@ -286,7 +287,7 @@ export default defineBackground(() => {
           try {
             await browser.notifications.create({
               type: "basic",
-              iconUrl: chrome.runtime.getURL("icon/128.png"),
+              iconUrl: (browser.runtime.getURL as (path: string) => string)("icon/128.png"),
               title: "ButterSwitch",
               message,
             });

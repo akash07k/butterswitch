@@ -145,7 +145,7 @@ export default function App() {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
+      <Tabs id="tab-panels" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="w-full justify-start">
           {TAB_DEFINITIONS.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id} aria-keyshortcuts={tab.shortcut}>

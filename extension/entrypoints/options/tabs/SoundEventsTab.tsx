@@ -1,8 +1,9 @@
 /**
  * @module options/tabs/SoundEventsTab
  *
- * Sound Events settings tab — filterable table of all 64 browser events
- * with per-event controls: enable/disable, volume, pitch, and preview.
+ * Sound Events settings tab — filterable table of browser events
+ * supported on the current platform, with per-event controls:
+ * enable/disable, volume, pitch, and preview.
  *
  * Uses a plain HTML table (not a grid) because each row is an independent
  * settings control, not a spreadsheet. NVDA reads row/column context

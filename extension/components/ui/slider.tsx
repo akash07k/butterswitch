@@ -1,18 +1,24 @@
 "use client";
 
+/**
+ * @module components/ui/slider
+ *
+ * Accessible Slider built on Radix UI's SliderPrimitive.
+ * Forwards aria-label and aria-valuetext from the Root to the
+ * focusable Thumb element, because Radix Root passes unknown
+ * props to a non-interactive container span.
+ */
+
 import * as React from "react";
 import { Slider as SliderPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
 /**
- * shadcn Slider component with aria-label and aria-valuetext forwarded
- * to the Radix Thumb element (the focusable `role="slider"` span).
+ * Radix-based slider with accessibility props forwarded to the Thumb.
  *
- * Radix Slider's Root passes unknown props to a non-focusable container.
- * The Thumb is the actual interactive element that screen readers read.
- * We destructure aria-label and aria-valuetext from Root props and
- * forward them explicitly to each Thumb.
+ * @param aria-label - Accessible name for the slider thumb.
+ * @param aria-valuetext - Human-readable value string (e.g., "80 percent").
  */
 function Slider({
   className,

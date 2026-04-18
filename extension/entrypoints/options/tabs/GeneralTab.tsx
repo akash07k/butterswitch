@@ -9,7 +9,7 @@
  * watches for storage changes.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,12 @@ export function GeneralTab() {
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
+  const confirmResetRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-cancel factory reset confirmation after 5 seconds
+  // Auto-cancel factory reset confirmation after 5 seconds, focus confirm button
   useEffect(() => {
     if (!confirmReset) return;
+    requestAnimationFrame(() => confirmResetRef.current?.focus());
     const timer = setTimeout(() => setConfirmReset(false), 5000);
     return () => clearTimeout(timer);
   }, [confirmReset]);
@@ -97,6 +99,7 @@ export function GeneralTab() {
     saveSetting("general.activeTheme", themeId, `Theme changed to ${themeId}`);
   };
 
+  /** Toggle the sound engine. Writes the full enabledModules array (not a boolean). */
   const handleSoundEngineToggle = (checked: boolean) => {
     setSoundEngineEnabled(checked);
     const modules = checked ? ["sound-engine"] : [];
@@ -209,6 +212,7 @@ export function GeneralTab() {
         </Button>
       ) : (
         <Button
+          ref={confirmResetRef}
           variant="destructive"
           onClick={async () => {
             await browser.storage.local.clear();
