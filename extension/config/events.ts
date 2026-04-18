@@ -44,20 +44,27 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   "tabs.onCreated": { enabled: true },
   "tabs.onRemoved": { enabled: true },
   "tabs.onActivated": { enabled: true },
-  "tabs.onUpdated.loading": { enabled: true, debounceMs: 300 },
-  "tabs.onUpdated.complete": { enabled: true, debounceMs: 300 },
+  // tabs.onUpdated.loading / .complete are disabled by default — the
+  // webNavigation equivalents below own the navigation start/end signal,
+  // so enabling both would just compete in the cooldown window.
+  "tabs.onUpdated.loading": { enabled: false, debounceMs: 300 },
+  "tabs.onUpdated.complete": { enabled: false, debounceMs: 300 },
   "tabs.onUpdated.title": { enabled: true, debounceMs: 500 },
   "tabs.onMoved": { enabled: true },
   "tabs.onDetached": { enabled: true },
   "tabs.onAttached": { enabled: true },
 
-  // Navigation
+  // Navigation — only the start, end, and error signals fire by default.
+  // The mid-cascade phases (onCommitted, onDOMContentLoaded) and the
+  // SPA pushState/replaceState event (onHistoryStateUpdated) are disabled
+  // because they cluster within the cooldown window and produce no
+  // information not already conveyed by onBeforeNavigate + onCompleted.
   "webNavigation.onBeforeNavigate": { enabled: true, debounceMs: 300 },
-  "webNavigation.onCommitted": { enabled: true, debounceMs: 300 },
-  "webNavigation.onDOMContentLoaded": { enabled: true, debounceMs: 300 },
+  "webNavigation.onCommitted": { enabled: false, debounceMs: 300 },
+  "webNavigation.onDOMContentLoaded": { enabled: false, debounceMs: 300 },
   "webNavigation.onCompleted": { enabled: true, debounceMs: 300 },
   "webNavigation.onErrorOccurred": { enabled: true },
-  "webNavigation.onHistoryStateUpdated": { enabled: true, debounceMs: 500 },
+  "webNavigation.onHistoryStateUpdated": { enabled: false, debounceMs: 500 },
 
   // Bookmarks
   "bookmarks.onCreated": { enabled: true },

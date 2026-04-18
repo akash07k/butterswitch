@@ -61,34 +61,6 @@ const TIER_1_EVENTS: EventDefinition[] = [
     permissions: ["tabs"],
   },
   {
-    id: "tabs.onUpdated.loading",
-    namespace: "tabs",
-    event: "onUpdated",
-    label: "Page Loading",
-    description: "A tab started loading a new page.",
-    tier: 1,
-    category: "tabs",
-    platforms: ["chrome", "firefox"],
-
-    permissions: ["tabs"],
-    filter: (_tabId: unknown, changeInfo: unknown) =>
-      (changeInfo as { status?: string })?.status === "loading",
-  },
-  {
-    id: "tabs.onUpdated.complete",
-    namespace: "tabs",
-    event: "onUpdated",
-    label: "Page Loaded",
-    description: "A tab finished loading a page.",
-    tier: 1,
-    category: "tabs",
-    platforms: ["chrome", "firefox"],
-
-    permissions: ["tabs"],
-    filter: (_tabId: unknown, changeInfo: unknown) =>
-      (changeInfo as { status?: string })?.status === "complete",
-  },
-  {
     id: "tabs.onUpdated.title",
     namespace: "tabs",
     event: "onUpdated",
@@ -145,48 +117,31 @@ const TIER_1_EVENTS: EventDefinition[] = [
     namespace: "webNavigation",
     event: "onBeforeNavigate",
     label: "Navigation Starting",
-    description: "A navigation is about to begin.",
+    description: "A navigation is about to begin in the main frame.",
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
 
     permissions: ["webNavigation"],
-  },
-  {
-    id: "webNavigation.onCommitted",
-    namespace: "webNavigation",
-    event: "onCommitted",
-    label: "Navigation Committed",
-    description: "A navigation was committed (URL changed).",
-    tier: 1,
-    category: "navigation",
-    platforms: ["chrome", "firefox"],
-
-    permissions: ["webNavigation"],
-  },
-  {
-    id: "webNavigation.onDOMContentLoaded",
-    namespace: "webNavigation",
-    event: "onDOMContentLoaded",
-    label: "DOM Ready",
-    description: "The DOM content of a page finished loading.",
-    tier: 1,
-    category: "navigation",
-    platforms: ["chrome", "firefox"],
-
-    permissions: ["webNavigation"],
+    // Only main-frame navigations — skip iframes, ad embeds, and
+    // social widgets that would otherwise fire this event repeatedly
+    // per page load.
+    filter: (details: unknown) => (details as { frameId?: number })?.frameId === 0,
   },
   {
     id: "webNavigation.onCompleted",
     namespace: "webNavigation",
     event: "onCompleted",
     label: "Page Fully Loaded",
-    description: "A page and all its resources finished loading.",
+    description: "The main frame and all its resources finished loading.",
     tier: 1,
     category: "navigation",
     platforms: ["chrome", "firefox"],
 
     permissions: ["webNavigation"],
+    // Only main-frame completion — skip iframes, ads, and embeds that
+    // would otherwise each fire a "page loaded" sound on ad-heavy sites.
+    filter: (details: unknown) => (details as { frameId?: number })?.frameId === 0,
   },
   {
     id: "webNavigation.onErrorOccurred",
@@ -199,18 +154,6 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     isError: true,
-    permissions: ["webNavigation"],
-  },
-  {
-    id: "webNavigation.onHistoryStateUpdated",
-    namespace: "webNavigation",
-    event: "onHistoryStateUpdated",
-    label: "History State Changed",
-    description: "The history state was updated (pushState/replaceState).",
-    tier: 1,
-    category: "navigation",
-    platforms: ["chrome", "firefox"],
-
     permissions: ["webNavigation"],
   },
 
@@ -514,6 +457,38 @@ const TIER_2_EVENTS: EventDefinition[] = [
 
     permissions: ["tabs"],
   },
+  // tabs.onUpdated.loading / .complete are opt-in by default — the
+  // webNavigation equivalents (onBeforeNavigate / onCompleted) cover
+  // the same start/end signal at the tab level. Users who prefer the
+  // tabs versions can enable these instead.
+  {
+    id: "tabs.onUpdated.loading",
+    namespace: "tabs",
+    event: "onUpdated",
+    label: "Page Loading",
+    description: "A tab started loading a new page.",
+    tier: 2,
+    category: "tabs",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["tabs"],
+    filter: (_tabId: unknown, changeInfo: unknown) =>
+      (changeInfo as { status?: string })?.status === "loading",
+  },
+  {
+    id: "tabs.onUpdated.complete",
+    namespace: "tabs",
+    event: "onUpdated",
+    label: "Page Loaded",
+    description: "A tab finished loading a page.",
+    tier: 2,
+    category: "tabs",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["tabs"],
+    filter: (_tabId: unknown, changeInfo: unknown) =>
+      (changeInfo as { status?: string })?.status === "complete",
+  },
 
   // === Tab Groups (Chrome only) ===
   {
@@ -765,6 +740,46 @@ const TIER_2_EVENTS: EventDefinition[] = [
     event: "onReferenceFragmentUpdated",
     label: "Hash Changed",
     description: "The URL hash fragment changed (e.g., #section).",
+    tier: 2,
+    category: "navigation",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["webNavigation"],
+  },
+  // The mid-cascade navigation phases below are opt-in by default —
+  // they fire between onBeforeNavigate and onCompleted and would just
+  // compete in the cooldown window without adding new information.
+  // Power users who want every phase can enable them individually.
+  {
+    id: "webNavigation.onCommitted",
+    namespace: "webNavigation",
+    event: "onCommitted",
+    label: "Navigation Committed",
+    description: "A navigation was committed (URL changed).",
+    tier: 2,
+    category: "navigation",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["webNavigation"],
+  },
+  {
+    id: "webNavigation.onDOMContentLoaded",
+    namespace: "webNavigation",
+    event: "onDOMContentLoaded",
+    label: "DOM Ready",
+    description: "The DOM content of a page finished loading.",
+    tier: 2,
+    category: "navigation",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["webNavigation"],
+  },
+  {
+    id: "webNavigation.onHistoryStateUpdated",
+    namespace: "webNavigation",
+    event: "onHistoryStateUpdated",
+    label: "History State Changed",
+    description: "The history state was updated (pushState/replaceState).",
     tier: 2,
     category: "navigation",
     platforms: ["chrome", "firefox"],
