@@ -349,8 +349,17 @@ export class SoundEngineModule implements ButterSwitchModule {
     // Cooldown was already committed inside tryEnter(); nothing to do here
     // beyond logging the outcome. A failed play still consumes the cooldown
     // window for ~150ms but that's a rare backend failure and acceptable.
+    //
+    // For error events, surface the error reason in the message text itself
+    // (not just in the data field) so it shows up in HTML and CSV log
+    // exports that only render the message column.
+    const errorReason =
+      eventDef.isError && typeof message.extractedData?.error === "string"
+        ? `: ${message.extractedData.error}`
+        : "";
+
     if (result.success) {
-      logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, logData);
+      logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)${errorReason}`, logData);
     } else {
       logger.warn(`${eventDef.label} sound failed: ${result.error}`, logData);
     }
