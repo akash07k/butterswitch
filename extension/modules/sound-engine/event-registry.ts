@@ -35,6 +35,23 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["tabs"],
+    extractData: (tab: unknown) => {
+      const t = tab as {
+        id?: number;
+        url?: string;
+        pendingUrl?: string;
+        openerTabId?: number;
+        index?: number;
+        windowId?: number;
+      };
+      return {
+        tabId: t?.id,
+        url: t?.url || t?.pendingUrl,
+        openerTabId: t?.openerTabId,
+        index: t?.index,
+        windowId: t?.windowId,
+      };
+    },
   },
   {
     id: "tabs.onRemoved",
@@ -47,6 +64,14 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["tabs"],
+    extractData: (tabId: unknown, removeInfo: unknown) => {
+      const r = removeInfo as { windowId?: number; isWindowClosing?: boolean };
+      return {
+        tabId,
+        windowId: r?.windowId,
+        isWindowClosing: r?.isWindowClosing,
+      };
+    },
   },
   {
     id: "tabs.onActivated",
@@ -59,6 +84,14 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["tabs"],
+    extractData: (activeInfo: unknown) => {
+      const a = activeInfo as { tabId?: number; windowId?: number; previousTabId?: number };
+      return {
+        tabId: a?.tabId,
+        windowId: a?.windowId,
+        previousTabId: a?.previousTabId,
+      };
+    },
   },
   {
     id: "tabs.onUpdated.title",
@@ -73,6 +106,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { title?: string })?.title !== undefined,
+    extractData: (tabId: unknown, changeInfo: unknown) => {
+      const c = changeInfo as { title?: string };
+      return { tabId, title: c?.title };
+    },
   },
   {
     id: "tabs.onMoved",
@@ -127,6 +164,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
     // social widgets that would otherwise fire this event repeatedly
     // per page load.
     filter: (details: unknown) => (details as { frameId?: number })?.frameId === 0,
+    extractData: (details: unknown) => {
+      const d = details as { url?: string; tabId?: number; frameId?: number };
+      return { url: d?.url, tabId: d?.tabId, frameId: d?.frameId };
+    },
   },
   {
     id: "webNavigation.onCompleted",
@@ -142,6 +183,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
     // Only main-frame completion — skip iframes, ads, and embeds that
     // would otherwise each fire a "page loaded" sound on ad-heavy sites.
     filter: (details: unknown) => (details as { frameId?: number })?.frameId === 0,
+    extractData: (details: unknown) => {
+      const d = details as { url?: string; tabId?: number; frameId?: number };
+      return { url: d?.url, tabId: d?.tabId, frameId: d?.frameId };
+    },
   },
   {
     id: "webNavigation.onErrorOccurred",
@@ -155,6 +200,15 @@ const TIER_1_EVENTS: EventDefinition[] = [
 
     isError: true,
     permissions: ["webNavigation"],
+    extractData: (details: unknown) => {
+      const d = details as {
+        url?: string;
+        tabId?: number;
+        frameId?: number;
+        error?: string;
+      };
+      return { url: d?.url, tabId: d?.tabId, frameId: d?.frameId, error: d?.error };
+    },
   },
 
   // === Bookmarks ===
@@ -219,6 +273,22 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["downloads"],
+    extractData: (item: unknown) => {
+      const i = item as {
+        id?: number;
+        url?: string;
+        filename?: string;
+        mime?: string;
+        fileSize?: number;
+      };
+      return {
+        downloadId: i?.id,
+        url: i?.url,
+        filename: i?.filename,
+        mime: i?.mime,
+        fileSize: i?.fileSize,
+      };
+    },
   },
   {
     id: "downloads.onChanged.complete",
@@ -316,6 +386,7 @@ const TIER_1_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: [],
+    extractData: (windowId: unknown) => ({ windowId }),
   },
 
   // === Runtime ===
@@ -474,6 +545,11 @@ const TIER_2_EVENTS: EventDefinition[] = [
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { status?: string })?.status === "loading",
+    extractData: (tabId: unknown, changeInfo: unknown, tab: unknown) => {
+      const c = changeInfo as { url?: string };
+      const t = tab as { url?: string };
+      return { tabId, url: c?.url || t?.url };
+    },
   },
   {
     id: "tabs.onUpdated.complete",
@@ -488,6 +564,10 @@ const TIER_2_EVENTS: EventDefinition[] = [
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { status?: string })?.status === "complete",
+    extractData: (tabId: unknown, _changeInfo: unknown, tab: unknown) => {
+      const t = tab as { url?: string };
+      return { tabId, url: t?.url };
+    },
   },
 
   // === Tab Groups (Chrome only) ===
@@ -761,6 +841,20 @@ const TIER_2_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["webNavigation"],
+    extractData: (details: unknown) => {
+      const d = details as {
+        url?: string;
+        tabId?: number;
+        frameId?: number;
+        transitionType?: string;
+      };
+      return {
+        url: d?.url,
+        tabId: d?.tabId,
+        frameId: d?.frameId,
+        transitionType: d?.transitionType,
+      };
+    },
   },
   {
     id: "webNavigation.onDOMContentLoaded",
@@ -773,6 +867,10 @@ const TIER_2_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["webNavigation"],
+    extractData: (details: unknown) => {
+      const d = details as { url?: string; tabId?: number; frameId?: number };
+      return { url: d?.url, tabId: d?.tabId, frameId: d?.frameId };
+    },
   },
   {
     id: "webNavigation.onHistoryStateUpdated",
@@ -785,6 +883,20 @@ const TIER_2_EVENTS: EventDefinition[] = [
     platforms: ["chrome", "firefox"],
 
     permissions: ["webNavigation"],
+    extractData: (details: unknown) => {
+      const d = details as {
+        url?: string;
+        tabId?: number;
+        frameId?: number;
+        transitionType?: string;
+      };
+      return {
+        url: d?.url,
+        tabId: d?.tabId,
+        frameId: d?.frameId,
+        transitionType: d?.transitionType,
+      };
+    },
   },
 
   // === Other ===

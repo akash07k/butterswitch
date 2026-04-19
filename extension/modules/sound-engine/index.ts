@@ -336,10 +336,13 @@ export class SoundEngineModule implements ButterSwitchModule {
       rate: eventConfig?.pitch,
     });
 
-    // Log the result with the event label and any handler data
+    // Log the result with the event label, extracted event data
+    // (URLs, tab IDs, etc — populated by the registry's extractData
+    // function), and any extra data attached by a custom handler.
     const logData: Record<string, unknown> = {
       eventId: message.eventId,
       sound: soundUrl,
+      ...message.extractedData,
       ...message.handlerData,
     };
 
