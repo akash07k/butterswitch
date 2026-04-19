@@ -161,6 +161,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
     category: "navigation",
     platforms: ["chrome", "firefox"],
 
+    // Priority 10 so onCompleted can preempt onBeforeNavigate (priority 0)
+    // when bfcache restores fire both events at msSince=0 — the user gets
+    // "page is ready" feedback for back/forward navigations.
+    priority: 10,
     permissions: ["webNavigation"],
     // Only main-frame completion — skip iframes, ads, and embeds that
     // would otherwise each fire a "page loaded" sound on ad-heavy sites.
@@ -180,6 +184,9 @@ const TIER_1_EVENTS: EventDefinition[] = [
     category: "navigation",
     platforms: ["chrome", "firefox"],
 
+    // Priority 20 — errors are critical and should preempt any
+    // in-flight navigation start/complete sound.
+    priority: 20,
     isError: true,
     permissions: ["webNavigation"],
     extractData: (details: unknown) => {
@@ -326,6 +333,9 @@ const TIER_1_EVENTS: EventDefinition[] = [
     category: "downloads",
     platforms: ["chrome", "firefox"],
 
+    // Priority 20 — download failures are critical and should preempt
+    // any in-flight sound (matches webNavigation.onErrorOccurred).
+    priority: 20,
     isError: true,
     permissions: ["downloads"],
     filter: (delta: unknown) =>
@@ -543,6 +553,10 @@ const TIER_2_EVENTS: EventDefinition[] = [
     category: "tabs",
     platforms: ["chrome", "firefox"],
 
+    // Priority 10 — same as webNavigation.onCompleted; if a user opts
+    // into this event instead of the webNavigation version, it should
+    // still preempt the start sound on bfcache restores.
+    priority: 10,
     permissions: ["tabs"],
     filter: (_tabId: unknown, changeInfo: unknown) =>
       (changeInfo as { status?: string })?.status === "complete",

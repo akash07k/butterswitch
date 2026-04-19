@@ -15,6 +15,17 @@
  * every concurrent invocation pass; an atomic check-and-set lets only
  * the first one through.
  *
+ * **Priority preemption:** when an event arrives within the global
+ * cooldown window AND its priority is strictly greater than the
+ * in-flight event's priority, it preempts — its sound plays (possibly
+ * overlapping the prior sound) and the cooldown timestamp resets to
+ * the preempting event. This solves cases where two semantically
+ * different events fire in the same millisecond and the second one is
+ * more informative (e.g., bfcache back/forward fires onBeforeNavigate
+ * + onCompleted at msSince=0; onCompleted should win). Equal priority
+ * does NOT preempt — keeps the gate's anti-cascade purpose intact for
+ * normal navigations.
+ *
  * The gate is INSULATED from the "disabled events poison the cooldown"
  * problem by ordering inside the caller: `handleBrowserEvent` checks
  * the per-event enabled setting BEFORE calling `tryEnter`. Disabled
@@ -53,6 +64,12 @@ export class CooldownGate {
    */
   private lastGlobalFiredEventId: string | null = null;
 
+  /**
+   * Priority of the most recently committed fire. Used to decide
+   * whether an arriving event can preempt within the cooldown window.
+   */
+  private lastGlobalFiredPriority = 0;
+
   /** Per-event id → timestamp of last committed fire, for debounce. */
   private readonly lastFireTime = new Map<string, number>();
 
@@ -77,22 +94,40 @@ export class CooldownGate {
    *
    * @param eventId - Event identifier.
    * @param debounceMs - Optional per-event debounce window. Omit for none.
+   * @param priority - Event priority. Higher preempts lower within the
+   *                   global cooldown window. Default 0.
    * @returns true if the event was admitted (and the gate updated),
    *          false if it was suppressed.
    */
-  tryEnter(eventId: string, debounceMs?: number): boolean {
+  tryEnter(eventId: string, debounceMs?: number, priority: number = 0): boolean {
     const now = Date.now();
 
     if (this.config.globalCooldownMs > 0) {
       const msSinceLastFire = now - this.lastGlobalFireTime;
       if (msSinceLastFire < this.config.globalCooldownMs) {
+        // Within the cooldown window. Allow only if the arriving event has
+        // strictly higher priority than the in-flight one (preemption).
+        if (priority > this.lastGlobalFiredPriority) {
+          this.logger.debug(`Preempted in cooldown: ${eventId}`, {
+            suppression: "preempted",
+            eventId,
+            priority,
+            preemptedEventId: this.lastGlobalFiredEventId,
+            preemptedPriority: this.lastGlobalFiredPriority,
+            msSinceLastFire,
+          });
+          this.commit(eventId, now, priority);
+          return true;
+        }
         this.logger.debug(`Suppressed by global cooldown: ${eventId}`, {
           suppression: "globalCooldown",
           eventId,
+          priority,
           msSinceLastFire,
           cooldownMs: this.config.globalCooldownMs,
           msRemaining: this.config.globalCooldownMs - msSinceLastFire,
           previousEventId: this.lastGlobalFiredEventId,
+          previousPriority: this.lastGlobalFiredPriority,
         });
         return false;
       }
@@ -102,6 +137,8 @@ export class CooldownGate {
       const lastFire = this.lastFireTime.get(eventId) ?? 0;
       const msSinceLastFire = now - lastFire;
       if (msSinceLastFire < debounceMs) {
+        // Debounce is intentionally NOT preemptable by priority — its
+        // purpose is to prevent same-event spam regardless of importance.
         this.logger.debug(`Suppressed by debounce: ${eventId}`, {
           suppression: "debounce",
           eventId,
@@ -112,19 +149,25 @@ export class CooldownGate {
       }
     }
 
-    // Admitted — commit the cooldown timestamp atomically with the decision.
+    this.commit(eventId, now, priority);
+    return true;
+  }
+
+  /** Commit the gate state for an admitted event. */
+  private commit(eventId: string, now: number, priority: number): void {
     if (this.config.globalCooldownMs > 0) {
       this.lastGlobalFireTime = now;
       this.lastGlobalFiredEventId = eventId;
+      this.lastGlobalFiredPriority = priority;
     }
     this.lastFireTime.set(eventId, now);
-    return true;
   }
 
   /** Clear all recorded fire times. Used on dispose. */
   reset(): void {
     this.lastGlobalFireTime = 0;
     this.lastGlobalFiredEventId = null;
+    this.lastGlobalFiredPriority = 0;
     this.lastFireTime.clear();
   }
 }

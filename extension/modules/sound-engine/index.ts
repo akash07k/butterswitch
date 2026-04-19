@@ -298,10 +298,14 @@ export class SoundEngineModule implements ButterSwitchModule {
     if (!isEnabled) return;
 
     // Cooldown / debounce gate. Runs AFTER the enabled check so that
-    // disabled events cannot consume the cooldown window. Updates to
-    // the gate happen only after a successful play (markPlayed below).
+    // disabled events cannot consume the cooldown window. Higher-priority
+    // events can preempt lower-priority ones already in the window —
+    // important for cascades like bfcache back/forward where
+    // onBeforeNavigate (priority 0) and onCompleted (priority 10) fire
+    // in the same millisecond.
     const debounceMs = getEventDefaults(message.eventId).debounceMs;
-    if (this.cooldownGate && !this.cooldownGate.tryEnter(message.eventId, debounceMs)) {
+    const priority = eventDef.priority ?? 0;
+    if (this.cooldownGate && !this.cooldownGate.tryEnter(message.eventId, debounceMs, priority)) {
       return;
     }
 

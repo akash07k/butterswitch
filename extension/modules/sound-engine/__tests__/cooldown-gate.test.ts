@@ -173,6 +173,70 @@ describe("CooldownGate", () => {
     });
   });
 
+  describe("priority preemption", () => {
+    it("higher-priority event preempts within the cooldown window", () => {
+      // Simulates the bfcache back/forward case: onBeforeNavigate (priority 0)
+      // commits the gate, then onCompleted (priority 10) arrives at msSince=0
+      // and must preempt so the user hears "page loaded" instead of just
+      // "navigation starting."
+      const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);
+      expect(gate.tryEnter("nav.start", undefined, 0)).toBe(true);
+      expect(gate.tryEnter("nav.complete", undefined, 10)).toBe(true);
+
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Preempted in cooldown: nav.complete"),
+        expect.objectContaining({
+          suppression: "preempted",
+          eventId: "nav.complete",
+          priority: 10,
+          preemptedEventId: "nav.start",
+          preemptedPriority: 0,
+        }),
+      );
+    });
+
+    it("equal priority does not preempt — preserves anti-cascade behavior", () => {
+      const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);
+      expect(gate.tryEnter("a", undefined, 5)).toBe(true);
+      // Same priority — must be suppressed, otherwise normal navigation
+      // cascades would all play.
+      expect(gate.tryEnter("b", undefined, 5)).toBe(false);
+    });
+
+    it("lower priority does not preempt", () => {
+      const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);
+      expect(gate.tryEnter("important", undefined, 20)).toBe(true);
+      expect(gate.tryEnter("trivial", undefined, 0)).toBe(false);
+    });
+
+    it("priority preemption updates the gate state — next event sees new priority", () => {
+      const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);
+      gate.tryEnter("a", undefined, 0);
+      gate.tryEnter("b", undefined, 10); // preempts a
+
+      // 'c' with priority 5 should be suppressed because b's commit (10) is now in the gate.
+      expect(gate.tryEnter("c", undefined, 5)).toBe(false);
+      // 'd' with priority 20 should still preempt b.
+      expect(gate.tryEnter("d", undefined, 20)).toBe(true);
+    });
+
+    it("default priority 0 — omitting the argument behaves the same as passing 0", () => {
+      const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);
+      gate.tryEnter("a"); // implicit priority 0
+      // Same explicit-0 event must be suppressed
+      expect(gate.tryEnter("b", undefined, 0)).toBe(false);
+    });
+
+    it("priority does NOT preempt per-event debounce", () => {
+      // Debounce is for spam prevention; importance shouldn't override it.
+      const gate = new CooldownGate({ globalCooldownMs: 0 }, logger);
+      gate.tryEnter("repeated", 300, 0);
+
+      vi.advanceTimersByTime(50);
+      expect(gate.tryEnter("repeated", 300, 100)).toBe(false);
+    });
+  });
+
   describe("reset", () => {
     it("clears the global cooldown timestamp", () => {
       const gate = new CooldownGate({ globalCooldownMs: 150 }, logger);

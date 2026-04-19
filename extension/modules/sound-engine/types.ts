@@ -51,6 +51,25 @@ export interface EventDefinition {
   permissions: string[];
 
   /**
+   * Suppression priority. Higher = more important. Default 0.
+   *
+   * When two events arrive within the global cooldown window, the gate
+   * normally lets the first one through and suppresses the second. With
+   * priority, an arriving event whose priority is **strictly greater
+   * than** the in-flight event can preempt — its sound plays, possibly
+   * overlapping the first one's tail. This solves cascade cases where
+   * the second event is more informative than the first (e.g., bfcache
+   * back/forward navigation fires onBeforeNavigate and onCompleted in
+   * the same millisecond; onCompleted should win because "page is
+   * ready to read" is the actionable signal for the user).
+   *
+   * Suggested scale: 0 (default), 10 (informative completion events),
+   * 20 (errors / critical events). Equal priority does not preempt —
+   * keeps the cooldown's anti-cascade purpose intact.
+   */
+  priority?: number;
+
+  /**
    * Optional filter function for sub-events.
    * Called with the event arguments — return true to trigger a sound.
    * Used for events that fire for multiple reasons (e.g., tabs.onUpdated).
