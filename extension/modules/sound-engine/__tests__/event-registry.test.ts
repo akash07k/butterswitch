@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { EVENT_REGISTRY, TIER_1_COUNT, TIER_2_COUNT, TIER_3_COUNT } from "../event-registry.js";
 import { getEventDefaults } from "../../../config/events.js";
+import { BUILT_IN_THEMES } from "../../../config/themes.js";
 
 describe("EVENT_REGISTRY", () => {
   it("has events defined", () => {
@@ -64,6 +67,33 @@ describe("EVENT_REGISTRY", () => {
         expect(["chrome", "firefox"], `${event.id}: invalid platform ${platform}`).toContain(
           platform,
         );
+      }
+    }
+  });
+
+  // Contract test guarding against the "default-enabled event silently
+  // falls back to generic-info.ogg" class of bug. Two real instances of
+  // this shipped before being noticed (tabs.onUpdated.title and
+  // downloads.onChanged.resumed) — both fired the generic fallback
+  // because their theme mapping was missing. This test fails loudly if
+  // any default-enabled event is missing a direct mapping in any
+  // shipped built-in theme.
+  it("every default-enabled event has a direct mapping in every built-in theme", async () => {
+    const defaultEnabled = EVENT_REGISTRY.filter((e) => getEventDefaults(e.id).enabled);
+
+    for (const theme of BUILT_IN_THEMES) {
+      // vitest runs from the extension package root, so theme.path
+      // ("sounds/pulse") combined with the public/ asset dir gives
+      // the on-disk theme.json location.
+      const themeJsonPath = resolve(process.cwd(), "public", theme.path, "theme.json");
+      const raw = await readFile(themeJsonPath, "utf8");
+      const manifest = JSON.parse(raw) as { mappings: Record<string, string> };
+
+      for (const event of defaultEnabled) {
+        expect(
+          manifest.mappings[event.id],
+          `Theme "${theme.id}" is missing a direct sound mapping for default-enabled event "${event.id}". Without a mapping the event silently falls back to the generic-info sound.`,
+        ).toBeDefined();
       }
     }
   });

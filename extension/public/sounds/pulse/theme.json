@@ -29,6 +29,7 @@
     "downloads.onCreated": "download-started.ogg",
     "downloads.onChanged.complete": "download-complete.ogg",
     "downloads.onChanged.paused": "download-paused.ogg",
+    "downloads.onChanged.resumed": "download-resumed.ogg",
     "downloads.onChanged.failed": "download-failed.ogg",
 
     "windows.onCreated": "window-opened.ogg",
