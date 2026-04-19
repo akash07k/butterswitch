@@ -343,10 +343,10 @@ export class SoundEngineModule implements ButterSwitchModule {
       ...message.handlerData,
     };
 
+    // Cooldown was already committed inside tryEnter(); nothing to do here
+    // beyond logging the outcome. A failed play still consumes the cooldown
+    // window for ~150ms but that's a rare backend failure and acceptable.
     if (result.success) {
-      // Update the cooldown gate ONLY after a confirmed play. Failed
-      // plays do not poison the window for the next enabled event.
-      this.cooldownGate?.markPlayed(message.eventId);
       logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, logData);
     } else {
       logger.warn(`${eventDef.label} sound failed: ${result.error}`, logData);

@@ -5,11 +5,25 @@
  * allowed to play a sound right now: a global cooldown (debounce across
  * all events) and a per-event debounce (suppress same-event spam).
  *
- * The gate is decoupled from "what just happened" tracking via two
- * methods: `tryEnter()` checks both gates without mutating state, and
- * `markPlayed()` is called only AFTER a sound actually played. This
- * separation prevents disabled or failed-to-play events from poisoning
- * the cooldown window for subsequent enabled events.
+ * `tryEnter()` is **atomic** — it checks both gates and, if the event is
+ * allowed through, commits the cooldown timestamp synchronously in the
+ * same call, before any `await`. This is essential under JS concurrency:
+ * `SoundEngineModule.handleBrowserEvent()` is async, and several
+ * invocations can race through the gate in microsecond-scale windows
+ * (e.g., when Ctrl+T fires onCreated + onActivated + onBeforeNavigate
+ * all within ~5 ms). A split "check then commit later" API would let
+ * every concurrent invocation pass; an atomic check-and-set lets only
+ * the first one through.
+ *
+ * The gate is INSULATED from the "disabled events poison the cooldown"
+ * problem by ordering inside the caller: `handleBrowserEvent` checks
+ * the per-event enabled setting BEFORE calling `tryEnter`. Disabled
+ * events therefore never reach the gate at all.
+ *
+ * Trade-off: a failed audio play (rare — backend error) still consumes
+ * the cooldown window for its 150 ms duration, since the timestamp is
+ * committed before play() resolves. Acceptable, because the next event
+ * would have been suppressed by the cooldown regardless.
  */
 
 import type { Logger } from "@butterswitch/logger";
@@ -26,20 +40,20 @@ export interface CooldownGateConfig {
 
 /**
  * Tracks the last-played event globally and per-event so the gate can
- * suppress cascading or repeating sounds. State is mutated only via
- * `markPlayed()` — never as a side effect of `tryEnter()`.
+ * suppress cascading or repeating sounds. State is mutated only inside
+ * `tryEnter()` on the success branch — never as a separate side-effect.
  */
 export class CooldownGate {
-  /** Wall-clock time of the most recent successful play. */
+  /** Wall-clock time of the most recently committed fire. */
   private lastGlobalFireTime = 0;
 
   /**
-   * Event id that owned the most recent successful play. Recorded so
+   * Event id that owned the most recent committed fire. Recorded so
    * suppression logs can identify which event "won" the current window.
    */
   private lastGlobalFiredEventId: string | null = null;
 
-  /** Per-event id → timestamp of last successful play, for debounce. */
+  /** Per-event id → timestamp of last committed fire, for debounce. */
   private readonly lastFireTime = new Map<string, number>();
 
   /**
@@ -52,16 +66,19 @@ export class CooldownGate {
   ) {}
 
   /**
-   * Check whether an event is allowed to play right now. Logs a
-   * structured suppression entry at debug level if the answer is no.
+   * Atomic check-and-commit. If the event is allowed through, the
+   * cooldown timestamp is updated synchronously before this method
+   * returns. If the event is suppressed, a structured debug-level
+   * suppression entry is logged and no state changes.
    *
-   * Does NOT mutate state — call `markPlayed()` after the sound has
-   * actually played. This keeps disabled events and failed plays from
-   * consuming the cooldown window.
+   * Concurrent callers race only at the JS-engine level; because this
+   * method has no `await`, the JS event loop guarantees the check-
+   * and-set pair is observed atomically by every other caller.
    *
-   * @param eventId - Event identifier (used for logging).
+   * @param eventId - Event identifier.
    * @param debounceMs - Optional per-event debounce window. Omit for none.
-   * @returns true if the event may proceed, false if it should be suppressed.
+   * @returns true if the event was admitted (and the gate updated),
+   *          false if it was suppressed.
    */
   tryEnter(eventId: string, debounceMs?: number): boolean {
     const now = Date.now();
@@ -95,23 +112,13 @@ export class CooldownGate {
       }
     }
 
-    return true;
-  }
-
-  /**
-   * Record that a sound actually played for the given event. Updates
-   * both the global cooldown and the per-event debounce timestamps.
-   * Call this only after the audio backend confirms a successful play.
-   *
-   * @param eventId - Event identifier whose sound just played.
-   */
-  markPlayed(eventId: string): void {
-    const now = Date.now();
+    // Admitted — commit the cooldown timestamp atomically with the decision.
     if (this.config.globalCooldownMs > 0) {
       this.lastGlobalFireTime = now;
       this.lastGlobalFiredEventId = eventId;
     }
     this.lastFireTime.set(eventId, now);
+    return true;
   }
 
   /** Clear all recorded fire times. Used on dispose. */
