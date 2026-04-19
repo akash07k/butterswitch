@@ -49,7 +49,11 @@ export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   // so enabling both would just compete in the cooldown window.
   "tabs.onUpdated.loading": { enabled: false, debounceMs: 300 },
   "tabs.onUpdated.complete": { enabled: false, debounceMs: 300 },
-  "tabs.onUpdated.title": { enabled: true, debounceMs: 500 },
+  // Title fires multiple times per page load (loading state, real title,
+  // notification badge updates) — disabled by default to keep navigation
+  // feedback clean. Users who specifically want title-change cues can
+  // opt in; the theme provides tab-title.ogg for them.
+  "tabs.onUpdated.title": { enabled: false, debounceMs: 500 },
   "tabs.onMoved": { enabled: true },
   "tabs.onDetached": { enabled: true },
   "tabs.onAttached": { enabled: true },

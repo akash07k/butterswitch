@@ -9,6 +9,7 @@
     "tabs.onActivated": "tab-switched.ogg",
     "tabs.onUpdated.loading": "nav-starting.ogg",
     "tabs.onUpdated.complete": "page-loaded.ogg",
+    "tabs.onUpdated.title": "tab-title.ogg",
     "tabs.onMoved": "tab-moved.ogg",
     "tabs.onDetached": "tab-detached.ogg",
     "tabs.onAttached": "tab-attached.ogg",

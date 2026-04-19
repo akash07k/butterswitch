@@ -94,24 +94,6 @@ const TIER_1_EVENTS: EventDefinition[] = [
     },
   },
   {
-    id: "tabs.onUpdated.title",
-    namespace: "tabs",
-    event: "onUpdated",
-    label: "Tab Title Changed",
-    description: "A tab's page title changed (useful for screen reader users).",
-    tier: 1,
-    category: "tabs",
-    platforms: ["chrome", "firefox"],
-
-    permissions: ["tabs"],
-    filter: (_tabId: unknown, changeInfo: unknown) =>
-      (changeInfo as { title?: string })?.title !== undefined,
-    extractData: (tabId: unknown, changeInfo: unknown) => {
-      const c = changeInfo as { title?: string };
-      return { tabId, title: c?.title };
-    },
-  },
-  {
     id: "tabs.onMoved",
     namespace: "tabs",
     event: "onMoved",
@@ -567,6 +549,24 @@ const TIER_2_EVENTS: EventDefinition[] = [
     extractData: (tabId: unknown, _changeInfo: unknown, tab: unknown) => {
       const t = tab as { url?: string };
       return { tabId, url: t?.url };
+    },
+  },
+  {
+    id: "tabs.onUpdated.title",
+    namespace: "tabs",
+    event: "onUpdated",
+    label: "Tab Title Changed",
+    description: "A tab's page title changed (useful for screen reader users).",
+    tier: 2,
+    category: "tabs",
+    platforms: ["chrome", "firefox"],
+
+    permissions: ["tabs"],
+    filter: (_tabId: unknown, changeInfo: unknown) =>
+      (changeInfo as { title?: string })?.title !== undefined,
+    extractData: (tabId: unknown, changeInfo: unknown) => {
+      const c = changeInfo as { title?: string };
+      return { tabId, title: c?.title };
     },
   },
 
