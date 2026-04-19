@@ -20,8 +20,10 @@ import type { AudioBackend } from "./audio-backends/types.js";
 import { EventEngine, BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "./event-engine.js";
 import { ThemeManager } from "./theme-manager.js";
 import { EVENT_REGISTRY } from "./event-registry.js";
+import { CooldownGate } from "./cooldown-gate.js";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
 import { getEventDefaults } from "../../config/events.js";
+import { CONFIG } from "../../config/index.js";
 
 /** Module ID used for registration and dependency references. */
 export const SOUND_ENGINE_MODULE_ID = "sound-engine";
@@ -55,6 +57,13 @@ export class SoundEngineModule implements ButterSwitchModule {
 
   /** Resolves event IDs to sound file URLs. */
   private themeManager: ThemeManager | null = null;
+
+  /**
+   * Two-stage suppression gate (global cooldown + per-event debounce).
+   * Updated only after a sound actually plays — disabled events and
+   * failed plays do not poison the cooldown window.
+   */
+  private cooldownGate: CooldownGate | null = null;
 
   /** Unsubscribe function for the message bus subscription. */
   private unsubscribe: (() => void) | null = null;
@@ -159,6 +168,14 @@ export class SoundEngineModule implements ButterSwitchModule {
     this.eventEngine.registerAll(EVENT_REGISTRY, context.platform.browser);
     logger.info("Event engine ready", { registeredEvents: EVENT_REGISTRY.length });
 
+    // 4. Build the cooldown / debounce gate. Initialised here (not in
+    //    activate) so its state survives deactivate/reactivate cycles
+    //    and the same physical instance is disposed in dispose().
+    this.cooldownGate = new CooldownGate(
+      { globalCooldownMs: CONFIG.soundEngine.globalCooldownMs },
+      logger,
+    );
+
     this.unsubscribe = null;
   }
 
@@ -248,6 +265,7 @@ export class SoundEngineModule implements ButterSwitchModule {
     this.unwatchers = [];
 
     this.eventEngine?.dispose();
+    this.cooldownGate?.reset();
     await this.backend?.dispose();
     this.context?.logger.info("Sound engine disposed");
   }
@@ -278,6 +296,14 @@ export class SoundEngineModule implements ButterSwitchModule {
     }>(`sounds.events.${message.eventId}`);
     const isEnabled = eventConfig?.enabled ?? getEventDefaults(message.eventId).enabled;
     if (!isEnabled) return;
+
+    // Cooldown / debounce gate. Runs AFTER the enabled check so that
+    // disabled events cannot consume the cooldown window. Updates to
+    // the gate happen only after a successful play (markPlayed below).
+    const debounceMs = getEventDefaults(message.eventId).debounceMs;
+    if (this.cooldownGate && !this.cooldownGate.tryEnter(message.eventId, debounceMs)) {
+      return;
+    }
 
     // Resolve which sound to play — handler soundOverride takes priority
     let soundUrl: string | null;
@@ -318,6 +344,9 @@ export class SoundEngineModule implements ButterSwitchModule {
     };
 
     if (result.success) {
+      // Update the cooldown gate ONLY after a confirmed play. Failed
+      // plays do not poison the window for the next enabled event.
+      this.cooldownGate?.markPlayed(message.eventId);
       logger.info(`${eventDef.label} sound played (${result.latencyMs}ms)`, logData);
     } else {
       logger.warn(`${eventDef.label} sound failed: ${result.error}`, logData);

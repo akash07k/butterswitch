@@ -221,15 +221,17 @@ describe("EventEngine", () => {
     // Both listeners registered on the same browser event
     expect(mockBrowser.listeners.get("tabs.onUpdated")).toHaveLength(2);
 
-    // Fire with "loading" — only the loading event publishes
+    // Fire with "loading" — only the loading event publishes. The
+    // event engine no longer applies a global cooldown (that lives in
+    // SoundEngineModule), so back-to-back fires publish immediately.
     mockBrowser.fireEvent("tabs", "onUpdated", 1, { status: "loading" }, {});
-    await new Promise((r) => setTimeout(r, 200)); // Wait for async handler + global cooldown
+    await Promise.resolve(); // flush the async handler microtask
     expect(bus.messages).toHaveLength(1);
     expect(bus.messages[0]!.data).toMatchObject({ eventId: "tabs.onUpdated.loading" });
 
     // Fire with "complete" — only the complete event publishes
     mockBrowser.fireEvent("tabs", "onUpdated", 1, { status: "complete" }, {});
-    await new Promise((r) => setTimeout(r, 200));
+    await Promise.resolve();
     expect(bus.messages).toHaveLength(2);
     expect(bus.messages[1]!.data).toMatchObject({ eventId: "tabs.onUpdated.complete" });
   });

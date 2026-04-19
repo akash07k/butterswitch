@@ -1,25 +1,26 @@
 /**
  * @module sound-engine/event-engine
  *
- * Generic engine that reads the event registry and wires browser API listeners.
+ * Generic router that reads the event registry and wires browser API
+ * listeners. For each event it:
  *
- * For each event definition, it:
- * 1. Checks if the event is supported on the current platform
- * 2. Attaches a listener to the browser API (e.g., browser.tabs.onCreated)
+ * 1. Checks platform support
+ * 2. Attaches a listener to the browser API
  * 3. Applies the optional filter for sub-events
- * 4. Extracts relevant data for logging
- * 5. Publishes to the message bus on the "browser-event" channel
+ * 4. Runs an optional custom handler (which can suppress or override sound)
+ * 5. Extracts data for logging
+ * 6. Publishes a `BrowserEventMessage` on the message bus
  *
- * The sound engine module subscribes to "browser-event" messages
- * to trigger audio playback. This separation means the event engine
- * doesn't know about audio — it just detects events and announces them.
+ * The router does NOT decide whether a sound should play. All gating
+ * logic — mute, per-event enabled, cooldown, debounce — lives in
+ * `SoundEngineModule.handleBrowserEvent()`. This separation guarantees
+ * that disabled events cannot poison the cooldown window, because the
+ * cooldown is updated only after a sound actually plays.
  */
 
 import type { EventDefinition } from "./types.js";
 import type { MessageBus } from "../../core/module-system/types.js";
 import type { Logger } from "@butterswitch/logger";
-import { getEventDefaults } from "../../config/events.js";
-import { CONFIG } from "../../config/index.js";
 
 /**
  * Data published to the message bus for each browser event.
@@ -61,16 +62,6 @@ export class EventEngine {
   private readonly browser: Record<string, unknown>;
   private readonly messageBus: MessageBus;
   private readonly logger: Logger;
-
-  /** Last fire time per event ID for debounce tracking. */
-  private lastFireTime = new Map<string, number>();
-
-  /** Last time ANY event played a sound (for global cooldown). */
-  private lastGlobalFireTime = 0;
-
-  /** Event id that owned the most recent global fire — recorded alongside
-   *  the timestamp so suppression logs can identify what "won" the window. */
-  private lastGlobalFiredEventId: string | null = null;
 
   /** Stored listener references for cleanup on dispose. */
   private registeredListeners: {
@@ -163,15 +154,12 @@ export class EventEngine {
     }
     this.logger.debug(`Removed ${this.registeredListeners.length} event listeners`);
     this.registeredListeners = [];
-    this.lastFireTime.clear();
-    this.lastGlobalFireTime = 0;
-    this.lastGlobalFiredEventId = null;
   }
 
   /**
-   * Handles a browser event firing.
-   * Applies the filter, checks debounce, runs custom handler,
-   * extracts data, and publishes to the message bus.
+   * Handle a browser event firing: apply filter, run optional handler,
+   * extract data, publish to the message bus. Suppression decisions
+   * live downstream in SoundEngineModule, NOT here.
    */
   private async handleEvent(definition: EventDefinition, args: unknown[]): Promise<void> {
     // Apply filter if defined (for sub-events like tabs.onUpdated.loading)
@@ -179,47 +167,10 @@ export class EventEngine {
       return;
     }
 
-    // Global cooldown: suppress ALL events for a window after any sound plays.
-    // Prevents cascading sounds from a single user action (e.g., Ctrl+T
-    // fires tab created + navigation + page load in quick succession).
-    const cooldownMs = CONFIG.soundEngine.globalCooldownMs;
-    if (cooldownMs > 0) {
-      const now = Date.now();
-      const msSinceLastFire = now - this.lastGlobalFireTime;
-      if (msSinceLastFire < cooldownMs) {
-        this.logger.debug(`Suppressed by global cooldown: ${definition.id}`, {
-          suppression: "globalCooldown",
-          eventId: definition.id,
-          msSinceLastFire,
-          cooldownMs,
-          msRemaining: cooldownMs - msSinceLastFire,
-          previousEventId: this.lastGlobalFiredEventId,
-        });
-        return;
-      }
-      // Timestamp is set just before publish (below), not here —
-      // so debounce/handler suppression don't consume the cooldown window.
-    }
-
-    // Debounce: suppress if the same event fired within the debounce window
-    const debounceMs = getEventDefaults(definition.id).debounceMs;
-    if (debounceMs && debounceMs > 0) {
-      const now = Date.now();
-      const lastFire = this.lastFireTime.get(definition.id) ?? 0;
-      const msSinceLastFire = now - lastFire;
-      if (msSinceLastFire < debounceMs) {
-        this.logger.debug(`Suppressed by debounce: ${definition.id}`, {
-          suppression: "debounce",
-          eventId: definition.id,
-          msSinceLastFire,
-          debounceMs,
-        });
-        return;
-      }
-      this.lastFireTime.set(definition.id, now);
-    }
-
-    // Run custom handler if defined
+    // Run custom handler if defined — handler may suppress the event
+    // or override the sound file. Suppression here is intentional
+    // (registry-defined behavior, not user preference) so it does not
+    // need to interact with the cooldown gate.
     let soundOverride: string | undefined;
     let handlerData: Record<string, unknown> | undefined;
 
@@ -256,11 +207,6 @@ export class EventEngine {
       handlerData,
     };
 
-    // Record the global cooldown timestamp only when actually publishing
-    if (cooldownMs > 0) {
-      this.lastGlobalFireTime = Date.now();
-      this.lastGlobalFiredEventId = definition.id;
-    }
     this.messageBus.publish(BROWSER_EVENT_CHANNEL, message);
   }
 }
