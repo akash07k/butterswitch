@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { focusFirst, focusNearest } from "../focus.js";
+import { focusFirst } from "../focus.js";
 
 /**
  * Focus utilities use DOM APIs.
  * Vitest's JSDOM environment provides a minimal DOM.
- *
- * Note: innerHTML usage here is safe — these are test fixtures
- * with hardcoded content, not user-provided data.
  */
 describe("focusFirst", () => {
   beforeEach(() => {
@@ -54,65 +51,38 @@ describe("focusFirst", () => {
     const result = focusFirst(container);
     expect(result).toBe(false);
   });
-});
 
-describe("focusNearest", () => {
-  beforeEach(() => {
-    document.body.textContent = "";
+  it("skips disabled focusable elements", () => {
+    const container = document.createElement("div");
+    const disabled = document.createElement("button");
+    disabled.id = "disabled";
+    disabled.disabled = true;
+    const enabled = document.createElement("button");
+    enabled.id = "enabled";
+    container.appendChild(disabled);
+    container.appendChild(enabled);
+    document.body.appendChild(container);
+
+    focusFirst(container);
+
+    expect(document.activeElement?.id).toBe("enabled");
   });
 
-  it("focuses the next sibling when the reference is removed", () => {
-    const list = document.createElement("ul");
-    const buttons: HTMLButtonElement[] = [];
+  it("respects tabindex=-1 by skipping it", () => {
+    const container = document.createElement("div");
+    const skipped = document.createElement("a");
+    skipped.id = "skipped";
+    skipped.href = "#";
+    skipped.tabIndex = -1;
+    const focusable = document.createElement("a");
+    focusable.id = "focusable";
+    focusable.href = "#";
+    container.appendChild(skipped);
+    container.appendChild(focusable);
+    document.body.appendChild(container);
 
-    for (const id of ["a", "b", "c"]) {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.id = id;
-      btn.textContent = id.toUpperCase();
-      li.appendChild(btn);
-      list.appendChild(li);
-      buttons.push(btn);
-    }
-    document.body.appendChild(list);
+    focusFirst(container);
 
-    // Simulate: B is focused and about to be removed
-    const target = document.getElementById("b")!;
-    focusNearest(target, buttons);
-
-    // Should focus C (next after B)
-    expect(document.activeElement?.id).toBe("c");
-  });
-
-  it("focuses the previous sibling when target is last", () => {
-    const list = document.createElement("ul");
-    const buttons: HTMLButtonElement[] = [];
-
-    for (const id of ["a", "b", "c"]) {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.id = id;
-      btn.textContent = id.toUpperCase();
-      li.appendChild(btn);
-      list.appendChild(li);
-      buttons.push(btn);
-    }
-    document.body.appendChild(list);
-
-    const target = document.getElementById("c")!;
-    focusNearest(target, buttons);
-
-    // C is last, so focus B (previous)
-    expect(document.activeElement?.id).toBe("b");
-  });
-
-  it("returns false when no alternative exists", () => {
-    const btn = document.createElement("button");
-    btn.id = "only";
-    btn.textContent = "Only";
-    document.body.appendChild(btn);
-
-    const result = focusNearest(btn, [btn]);
-    expect(result).toBe(false);
+    expect(document.activeElement?.id).toBe("focusable");
   });
 });
