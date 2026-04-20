@@ -8,7 +8,7 @@
  * Custom theme import (via .zip) will be added in a future version.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +25,17 @@ import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 /** Themes settings tab — theme selector, active theme info, and custom theme import placeholder. */
 export function ThemesTab() {
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const confirmResetRef = useRef<HTMLButtonElement>(null);
+
+  // Auto-cancel reset confirmation after 5 seconds, focus the confirm button.
+  // Same two-step pattern as the destructive Resets in the other tabs.
+  useEffect(() => {
+    if (!confirmReset) return;
+    requestAnimationFrame(() => confirmResetRef.current?.focus());
+    const timer = setTimeout(() => setConfirmReset(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmReset]);
 
   // Load active theme from storage
   useEffect(() => {
@@ -101,21 +112,39 @@ export function ThemesTab() {
         </Button>
       </section>
 
-      {/* Reset */}
-      <Button
-        variant="outline"
-        onClick={() => {
-          const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === DEFAULT_THEME_ID);
-          setActiveTheme(DEFAULT_THEME_ID);
-          browser.storage.local.set({ "general.activeTheme": DEFAULT_THEME_ID });
-          announce(`Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, "polite");
-          sendLog("warn", `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, {
-            source: "options",
-          });
-        }}
-      >
-        Reset Theme Settings
-      </Button>
+      {/* Reset — two-step confirm so a single accidental click can't wipe */}
+      {/* the user's chosen theme.                                          */}
+      {!confirmReset ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setConfirmReset(true);
+            announce("Are you sure? Press Reset Theme Settings again to confirm.", "assertive");
+          }}
+        >
+          Reset Theme Settings
+        </Button>
+      ) : (
+        <Button
+          ref={confirmResetRef}
+          variant="destructive"
+          onClick={() => {
+            const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === DEFAULT_THEME_ID);
+            setActiveTheme(DEFAULT_THEME_ID);
+            browser.storage.local.set({ "general.activeTheme": DEFAULT_THEME_ID });
+            announce(
+              `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`,
+              "polite",
+            );
+            sendLog("warn", `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, {
+              source: "options",
+            });
+            setConfirmReset(false);
+          }}
+        >
+          Confirm Reset Theme Settings
+        </Button>
+      )}
     </div>
   );
 }

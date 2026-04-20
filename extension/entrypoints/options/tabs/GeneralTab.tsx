@@ -32,7 +32,9 @@ export function GeneralTab() {
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmGeneralReset, setConfirmGeneralReset] = useState(false);
   const confirmResetRef = useRef<HTMLButtonElement>(null);
+  const confirmGeneralResetRef = useRef<HTMLButtonElement>(null);
 
   // Auto-cancel factory reset confirmation after 5 seconds, focus confirm button
   useEffect(() => {
@@ -41,6 +43,14 @@ export function GeneralTab() {
     const timer = setTimeout(() => setConfirmReset(false), 5000);
     return () => clearTimeout(timer);
   }, [confirmReset]);
+
+  // Same auto-cancel + focus pattern for the lighter "Reset General Settings".
+  useEffect(() => {
+    if (!confirmGeneralReset) return;
+    requestAnimationFrame(() => confirmGeneralResetRef.current?.focus());
+    const timer = setTimeout(() => setConfirmGeneralReset(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmGeneralReset]);
 
   // Load settings on mount
   useEffect(() => {
@@ -189,26 +199,42 @@ export function GeneralTab() {
         </div>
       </section>
 
-      {/* Reset */}
-      <Button
-        variant="outline"
-        onClick={() => {
-          setMuted(false);
-          setVolume(80);
-          setActiveTheme(DEFAULT_THEME_ID);
-          setSoundEngineEnabled(true);
-          browser.storage.local.set({
-            "general.muted": false,
-            "general.masterVolume": 80,
-            "general.activeTheme": DEFAULT_THEME_ID,
-            "general.enabledModules": ["sound-engine"],
-          });
-          announce("General settings reset to defaults", "polite");
-          sendLog("warn", "General settings reset to defaults", { source: "options" });
-        }}
-      >
-        Reset General Settings
-      </Button>
+      {/* Reset General Settings — two-step confirm to prevent accidental */}
+      {/* clobber of user's volume / theme / module choices. Mirrors the   */}
+      {/* Factory Reset pattern below.                                      */}
+      {!confirmGeneralReset ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setConfirmGeneralReset(true);
+            announce("Are you sure? Press Reset General Settings again to confirm.", "assertive");
+          }}
+        >
+          Reset General Settings
+        </Button>
+      ) : (
+        <Button
+          ref={confirmGeneralResetRef}
+          variant="destructive"
+          onClick={() => {
+            setMuted(false);
+            setVolume(80);
+            setActiveTheme(DEFAULT_THEME_ID);
+            setSoundEngineEnabled(true);
+            browser.storage.local.set({
+              "general.muted": false,
+              "general.masterVolume": 80,
+              "general.activeTheme": DEFAULT_THEME_ID,
+              "general.enabledModules": ["sound-engine"],
+            });
+            announce("General settings reset to defaults", "polite");
+            sendLog("warn", "General settings reset to defaults", { source: "options" });
+            setConfirmGeneralReset(false);
+          }}
+        >
+          Confirm Reset General Settings
+        </Button>
+      )}
 
       {!confirmReset ? (
         <Button

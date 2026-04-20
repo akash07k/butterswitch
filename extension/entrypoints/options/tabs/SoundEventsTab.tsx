@@ -14,7 +14,7 @@
  * full context when tabbing through controls.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -60,6 +60,17 @@ export function SoundEventsTab() {
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("1");
   const [configs, setConfigs] = useState<Record<string, EventConfig>>({});
+  const [confirmReset, setConfirmReset] = useState(false);
+  const confirmResetRef = useRef<HTMLButtonElement>(null);
+
+  // Auto-cancel reset confirmation after 5 seconds, focus the confirm button.
+  // Same two-step pattern as the destructive Resets in the other tabs.
+  useEffect(() => {
+    if (!confirmReset) return;
+    requestAnimationFrame(() => confirmResetRef.current?.focus());
+    const timer = setTimeout(() => setConfirmReset(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmReset]);
 
   // Load per-event configs from storage
   useEffect(() => {
@@ -319,27 +330,45 @@ export function SoundEventsTab() {
         </TableBody>
       </Table>
 
-      {/* Reset */}
-      <Button
-        variant="outline"
-        onClick={async () => {
-          const defaults: Record<string, EventConfig> = {};
-          const keysToRemove = PLATFORM_EVENTS.map((e) => `sounds.events.${e.id}`);
-          for (const event of PLATFORM_EVENTS) {
-            defaults[event.id] = {
-              enabled: getEventDefaults(event.id).enabled,
-              volume: 100,
-              pitch: 1.0,
-            };
-          }
-          await browser.storage.local.remove(keysToRemove);
-          setConfigs(defaults);
-          announce("All sound event settings reset to defaults", "polite");
-          sendLog("warn", "Sound event settings reset to defaults", { source: "options" });
-        }}
-      >
-        Reset Sound Event Settings
-      </Button>
+      {/* Reset — two-step confirm to prevent accidentally wiping per-event */}
+      {/* enable/disable, volume, and pitch overrides for every event.       */}
+      {!confirmReset ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setConfirmReset(true);
+            announce(
+              "Are you sure? Press Reset Sound Event Settings again to confirm.",
+              "assertive",
+            );
+          }}
+        >
+          Reset Sound Event Settings
+        </Button>
+      ) : (
+        <Button
+          ref={confirmResetRef}
+          variant="destructive"
+          onClick={async () => {
+            const defaults: Record<string, EventConfig> = {};
+            const keysToRemove = PLATFORM_EVENTS.map((e) => `sounds.events.${e.id}`);
+            for (const event of PLATFORM_EVENTS) {
+              defaults[event.id] = {
+                enabled: getEventDefaults(event.id).enabled,
+                volume: 100,
+                pitch: 1.0,
+              };
+            }
+            await browser.storage.local.remove(keysToRemove);
+            setConfigs(defaults);
+            announce("All sound event settings reset to defaults", "polite");
+            sendLog("warn", "Sound event settings reset to defaults", { source: "options" });
+            setConfirmReset(false);
+          }}
+        >
+          Confirm Reset Sound Event Settings
+        </Button>
+      )}
     </div>
   );
 }
