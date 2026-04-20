@@ -153,6 +153,7 @@ export default function App() {
             for keyboard shortcuts.
           </p>
           <button
+            type="button"
             onClick={dismissWelcome}
             className="mt-2 px-4 py-2 rounded border border-input bg-transparent text-sm hover:bg-accent"
           >

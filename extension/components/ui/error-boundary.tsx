@@ -72,6 +72,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           )}
           <button
             ref={this.buttonRef}
+            type="button"
             onClick={() => {
               this.retryCount++;
               this.setState({ hasError: false, error: null });
