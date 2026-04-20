@@ -106,4 +106,73 @@ describe("MessageBusImpl", () => {
     expect(() => bus.publish("channel", "data")).not.toThrow();
     expect(goodHandler).toHaveBeenCalledOnce();
   });
+
+  it("regression: handler unsubscribing itself does not skip later handlers", () => {
+    // Without the snapshot in publish(), the array splice would shift
+    // handlerB down to handlerA's index, and the for…of walk would
+    // skip it entirely.
+    const handlerB = vi.fn();
+    let unsubA: (() => void) | null = null;
+    const handlerA = vi.fn(() => {
+      unsubA?.();
+    });
+
+    unsubA = bus.subscribe("channel", handlerA);
+    bus.subscribe("channel", handlerB);
+
+    bus.publish("channel", "data");
+
+    expect(handlerA).toHaveBeenCalledOnce();
+    expect(handlerB).toHaveBeenCalledOnce();
+  });
+
+  it("regression: handler unsubscribing another handler still delivers to remaining handlers", () => {
+    let unsubB: (() => void) | null = null;
+    const handlerA = vi.fn(() => {
+      // Unsubscribe B while iterating — without the snapshot, C would
+      // shift into B's slot and be skipped by the indexed for…of walk.
+      unsubB?.();
+    });
+    const handlerB = vi.fn();
+    const handlerC = vi.fn();
+
+    bus.subscribe("channel", handlerA);
+    unsubB = bus.subscribe("channel", handlerB);
+    bus.subscribe("channel", handlerC);
+
+    bus.publish("channel", "data");
+
+    expect(handlerA).toHaveBeenCalledOnce();
+    // B was already in the snapshot when publish started, so it still fires
+    // for THIS publish — the unsubscribe takes effect on the NEXT publish.
+    expect(handlerB).toHaveBeenCalledOnce();
+    expect(handlerC).toHaveBeenCalledOnce();
+
+    handlerA.mockClear();
+    handlerB.mockClear();
+    handlerC.mockClear();
+
+    bus.publish("channel", "second");
+
+    expect(handlerA).toHaveBeenCalledOnce();
+    expect(handlerB).not.toHaveBeenCalled(); // unsubscribed last time
+    expect(handlerC).toHaveBeenCalledOnce();
+  });
+
+  it("handler subscribing during publish does not receive the in-flight message", () => {
+    const lateHandler = vi.fn();
+    bus.subscribe("channel", () => {
+      bus.subscribe("channel", lateHandler);
+    });
+
+    bus.publish("channel", "first");
+
+    // The late handler subscribed AFTER the snapshot was taken — it must
+    // not fire for this message. It will fire for subsequent publishes.
+    expect(lateHandler).not.toHaveBeenCalled();
+
+    bus.publish("channel", "second");
+    expect(lateHandler).toHaveBeenCalledOnce();
+    expect(lateHandler).toHaveBeenCalledWith("second");
+  });
 });

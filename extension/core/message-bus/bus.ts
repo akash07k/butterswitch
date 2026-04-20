@@ -48,24 +48,31 @@ export class MessageBusImpl implements MessageBus {
   /**
    * Publish a message to all subscribers of a channel.
    *
-   * If a handler throws, the error is caught so remaining
-   * handlers still execute. Errors are logged to console
-   * as a fallback (the logger may not be available here).
+   * Handlers are iterated over a SNAPSHOT of the subscriber list, so a
+   * handler that unsubscribes itself or another handler mid-iteration
+   * cannot cause a later handler to be skipped. Without this snapshot,
+   * the live array would shift down on `splice()` and the `for…of`
+   * indexed walk would miss the next handler.
+   *
+   * If a handler throws, the error is caught so remaining handlers
+   * still execute. Errors are logged to `console.error` as a fallback
+   * — the project's structured logger may itself be a subscriber, and
+   * routing handler errors through it would risk recursive failures.
    *
    * @param channel - The channel name to publish to.
    * @param data - The message payload (any JSON-serializable value).
    */
   publish(channel: string, data: unknown): void {
     const handlers = this.channels.get(channel);
-    if (!handlers) return;
+    if (!handlers || handlers.length === 0) return;
 
-    for (const handler of handlers) {
+    // Snapshot before iteration — see method docstring for why.
+    const snapshot = handlers.slice();
+
+    for (const handler of snapshot) {
       try {
         handler(data);
       } catch (error) {
-        // Catch handler errors so one bad subscriber doesn't break the channel.
-        // Using console.error as a fallback — the logger itself may be
-        // a subscriber and we can't risk recursive failures.
         console.error(`[MessageBus] Handler error on channel "${channel}":`, error);
       }
     }
