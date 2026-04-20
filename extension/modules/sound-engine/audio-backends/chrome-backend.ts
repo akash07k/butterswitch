@@ -137,30 +137,34 @@ export class ChromeAudioBackend implements AudioBackend {
   /**
    * Ensures the offscreen document exists, creating it if needed.
    *
-   * The `creatingPromise` check is BEFORE the async `hasDocument()` call
-   * to prevent a race where two concurrent callers both pass hasDocument()
-   * and both attempt createDocument(). All concurrent callers await the
-   * same creation promise.
+   * Concurrency guarantee: `creatingPromise` is assigned synchronously
+   * before any `await` yields, so a second concurrent caller arriving
+   * during the first caller's `hasDocument()` check observes the
+   * promise on the entry guard and awaits it instead of issuing its
+   * own `createDocument()`. Without this, two concurrent callers could
+   * both pass `hasDocument()` returning false and both call
+   * `chrome.offscreen.createDocument()` — Chrome rejects the second
+   * call with "Only a single offscreen document may be created."
    */
   private async ensureOffscreenDocument(): Promise<void> {
-    // If creation is already in progress, all callers await the same promise.
-    // This check is synchronous — no async gap before the guard.
     if (this.creatingPromise) {
       await this.creatingPromise;
       return;
     }
 
-    if (await this.hasDocument()) return;
-
-    this.creatingPromise = chrome.offscreen
-      .createDocument({
+    // IIFE captured into creatingPromise BEFORE any await — concurrent
+    // callers entering between this assignment and the createDocument()
+    // resolution see the promise on the entry guard.
+    this.creatingPromise = (async () => {
+      if (await this.hasDocument()) return;
+      await chrome.offscreen.createDocument({
         url: OFFSCREEN_DOCUMENT_PATH,
         reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
         justification: "ButterSwitch needs to play audio cues for browser events.",
-      })
-      .finally(() => {
-        this.creatingPromise = null;
       });
+    })().finally(() => {
+      this.creatingPromise = null;
+    });
 
     await this.creatingPromise;
   }
