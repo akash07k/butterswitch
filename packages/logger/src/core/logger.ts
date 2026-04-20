@@ -123,7 +123,7 @@ class LoggerImpl implements Logger {
  * Create a logger instance with the given configuration.
  *
  * @param config - Logger configuration including minimum level, transports,
- *   optional tag, and optional date formatter.
+ *   and optional root tag.
  * @returns A Logger instance ready to emit log entries.
  *
  * @example

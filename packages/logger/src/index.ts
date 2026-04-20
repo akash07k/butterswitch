@@ -13,13 +13,11 @@
 
 // Core
 export { createLogger } from "./core/logger.js";
-export { IsoDateFormatter } from "./core/formatter.js";
 export { LogLevel } from "./core/types.js";
 export type {
   Logger,
   LoggerConfig,
   LogEntry,
-  DateFormatter,
   Transport,
   IndexedDBTransportConfig,
   WebSocketTransportConfig,

@@ -34,27 +34,6 @@ export interface LogEntry {
 }
 
 /**
- * Pluggable date/time formatter.
- * Default implementation uses ISO 8601.
- * Consumers can provide custom formatters (e.g., ordinal dates).
- */
-export interface DateFormatter {
-  /**
-   * Format the date portion of a Date object.
-   * @param date - The date to format.
-   * @returns A formatted date string (e.g., "2026-04-05").
-   */
-  formatDate(date: Date): string;
-
-  /**
-   * Format the time portion of a Date object.
-   * @param date - The date to format.
-   * @returns A formatted time string (e.g., "14:30:00.000").
-   */
-  formatTime(date: Date): string;
-}
-
-/**
  * Interface all transports must implement.
  * A transport receives log entries and sends them somewhere.
  */
@@ -91,8 +70,6 @@ export interface LoggerConfig {
   level: LogLevel;
   /** Transports to send log entries to */
   transports: Transport[];
-  /** Custom date/time formatter (ISO 8601 if omitted) */
-  formatter?: DateFormatter;
   /** Root tag for this logger (optional) */
   tag?: string;
 }
