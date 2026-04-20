@@ -32,12 +32,24 @@ const LOG_LEVELS = [
   { value: "4", label: "FATAL — Fatal errors only" },
 ];
 
+/** Validates a WebSocket URL — must start with ws:// or wss:// and have a host. */
+function isValidWebSocketUrl(url: string): boolean {
+  return /^wss?:\/\/[^\s/]+/.test(url.trim());
+}
+
 export function LoggingTab() {
   const [logLevel, setLogLevel] = useState("1");
   const [logServerUrl, setLogServerUrl] = useState("ws://localhost:8089");
   const [logStreamEnabled, setLogStreamEnabled] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  // Validation only fires after the user has interacted with the URL field —
+  // avoids flickering aria-invalid mid-typing while a partial "ws://localh"
+  // looks malformed.
+  const [urlTouched, setUrlTouched] = useState(false);
   const confirmClearRef = useRef<HTMLButtonElement>(null);
+
+  const urlInvalid =
+    urlTouched && logStreamEnabled && logServerUrl.length > 0 && !isValidWebSocketUrl(logServerUrl);
 
   // Auto-cancel Clear Logs confirmation after 5 seconds, focus confirm button
   useEffect(() => {
@@ -164,13 +176,21 @@ export function LoggingTab() {
           <Label htmlFor="log-server-url">Log Server URL</Label>
           <Input
             id="log-server-url"
-            type="text"
+            type="url"
+            inputMode="url"
             value={logServerUrl}
             onChange={(e) => handleUrlChange(e.target.value)}
+            onBlur={() => setUrlTouched(true)}
             placeholder="ws://localhost:8089"
-            aria-describedby="log-server-hint"
+            aria-describedby={urlInvalid ? "log-server-error log-server-hint" : "log-server-hint"}
+            aria-invalid={urlInvalid}
             disabled={!logStreamEnabled}
           />
+          {urlInvalid && (
+            <p id="log-server-error" role="alert" className="text-sm text-destructive">
+              URL must start with ws:// or wss://
+            </p>
+          )}
           <p id="log-server-hint" className="text-sm text-muted-foreground">
             WebSocket URL (ws:// or wss://). Start the log server with: pnpm log-server
           </p>
