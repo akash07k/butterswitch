@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import hotkeys from "hotkeys-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { announce } from "@/shared/a11y/announcer";
+import { focusFirst } from "@/shared/a11y/focus";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 import { GeneralTab } from "./tabs/GeneralTab.js";
 import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
@@ -59,13 +60,28 @@ export default function App() {
     });
   };
 
-  /** Handle tab change — announce the new tab name. */
+  /**
+   * Handle tab change — announce the new tab name AND move focus into
+   * the newly-rendered panel.
+   *
+   * Without the focus move, Alt+1-4 (or clicking a trigger) would leave
+   * focus on whatever element had it before — typically the previous
+   * tab's last interaction, the body, or the trigger itself. Screen
+   * reader users would hear the announcement but then have to manually
+   * navigate forward to find the new content. focusFirst() drops them
+   * straight onto the first interactive control of the panel.
+   */
   const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
     const tab = TAB_DEFINITIONS.find((t) => t.id === tabId);
     if (tab) {
       announce(`${tab.label} settings loaded`, "polite");
     }
+    // Defer until Radix has rendered the new tabpanel into the DOM.
+    requestAnimationFrame(() => {
+      const panel = document.querySelector<HTMLElement>('[role="tabpanel"][data-state="active"]');
+      if (panel) focusFirst(panel);
+    });
   }, []);
 
   /** Cycle through available themes. */
