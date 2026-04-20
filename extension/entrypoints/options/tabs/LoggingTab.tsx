@@ -139,8 +139,10 @@ export function LoggingTab() {
       <h2 className="text-xl font-semibold">Logging</h2>
 
       {/* Log Streaming */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Log Server</legend>
+      <section aria-labelledby="logging-server-heading" className="space-y-4 border rounded-lg p-4">
+        <h3 id="logging-server-heading" className="text-sm font-semibold">
+          Log Server
+        </h3>
 
         <div className="flex items-center justify-between">
           <div>
@@ -173,11 +175,13 @@ export function LoggingTab() {
             WebSocket URL (ws:// or wss://). Start the log server with: pnpm log-server
           </p>
         </div>
-      </fieldset>
+      </section>
 
       {/* Log Level */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Log Configuration</legend>
+      <section aria-labelledby="logging-config-heading" className="space-y-4 border rounded-lg p-4">
+        <h3 id="logging-config-heading" className="text-sm font-semibold">
+          Log Configuration
+        </h3>
 
         <div className="space-y-2">
           <Label htmlFor="log-level">Minimum Log Level</Label>
@@ -194,11 +198,13 @@ export function LoggingTab() {
             </SelectContent>
           </Select>
         </div>
-      </fieldset>
+      </section>
 
       {/* Export */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Stored Logs</legend>
+      <section aria-labelledby="logging-stored-heading" className="space-y-4 border rounded-lg p-4">
+        <h3 id="logging-stored-heading" className="text-sm font-semibold">
+          Stored Logs
+        </h3>
         <p className="text-sm text-muted-foreground">
           Logs are stored locally in the browser. Exported files are saved to your Downloads folder.
         </p>
@@ -251,7 +257,7 @@ export function LoggingTab() {
             </Button>
           )}
         </div>
-      </fieldset>
+      </section>
 
       {/* Reset */}
       <Button

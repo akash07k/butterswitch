@@ -114,9 +114,14 @@ export function GeneralTab() {
     <div className="space-y-6 mt-4">
       <h2 className="text-xl font-semibold">General</h2>
 
-      {/* Sound Controls */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Sound Controls</legend>
+      {/* Sound Controls — section so the heading is announced once on entry. */}
+      <section
+        aria-labelledby="general-sound-controls-heading"
+        className="space-y-4 border rounded-lg p-4"
+      >
+        <h3 id="general-sound-controls-heading" className="text-sm font-semibold">
+          Sound Controls
+        </h3>
 
         {/* Mute Toggle */}
         <div className="flex items-center justify-between">
@@ -157,11 +162,16 @@ export function GeneralTab() {
             </SelectContent>
           </Select>
         </div>
-      </fieldset>
+      </section>
 
       {/* Module Toggles */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Modules</legend>
+      <section
+        aria-labelledby="general-modules-heading"
+        className="space-y-4 border rounded-lg p-4"
+      >
+        <h3 id="general-modules-heading" className="text-sm font-semibold">
+          Modules
+        </h3>
 
         <div className="flex items-center justify-between">
           <div>
@@ -177,7 +187,7 @@ export function GeneralTab() {
             onCheckedChange={handleSoundEngineToggle}
           />
         </div>
-      </fieldset>
+      </section>
 
       {/* Reset */}
       <Button

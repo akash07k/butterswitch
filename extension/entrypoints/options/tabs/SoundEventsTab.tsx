@@ -192,9 +192,15 @@ export function SoundEventsTab() {
     <div className="space-y-4 mt-4">
       <h2 className="text-xl font-semibold">Sound Events</h2>
 
-      {/* Filters */}
-      <fieldset className="space-y-3 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Filters</legend>
+      {/* Filters — section so the heading is announced once on entry. The */}
+      {/* inner fieldset (tier-filter radio group) IS a real fieldset use.  */}
+      <section
+        aria-labelledby="sound-events-filters-heading"
+        className="space-y-3 border rounded-lg p-4"
+      >
+        <h3 id="sound-events-filters-heading" className="text-sm font-semibold">
+          Filters
+        </h3>
 
         {/* Search */}
         <div className="space-y-1">
@@ -231,7 +237,7 @@ export function SoundEventsTab() {
         <div id="event-count" role="status" className="text-sm text-muted-foreground">
           Showing {filteredEvents.length} of {PLATFORM_EVENTS.length} events
         </div>
-      </fieldset>
+      </section>
 
       {/* Events table */}
       <Table>

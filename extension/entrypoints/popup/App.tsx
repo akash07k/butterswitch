@@ -172,9 +172,12 @@ export default function App() {
     >
       <h1 className="text-lg font-bold">ButterSwitch</h1>
 
-      {/* Sound Controls — grouped for screen reader context */}
-      <fieldset className="space-y-4 border-0 p-0 m-0">
-        <legend className="text-sm font-semibold">Sound Controls</legend>
+      {/* Sound Controls — section so the heading is announced once on entry, */}
+      {/* not on every nested control as fieldset/legend would force.       */}
+      <section aria-labelledby="popup-controls-heading" className="space-y-4">
+        <h2 id="popup-controls-heading" className="text-sm font-semibold">
+          Sound Controls
+        </h2>
 
         {/* Mute Toggle */}
         <div className="flex items-center justify-between">
@@ -226,11 +229,12 @@ export default function App() {
             </SelectContent>
           </Select>
         </div>
-      </fieldset>
+      </section>
 
-      {/* Utility Actions — grouped separately */}
-      <fieldset className="flex gap-2 pt-2 border-t border-border border-0 p-0 m-0 pt-2">
-        <legend className="sr-only">Actions</legend>
+      {/* Utility Actions — plain div with role=group is semantically correct */}
+      {/* for a button cluster (a fieldset would re-announce the legend on    */}
+      {/* every button focus).                                                */}
+      <div role="group" aria-label="Actions" className="flex gap-2 pt-2 border-t border-border">
         <Button
           variant="outline"
           size="sm"
@@ -251,7 +255,7 @@ export default function App() {
           <Settings className="h-4 w-4 mr-1" aria-hidden="true" />
           Settings
         </Button>
-      </fieldset>
+      </div>
     </main>
   );
 }

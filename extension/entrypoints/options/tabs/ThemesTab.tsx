@@ -56,8 +56,10 @@ export function ThemesTab() {
       <h2 className="text-xl font-semibold">Themes</h2>
 
       {/* Active Theme */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Active Theme</legend>
+      <section aria-labelledby="themes-active-heading" className="space-y-4 border rounded-lg p-4">
+        <h3 id="themes-active-heading" className="text-sm font-semibold">
+          Active Theme
+        </h3>
 
         <div className="space-y-2">
           <Label htmlFor="active-theme">Sound Theme</Label>
@@ -83,11 +85,13 @@ export function ThemesTab() {
             </p>
           </div>
         )}
-      </fieldset>
+      </section>
 
       {/* Custom Themes — placeholder for v1 */}
-      <fieldset className="space-y-4 border rounded-lg p-4">
-        <legend className="text-sm font-semibold px-2">Custom Themes</legend>
+      <section aria-labelledby="themes-custom-heading" className="space-y-4 border rounded-lg p-4">
+        <h3 id="themes-custom-heading" className="text-sm font-semibold">
+          Custom Themes
+        </h3>
         <p className="text-muted-foreground">
           Import custom sound themes from .zip files. Each theme contains a theme.json manifest and
           OGG sound files.
@@ -95,7 +99,7 @@ export function ThemesTab() {
         <Button variant="outline" disabled>
           Import Theme (.zip) — Coming Soon
         </Button>
-      </fieldset>
+      </section>
 
       {/* Reset */}
       <Button
