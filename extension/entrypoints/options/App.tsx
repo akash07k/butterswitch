@@ -98,7 +98,18 @@ export default function App() {
   // Register local keyboard shortcuts via hotkeys-js
   useEffect(() => {
     const originalFilter = hotkeys.filter;
-    hotkeys.filter = () => true;
+    // Scope the filter override to ONLY the shortcuts we register here
+    // (Alt+1-4, Alt+T, Shift+/). The hotkeys-js default filter blocks
+    // shortcuts when focus is inside a text input — that default is
+    // sensible for arbitrary future shortcuts, so we delegate to it.
+    // Replacing it wholesale with `() => true` would let any future
+    // single-letter shortcut fire while the user is typing in the
+    // search box on Sound Events or the URL field on Logging.
+    hotkeys.filter = (event) => {
+      if (event.altKey) return true;
+      if (event.shiftKey && event.key === "?") return true;
+      return originalFilter(event);
+    };
 
     hotkeys("alt+1", (e) => {
       e.preventDefault();
