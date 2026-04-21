@@ -236,7 +236,12 @@ export function LogTable({
         }}
       >
         <table className="log-grid" aria-describedby="table-instructions">
-          <caption className="sr-only">Log entries</caption>
+          {/* Richer caption than "Log entries" so the screen-reader table */}
+          {/* summary (Ctrl+Alt+Home on NVDA) includes session type + count. */}
+          <caption className="sr-only">
+            Log entries — {isLiveSession ? "live session" : "historical session"}, {entries.length}{" "}
+            {entries.length === 1 ? "entry" : "entries"}
+          </caption>
           <thead>
             <tr>
               {/* ID column — entry position number */}

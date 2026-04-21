@@ -10,7 +10,19 @@ import { enqueueAnnounce, announceAssertive } from "./lib/announce.js";
 
 const ALL_LEVELS = [0, 1, 2, 3, 4];
 const RECONNECT_DELAY = 2000;
-const ENTRY_ANNOUNCE_INTERVAL = 3000;
+/**
+ * How often the viewer announces "N new log entries received" while the
+ * live feed is streaming. At 3 seconds (the original default) a user
+ * trying to read any entry would be interrupted roughly every few lines
+ * — too chatty for a quiet reading pass. 10 seconds is calm enough for
+ * extended reading and still frequent enough that a user knows they're
+ * seeing the live feed.
+ *
+ * Kept as a module constant rather than a user setting: exposing this
+ * in the UI would require wiring a new control through StatusBar, and
+ * the right value is not really user-specific. Revisit if users ask.
+ */
+const ENTRY_ANNOUNCE_INTERVAL = 10_000;
 /**
  * Maximum number of live log entries the React state retains. Newer
  * entries push older ones out FIFO. Without this cap, a long-running
