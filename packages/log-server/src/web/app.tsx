@@ -45,7 +45,11 @@ function App() {
     "message",
     "details",
   ]);
-  const [autoScroll, setAutoScroll] = useState(true);
+  // Default OFF so the DOM does not mutate under a screen reader's
+  // virtual cursor while the user is reading. Sighted users who want
+  // tail-style scrolling can toggle the checkbox in the StatusBar.
+  // See docs/decisions.md for the rationale.
+  const [autoScroll, setAutoScroll] = useState(false);
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [currentSessionFile, setCurrentSessionFile] = useState<string | null>(null);
