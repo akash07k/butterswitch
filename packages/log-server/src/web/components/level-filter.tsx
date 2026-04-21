@@ -1,4 +1,5 @@
 import { CheckboxGroup, Checkbox } from "react-aria-components";
+import { VisuallyHidden } from "react-aria";
 import { enqueueAnnounce } from "../lib/announce.js";
 
 interface LevelFilterProps {
@@ -31,17 +32,21 @@ export function LevelFilter({ enabledLevels, onChange }: LevelFilterProps) {
   };
 
   return (
-    <CheckboxGroup
-      value={enabledLevels.map(String)}
-      onChange={handleChange}
-      aria-label="Filter by level"
-    >
-      <span slot="label">Filter by level</span>
-      {LEVELS.map((level) => (
-        <Checkbox key={level.value} value={String(level.value)}>
-          {level.label}
-        </Checkbox>
-      ))}
-    </CheckboxGroup>
+    <>
+      {/* Hidden heading — lets NVDA H-key nav reach this filter group. */}
+      <VisuallyHidden elementType="h3">Level filter</VisuallyHidden>
+      <CheckboxGroup
+        value={enabledLevels.map(String)}
+        onChange={handleChange}
+        aria-label="Filter by level"
+      >
+        <span slot="label">Filter by level</span>
+        {LEVELS.map((level) => (
+          <Checkbox key={level.value} value={String(level.value)}>
+            {level.label}
+          </Checkbox>
+        ))}
+      </CheckboxGroup>
+    </>
   );
 }

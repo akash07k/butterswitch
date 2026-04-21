@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { SearchField, Input, Label, Text } from "react-aria-components";
+import { VisuallyHidden } from "react-aria";
 import { enqueueAnnounce } from "../lib/announce.js";
 
 interface SearchBarProps {
@@ -37,12 +38,18 @@ export function SearchBar({ value, onChange, resultCount, totalCount }: SearchBa
   }, [value, resultCount, totalCount]);
 
   return (
-    <SearchField value={value} onChange={onChange} aria-label="Search log entries">
-      <Label>Search logs</Label>
-      <Input placeholder="Filter by message, tag, or error..." />
-      <Text slot="description">
-        Searches across message, tag, and error fields. Results update as you type.
-      </Text>
-    </SearchField>
+    <>
+      {/* Hidden heading so H-key nav can reach the search region.       */}
+      {/* The visible <Label>Search logs</Label> below is the field's    */}
+      {/* accessible name; this is the landmark heading for the group.  */}
+      <VisuallyHidden elementType="h3">Search</VisuallyHidden>
+      <SearchField value={value} onChange={onChange}>
+        <Label>Search logs</Label>
+        <Input placeholder="Filter by message, tag, or error..." />
+        <Text slot="description">
+          Searches across message, tag, and error fields. Results update as you type.
+        </Text>
+      </SearchField>
+    </>
   );
 }

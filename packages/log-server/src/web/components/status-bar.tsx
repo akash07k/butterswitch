@@ -9,6 +9,7 @@ import {
   ListBoxItem,
   type Key,
 } from "react-aria-components";
+import { VisuallyHidden } from "react-aria";
 import { enqueueAnnounce } from "../lib/announce.js";
 import type { LogEntry } from "../../types.js";
 
@@ -119,6 +120,10 @@ export function StatusBar({
 
   return (
     <div className="status-bar">
+      {/* Hidden heading so NVDA H-key navigation reaches this region    */}
+      {/* without visual duplication. The visible connection-state span  */}
+      {/* below provides the live status text.                            */}
+      <VisuallyHidden elementType="h3">Connection status and session</VisuallyHidden>
       <span
         role="status"
         aria-live="polite"

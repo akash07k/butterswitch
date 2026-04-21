@@ -203,7 +203,9 @@ export function LogTable({
 
   return (
     <div>
-      {/* Column visibility controls */}
+      {/* Column visibility controls — hidden H3 lets NVDA H-key nav   */}
+      {/* reach this group without visual duplication.                 */}
+      <VisuallyHidden elementType="h3">Visible columns</VisuallyHidden>
       <CheckboxGroup
         value={visibleColumns}
         onChange={handleColumnVisibilityChange}
