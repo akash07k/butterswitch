@@ -13,6 +13,13 @@ class LoggerImpl implements Logger {
   private readonly level: LogLevel;
   private readonly transports: Transport[];
   private readonly tag: string;
+  /**
+   * Whether `dispose()` has been called. After disposal the logger
+   * silently no-ops every method — calls to log() must not reach
+   * already-disposed transports, and addTransport() to a dead logger
+   * is a programming error we choose to swallow rather than crash on.
+   */
+  private disposed = false;
 
   constructor(config: LoggerConfig) {
     this.level = config.level;
@@ -50,18 +57,23 @@ class LoggerImpl implements Logger {
   }
 
   addTransport(transport: Transport): void {
+    if (this.disposed) return;
     this.transports.push(transport);
   }
 
   async flush(): Promise<void> {
+    if (this.disposed) return;
     await Promise.all(this.transports.map((t) => t.flush?.()));
   }
 
   async dispose(): Promise<void> {
+    if (this.disposed) return;
+    this.disposed = true;
     await Promise.all(this.transports.map((t) => t.dispose?.()));
   }
 
   private log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+    if (this.disposed) return;
     if (level < this.level) return;
 
     const entry = this.createEntry(level, message);
@@ -74,6 +86,7 @@ class LoggerImpl implements Logger {
     message: string,
     dataOrError?: Record<string, unknown> | Error,
   ): void {
+    if (this.disposed) return;
     if (level < this.level) return;
 
     const entry = this.createEntry(level, message);

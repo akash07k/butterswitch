@@ -175,4 +175,58 @@ describe("flush and dispose", () => {
     await logger.dispose();
     expect(transport.dispose).toHaveBeenCalled();
   });
+
+  it("log calls after dispose are no-ops — disposed transports are not invoked", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    logger.info("before dispose");
+    expect(transport.entries).toHaveLength(1);
+
+    await logger.dispose();
+
+    logger.info("after dispose");
+    logger.warn("after dispose");
+    logger.error("after dispose", new Error("err"));
+
+    // Still only the one pre-dispose entry — none of the post-dispose
+    // calls reached the transport.
+    expect(transport.entries).toHaveLength(1);
+    expect(transport.log).toHaveBeenCalledTimes(1);
+  });
+
+  it("addTransport after dispose is silently dropped", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    await logger.dispose();
+
+    const newTransport = createMockTransport();
+    logger.addTransport(newTransport);
+
+    logger.info("post-dispose log");
+    expect(newTransport.entries).toHaveLength(0);
+    expect(newTransport.log).not.toHaveBeenCalled();
+  });
+
+  it("dispose is idempotent — calling it twice does not double-dispose transports", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    await logger.dispose();
+    await logger.dispose();
+
+    expect(transport.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("flush after dispose is a no-op", async () => {
+    const transport = createMockTransport();
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+
+    await logger.dispose();
+    await logger.flush();
+
+    // dispose was called once during dispose(); flush was never called.
+    expect(transport.flush).not.toHaveBeenCalled();
+  });
 });
