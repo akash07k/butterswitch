@@ -62,6 +62,10 @@ export function SoundEventsTab() {
   const [configs, setConfigs] = useState<Record<string, EventConfig>>({});
   const [confirmReset, setConfirmReset] = useState(false);
   const confirmResetRef = useRef<HTMLButtonElement>(null);
+  // Debounced result count for the screen-reader live-region (see render below).
+  // Sighted users see the live count update on every keystroke; SR users hear
+  // ONE announcement after they pause typing for 250 ms.
+  const [announcedMatchCount, setAnnouncedMatchCount] = useState<number | null>(null);
 
   // Auto-cancel reset confirmation after 5 seconds, focus the confirm button.
   // Same two-step pattern as the destructive Resets in the other tabs.
@@ -127,9 +131,16 @@ export function SoundEventsTab() {
     });
   }, [search, tierFilter]);
 
-  // Note: search result count announcements are handled by the role="status"
-  // div in the UI (#event-count). No separate announce() call needed —
-  // that would cause NVDA to read the count twice.
+  // Debounce the live-region announcement so SR users hear ONE update
+  // after they pause typing, not one per keystroke. The visible count
+  // (the #event-count div in the UI) updates immediately so sighted
+  // users get instant feedback.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnnouncedMatchCount(filteredEvents.length);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [filteredEvents.length]);
 
   /** Save a single event config to storage. */
   const saveEventConfig = (eventId: string, config: EventConfig) => {
@@ -244,9 +255,17 @@ export function SoundEventsTab() {
           ))}
         </fieldset>
 
-        {/* Result count */}
-        <div id="event-count" role="status" className="text-sm text-muted-foreground">
+        {/* Result count — visible (sighted users get instant feedback). */}
+        {/* No role=status here so it does NOT announce on every keystroke. */}
+        <div id="event-count" className="text-sm text-muted-foreground">
           Showing {filteredEvents.length} of {PLATFORM_EVENTS.length} events
+        </div>
+        {/* Live-region announcement, debounced to 250ms so SR users hear  */}
+        {/* ONE count update after they stop typing. announcedMatchCount   */}
+        {/* starts as null so no announcement fires on initial mount.      */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">
+          {announcedMatchCount !== null &&
+            `${announcedMatchCount} of ${PLATFORM_EVENTS.length} events match`}
         </div>
       </section>
 
