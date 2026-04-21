@@ -132,7 +132,12 @@ export function StatusBar({
         {connected ? "Connected" : "Disconnected"}
       </span>
 
-      {!connected && <Button onPress={onReconnect}>Reconnect</Button>}
+      {/* Always render so focus doesn't jump to body if the user is on */}
+      {/* this button at the moment the socket reconnects. Disabled      */}
+      {/* state keeps it in the Tab order but non-activatable.           */}
+      <Button isDisabled={connected} onPress={onReconnect}>
+        Reconnect
+      </Button>
 
       <Select selectedKey={selectedSession} onSelectionChange={handleSessionSelect}>
         <Label>Session</Label>
@@ -163,11 +168,14 @@ export function StatusBar({
         </Checkbox>
       )}
 
-      <span>
+      {/* role="group" with a group label so SRs announce "Export logs  */}
+      {/* group, Export JSON button" instead of three disconnected       */}
+      {/* Export buttons with no relationship cue.                        */}
+      <div role="group" aria-label="Export logs">
         <Button onPress={() => handleExport("json")}>Export JSON</Button>
         <Button onPress={() => handleExport("csv")}>Export CSV</Button>
         <Button onPress={() => handleExport("html")}>Export HTML</Button>
-      </span>
+      </div>
     </div>
   );
 }

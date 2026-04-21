@@ -242,21 +242,29 @@ export function LogTable({
               {/* ID column — entry position number */}
               {showIdColumn && <th scope="col">#</th>}
 
-              {/* Data columns — sortable */}
-              {sortableColumns.map((col) => (
-                <th
-                  key={col.id}
-                  scope="col"
-                  aria-sort={sortColumn === col.id ? sortDirection : "none"}
-                >
-                  <button type="button" onClick={() => handleSort(col.id)}>
-                    {col.label}
-                    {sortColumn === col.id && (
-                      <span aria-hidden="true">{sortDirection === "ascending" ? " ▲" : " ▼"}</span>
-                    )}
-                  </button>
-                </th>
-              ))}
+              {/* Data columns — sortable. aria-label spells the current */}
+              {/* sort state so SRs say "Sort by Date, currently           */}
+              {/* descending, button" instead of just "Date button".       */}
+              {sortableColumns.map((col) => {
+                const isActive = sortColumn === col.id;
+                const stateText = isActive ? `currently ${sortDirection}` : "currently unsorted";
+                return (
+                  <th key={col.id} scope="col" aria-sort={isActive ? sortDirection : "none"}>
+                    <button
+                      type="button"
+                      aria-label={`Sort by ${col.label}, ${stateText}`}
+                      onClick={() => handleSort(col.id)}
+                    >
+                      {col.label}
+                      {isActive && (
+                        <span aria-hidden="true">
+                          {sortDirection === "ascending" ? " ▲" : " ▼"}
+                        </span>
+                      )}
+                    </button>
+                  </th>
+                );
+              })}
 
               {/* Details column */}
               {showDetailsColumn && <th scope="col">Details</th>}
@@ -265,15 +273,22 @@ export function LogTable({
           <tbody>
             {sortedEntries.map((entry, index) => {
               const isExpanded = expandedIds.has(entry.id);
-              const levelLabel = LEVEL_LABELS[entry.level] ?? "LOG";
-              const msgPreview = entry.message.slice(0, 50);
               const detailsId = `details-${entry.id}`;
+              // Stable id for the row's message cell so the Details
+              // button can reference it via aria-describedby instead
+              // of carrying a giant aria-label with a truncated message
+              // preview. When the Message column is hidden the id
+              // simply doesn't exist — SRs silently ignore a dangling
+              // aria-describedby reference.
+              const messageCellId = `row-${entry.id}-message`;
 
               return (
                 <tr key={entry.id}>
                   {showIdColumn && <td>{index + 1}</td>}
                   {sortableColumns.map((col) => (
-                    <td key={col.id}>{getCellContent(entry, col.id)}</td>
+                    <td key={col.id} id={col.id === "message" ? messageCellId : undefined}>
+                      {getCellContent(entry, col.id)}
+                    </td>
                   ))}
                   {showDetailsColumn && (
                     <td>
@@ -281,7 +296,7 @@ export function LogTable({
                         type="button"
                         aria-expanded={isExpanded}
                         aria-controls={detailsId}
-                        aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
+                        aria-describedby={messageCellId}
                         onClick={() => toggleDetails(entry.id, index, entry)}
                       >
                         {isExpanded ? "Hide details" : "Show details"}

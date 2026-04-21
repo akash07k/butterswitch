@@ -239,7 +239,10 @@ function App() {
         />
       </header>
 
-      <nav aria-label="Log controls" id="log-controls">
+      {/* `<section>`, not `<nav>`: this region contains filter controls, */}
+      {/* not page navigation links. Using <nav> misleads assistive tech  */}
+      {/* users into expecting a site-navigation landmark.                */}
+      <section aria-label="Log controls" id="log-controls">
         <VisuallyHidden elementType="h2">Search and Filters</VisuallyHidden>
         <SearchBar
           value={search}
@@ -248,7 +251,7 @@ function App() {
           totalCount={activeEntries.length}
         />
         <LevelFilter enabledLevels={enabledLevels} onChange={setEnabledLevels} />
-      </nav>
+      </section>
 
       <main id="main-content">
         <VisuallyHidden elementType="h2" id="log-heading">
