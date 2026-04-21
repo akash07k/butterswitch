@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { existsSync, rmSync, readFileSync } from "node:fs";
+import { existsSync, rmSync, readFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { SessionStore } from "../src/session-store.js";
@@ -118,6 +118,54 @@ describe("SessionStore", () => {
     const store = new SessionStore({ logDir });
 
     const entries = store.loadSession("does-not-exist.jsonl");
+    expect(entries).toEqual([]);
+  });
+
+  it("rejects path-traversal attempts in loadSession filename", () => {
+    // Security boundary: the server's /api/sessions/:filename endpoint
+    // forwards user input through decodeURIComponent into loadSession.
+    // A malicious client could pass `../../etc/passwd`-style strings
+    // trying to escape the logDir. SessionStore must refuse.
+    const logDir = tempDir();
+    dirs.push(logDir);
+    const store = new SessionStore({ logDir });
+    store.append(makeEntry());
+
+    expect(store.loadSession("../secret.jsonl")).toEqual([]);
+    expect(store.loadSession("../../etc/passwd")).toEqual([]);
+    // Absolute paths should also be rejected — resolve() would keep them
+    // intact, so the startsWith check must catch them.
+    expect(store.loadSession("/etc/passwd")).toEqual([]);
+  });
+
+  it("skips malformed JSONL lines when loading a session", () => {
+    // Real-world cause: a crash mid-write leaves a truncated final line
+    // in the JSONL file. loadSession should skip bad lines instead of
+    // throwing, so the user can still inspect the good entries.
+    const logDir = tempDir();
+    dirs.push(logDir);
+    const store = new SessionStore({ logDir });
+
+    store.append(makeEntry({ message: "good-1" }));
+    store.append(makeEntry({ message: "good-2" }));
+
+    // Corrupt the file by appending a half-written line.
+    const sessionPath = join(logDir, store.currentSessionFile);
+    appendFileSync(sessionPath, '{"partial":"line');
+
+    const entries = store.loadSession(store.currentSessionFile);
+
+    expect(entries).toHaveLength(2);
+    expect(entries.map((e) => e.message)).toEqual(["good-1", "good-2"]);
+  });
+
+  it("returns empty array for an empty session file", () => {
+    const logDir = tempDir();
+    dirs.push(logDir);
+    const store = new SessionStore({ logDir });
+    // A fresh session with no appends — file doesn't exist yet, so this
+    // hits the existsSync branch of loadSession.
+    const entries = store.loadSession(store.currentSessionFile);
     expect(entries).toEqual([]);
   });
 

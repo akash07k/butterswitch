@@ -84,4 +84,44 @@ describe("formatForTerminal", () => {
     expect(result).toContain("March");
     expect(result).toContain("2026");
   });
+
+  // Ordinal suffix edge cases — the teens (11, 12, 13) are exceptions
+  // to the units-digit rule and have historically been bug-prone.
+  // Time zone: all dates chosen to land in UTC noon so local-time
+  // conversion doesn't cross a date boundary.
+  it("uses 'nd' for 2nd and 22nd", () => {
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-02T12:00:00.000Z" }))).toContain(
+      "2nd",
+    );
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-22T12:00:00.000Z" }))).toContain(
+      "22nd",
+    );
+  });
+
+  it("uses 'rd' for 3rd and 23rd", () => {
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-03T12:00:00.000Z" }))).toContain(
+      "3rd",
+    );
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-23T12:00:00.000Z" }))).toContain(
+      "23rd",
+    );
+  });
+
+  it("uses 'th' for teens (11th, 12th, 13th) despite units digit", () => {
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-11T12:00:00.000Z" }))).toContain(
+      "11th",
+    );
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-12T12:00:00.000Z" }))).toContain(
+      "12th",
+    );
+    expect(formatForTerminal(makeEntry({ timestamp: "2026-04-13T12:00:00.000Z" }))).toContain(
+      "13th",
+    );
+  });
+
+  it("formats an unknown level as LEVEL<n> rather than throwing", () => {
+    // Fallback for future levels or malformed entries — should never throw.
+    const result = formatForTerminal(makeEntry({ level: 99 as unknown as 0 }));
+    expect(result).toContain("LEVEL99:");
+  });
 });
