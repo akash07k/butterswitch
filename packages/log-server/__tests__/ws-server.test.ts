@@ -117,3 +117,66 @@ describe("LogServer", () => {
     expect(server.clientCount).toBe(0);
   });
 });
+
+describe("LogServer.isAllowedOrigin", () => {
+  it("allows missing origin (non-browser clients)", () => {
+    expect(LogServer.isAllowedOrigin(undefined)).toBe(true);
+    expect(LogServer.isAllowedOrigin("")).toBe(true);
+  });
+
+  it("allows same-origin loopback hosts", () => {
+    expect(LogServer.isAllowedOrigin("http://localhost:8089")).toBe(true);
+    expect(LogServer.isAllowedOrigin("http://127.0.0.1:8089")).toBe(true);
+    expect(LogServer.isAllowedOrigin("http://[::1]:8089")).toBe(true);
+  });
+
+  it("allows browser extension origins", () => {
+    expect(LogServer.isAllowedOrigin("chrome-extension://abcdef")).toBe(true);
+    expect(LogServer.isAllowedOrigin("moz-extension://12345")).toBe(true);
+  });
+
+  it("rejects arbitrary external origins", () => {
+    expect(LogServer.isAllowedOrigin("http://evil.com")).toBe(false);
+    expect(LogServer.isAllowedOrigin("https://example.com")).toBe(false);
+    expect(LogServer.isAllowedOrigin("http://192.168.1.5:8089")).toBe(false);
+  });
+
+  it("rejects malformed origins", () => {
+    expect(LogServer.isAllowedOrigin("not a url")).toBe(false);
+  });
+});
+
+describe("LogServer Origin enforcement", () => {
+  let server: LogServer;
+
+  afterEach(async () => {
+    await server?.stop();
+  });
+
+  it("rejects WebSocket upgrades from disallowed origins", async () => {
+    server = new LogServer({ port: 0 });
+    const port = await server.start();
+
+    const ws = new WebSocket(`ws://localhost:${port}`, { origin: "http://evil.com" });
+    const result = await new Promise<"open" | "error">((resolve) => {
+      ws.once("open", () => resolve("open"));
+      ws.once("error", () => resolve("error"));
+    });
+
+    expect(result).toBe("error");
+  });
+
+  it("accepts WebSocket upgrades from chrome-extension origin", async () => {
+    server = new LogServer({ port: 0 });
+    const port = await server.start();
+
+    const ws = new WebSocket(`ws://localhost:${port}`, { origin: "chrome-extension://abc" });
+    const result = await new Promise<"open" | "error">((resolve) => {
+      ws.once("open", () => resolve("open"));
+      ws.once("error", () => resolve("error"));
+    });
+
+    expect(result).toBe("open");
+    ws.close();
+  });
+});

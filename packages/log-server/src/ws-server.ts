@@ -15,15 +15,30 @@ import type { SessionStore } from "./session-store.js";
 export interface LogServerConfig {
   /** Port to listen on. Use 0 for a random available port. */
   port: number;
+  /**
+   * Network interface to bind to. Defaults to "127.0.0.1" so the server
+   * is reachable only from this machine. Pass "0.0.0.0" or a specific
+   * LAN address to expose the server to other devices (be aware: doing
+   * so lets any process on the LAN forge log entries).
+   */
+  host?: string;
   /** Directory containing built web viewer files. If unset, no web UI is served. */
   webDir?: string;
   /** Max entries to keep in memory for replay to new clients (default: 1000) */
   bufferSize?: number;
+  /**
+   * Maximum WebSocket message payload in bytes (default: 1 MiB).
+   * Log entries should be small; an oversized message indicates either
+   * a misuse or a deliberate DoS attempt.
+   */
+  maxPayloadBytes?: number;
   /** Session store for persistence and session history. */
   sessionStore?: SessionStore;
 }
 
 const DEFAULT_BUFFER_SIZE = 1000;
+const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_MAX_PAYLOAD = 1024 * 1024; // 1 MiB
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -65,7 +80,20 @@ export class LogServer extends EventEmitter {
   async start(): Promise<number> {
     return new Promise((resolve, reject) => {
       this.httpServer = createServer((req, res) => this.handleHttp(req, res));
-      this.wss = new WebSocketServer({ server: this.httpServer });
+      this.wss = new WebSocketServer({
+        server: this.httpServer,
+        maxPayload: this.config.maxPayloadBytes ?? DEFAULT_MAX_PAYLOAD,
+        // Reject WebSocket upgrades from origins that don't look local.
+        // Non-browser clients (Node ws, curl) don't send Origin and are
+        // allowed through — see isAllowedOrigin for the rules.
+        verifyClient: ({ origin }, callback) => {
+          if (LogServer.isAllowedOrigin(origin)) {
+            callback(true);
+          } else {
+            callback(false, 403, "Forbidden origin");
+          }
+        },
+      });
 
       this.wss.on("connection", (ws) => {
         this.clients.add(ws);
@@ -96,12 +124,47 @@ export class LogServer extends EventEmitter {
 
       this.httpServer.on("error", reject);
 
-      this.httpServer.listen(this.config.port, () => {
+      // Bind to localhost-only by default so the server isn't reachable
+      // from other machines on the LAN. Operators who want to expose
+      // the server can override via config.host.
+      const host = this.config.host ?? DEFAULT_HOST;
+      this.httpServer.listen(this.config.port, host, () => {
         const addr = this.httpServer!.address();
         const port = typeof addr === "object" && addr ? addr.port : this.config.port;
         resolve(port);
       });
     });
+  }
+
+  /**
+   * Decide whether an incoming WebSocket upgrade's Origin is acceptable.
+   *
+   * - **No Origin header** (Node ws, curl, server-to-server): allowed.
+   *   The browser is what enforces Origin; absence implies a non-browser
+   *   client where this defense is moot.
+   * - **Same-origin (loopback host)**: allowed. The shipped web viewer
+   *   loaded from http://localhost:8089 has Origin http://localhost:8089
+   *   and must connect to the WS on the same port.
+   * - **Browser extensions** (chrome-extension://, moz-extension://):
+   *   allowed. ButterSwitch's WebSocketTransport runs from one of these
+   *   origins.
+   * - **Anything else**: rejected. A malicious page on evil.com can
+   *   still attempt to open a WebSocket to localhost (CORS does not
+   *   apply to WebSockets), so this check is the actual gate.
+   */
+  static isAllowedOrigin(origin: string | undefined): boolean {
+    if (!origin) return true;
+    if (origin.startsWith("chrome-extension://")) return true;
+    if (origin.startsWith("moz-extension://")) return true;
+    try {
+      const url = new URL(origin);
+      // IPv6 hostnames are returned with brackets ("[::1]") by Node's URL
+      // parser; strip them so the comparison is straightforward.
+      const host = url.hostname.replace(/^\[|\]$/g, "");
+      return host === "localhost" || host === "127.0.0.1" || host === "::1";
+    } catch {
+      return false;
+    }
   }
 
   /** Stop the server and disconnect all clients. */
