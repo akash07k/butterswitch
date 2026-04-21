@@ -9,7 +9,7 @@ import {
   ListBoxItem,
   type Key,
 } from "react-aria-components";
-import { announce } from "@react-aria/live-announcer";
+import { enqueueAnnounce } from "../lib/announce.js";
 import type { LogEntry } from "../../types.js";
 
 interface SessionInfo {
@@ -69,7 +69,7 @@ export function StatusBar({
 }: StatusBarProps) {
   const handleAutoScrollChange = (isSelected: boolean) => {
     onAutoScrollChange(isSelected);
-    announce(isSelected ? "Auto-scroll enabled" : "Auto-scroll paused", "polite");
+    enqueueAnnounce(isSelected ? "Auto-scroll enabled" : "Auto-scroll paused");
   };
 
   const handleSessionSelect = (key: Key | null) => {
@@ -111,7 +111,7 @@ export function StatusBar({
     a.click();
     URL.revokeObjectURL(url);
 
-    announce(`Exported ${entries.length} entries as ${format.toUpperCase()}`, "polite");
+    enqueueAnnounce(`Exported ${entries.length} entries as ${format.toUpperCase()}`);
   };
 
   // Build session list: filter out current session (it's shown as "live")

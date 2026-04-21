@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { SearchField, Input, Label, Text } from "react-aria-components";
-import { announce } from "@react-aria/live-announcer";
+import { enqueueAnnounce } from "../lib/announce.js";
 
 interface SearchBarProps {
   value: string;
@@ -25,9 +25,9 @@ export function SearchBar({ value, onChange, resultCount, totalCount }: SearchBa
 
     debounceRef.current = setTimeout(() => {
       if (value) {
-        announce(`${resultCount} of ${totalCount} log entries match your search`, "polite");
+        enqueueAnnounce(`${resultCount} of ${totalCount} log entries match your search`);
       } else {
-        announce(`Showing all ${totalCount} log entries`, "polite");
+        enqueueAnnounce(`Showing all ${totalCount} log entries`);
       }
     }, ANNOUNCE_DEBOUNCE_MS);
 

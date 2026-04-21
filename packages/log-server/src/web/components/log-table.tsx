@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { CheckboxGroup, Checkbox } from "react-aria-components";
 import { VisuallyHidden } from "react-aria";
-import { announce } from "@react-aria/live-announcer";
+import { enqueueAnnounce } from "../lib/announce.js";
 import type { LogEntry } from "../../types.js";
 
 interface LogTableProps {
@@ -135,12 +135,12 @@ export function LogTable({
       const newDir = sortDirection === "ascending" ? "descending" : "ascending";
       setSortDirection(newDir);
       const label = ALL_COLUMNS.find((c) => c.id === columnId)?.label ?? columnId;
-      announce(`Sorted by ${label}, ${newDir}`, "polite");
+      enqueueAnnounce(`Sorted by ${label}, ${newDir}`);
     } else {
       setSortColumn(columnId);
       setSortDirection("ascending");
       const label = ALL_COLUMNS.find((c) => c.id === columnId)?.label ?? columnId;
-      announce(`Sorted by ${label}, ascending`, "polite");
+      enqueueAnnounce(`Sorted by ${label}, ascending`);
     }
   };
 
@@ -153,13 +153,10 @@ export function LogTable({
 
       if (next.has(entryId)) {
         next.delete(entryId);
-        announce(`Details hidden for entry ${entryIndex + 1}`, "polite");
+        enqueueAnnounce(`Details hidden for entry ${entryIndex + 1}`);
       } else {
         next.add(entryId);
-        announce(
-          `Details shown for entry ${entryIndex + 1}, ${levelLabel}: ${msgPreview}`,
-          "polite",
-        );
+        enqueueAnnounce(`Details shown for entry ${entryIndex + 1}, ${levelLabel}: ${msgPreview}`);
       }
       return next;
     });
@@ -167,7 +164,7 @@ export function LogTable({
 
   const handleColumnVisibilityChange = (selected: string[]) => {
     onVisibleColumnsChange(selected);
-    announce(`Showing ${selected.length} of ${ALL_COLUMNS.length} columns`, "polite");
+    enqueueAnnounce(`Showing ${selected.length} of ${ALL_COLUMNS.length} columns`);
   };
 
   const activeColumns = ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id));

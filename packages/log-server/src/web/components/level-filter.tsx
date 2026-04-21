@@ -1,5 +1,5 @@
 import { CheckboxGroup, Checkbox } from "react-aria-components";
-import { announce } from "@react-aria/live-announcer";
+import { enqueueAnnounce } from "../lib/announce.js";
 
 interface LevelFilterProps {
   enabledLevels: number[];
@@ -22,11 +22,11 @@ export function LevelFilter({ enabledLevels, onChange }: LevelFilterProps) {
 
     const names = levels.map((l) => LEVELS.find((lv) => lv.value === l)?.label).filter(Boolean);
     if (names.length === LEVELS.length) {
-      announce("Showing all log levels", "polite");
+      enqueueAnnounce("Showing all log levels");
     } else if (names.length === 0) {
-      announce("No log levels selected. No entries will be shown.", "polite");
+      enqueueAnnounce("No log levels selected. No entries will be shown.");
     } else {
-      announce(`Filtering by ${names.join(", ")}`, "polite");
+      enqueueAnnounce(`Filtering by ${names.join(", ")}`);
     }
   };
 

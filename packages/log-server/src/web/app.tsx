@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { announce } from "@react-aria/live-announcer";
 import { VisuallyHidden } from "react-aria";
 import type { LogEntry } from "../types.js";
 import { StatusBar } from "./components/status-bar.js";
 import { SearchBar } from "./components/search-bar.js";
 import { LevelFilter } from "./components/level-filter.js";
 import { LogTable } from "./components/log-table.js";
+import { enqueueAnnounce, announceAssertive } from "./lib/announce.js";
 
 const ALL_LEVELS = [0, 1, 2, 3, 4];
 const RECONNECT_DELAY = 2000;
@@ -94,7 +94,10 @@ function App() {
 
       ws.onopen = () => {
         setConnected(true);
-        announce("Connected to log server", "assertive");
+        // No imperative announce — the visible role="status" region in
+        // StatusBar mirrors the `connected` state and announces itself
+        // when the text changes. Firing both produced duplicate
+        // out-of-order announcements.
       };
 
       ws.onmessage = (event) => {
@@ -118,7 +121,9 @@ function App() {
         setConnected(false);
         wsRef.current = null;
         if (!disposed) {
-          announce("Disconnected from log server. Attempting to reconnect...", "assertive");
+          // Same as onopen — the StatusBar's role="status" region
+          // announces "Disconnected" when the text flips. No imperative
+          // announce needed.
           reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
         }
       };
@@ -142,7 +147,7 @@ function App() {
     const timer = setInterval(() => {
       const count = newEntryCountRef.current;
       if (count > 0) {
-        announce(`${count} new log ${count === 1 ? "entry" : "entries"} received`, "polite");
+        enqueueAnnounce(`${count} new log ${count === 1 ? "entry" : "entries"} received`);
         newEntryCountRef.current = 0;
       }
     }, ENTRY_ANNOUNCE_INTERVAL);
@@ -160,22 +165,24 @@ function App() {
 
     if (key === "live") {
       setHistoricalEntries([]);
-      announce("Switched to live session", "assertive");
+      enqueueAnnounce("Switched to live session");
       return;
     }
 
-    announce("Loading historical session...", "assertive");
+    enqueueAnnounce("Loading historical session");
     try {
       const res = await fetch(`/api/sessions/${encodeURIComponent(key)}`);
       const data = await res.json();
       setHistoricalEntries(data.entries);
       const session = sessions.find((s) => s.filename === key);
-      announce(`Loaded session with ${data.entries.length} entries`, "assertive");
-      if (session) {
-        announce(`Session from ${session.startedAt}`, "polite");
-      }
+      const summary = session
+        ? `Loaded session from ${session.startedAt} with ${data.entries.length} entries`
+        : `Loaded session with ${data.entries.length} entries`;
+      enqueueAnnounce(summary);
     } catch {
-      announce("Failed to load session", "assertive");
+      // Genuine error — assertive is appropriate so the user hears it
+      // even mid-screen-reader-speech.
+      announceAssertive("Failed to load session");
       setSelectedSession("live");
     }
   };
