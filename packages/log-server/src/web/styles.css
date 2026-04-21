@@ -261,7 +261,11 @@ main {
   vertical-align: top;
 }
 
-/* === Log Level Colors (supplementary — text label is primary) === */
+/* === Log Level Colors (supplementary — text label is primary) ===         */
+/* Severity ramps by font-weight AND colour so levels remain                  */
+/* distinguishable in grayscale / for users with red-green colour blindness.  */
+/* Before this, WARN (brown #6b4400) and ERROR (dark red #8b0000) were        */
+/* identical in grayscale — failed WCAG 1.4.1 when colour was the only cue.   */
 .level-debug {
   color: #444444; /* 9.7:1 on white */
 }
@@ -272,10 +276,12 @@ main {
 
 .level-warn {
   color: #6b4400; /* 8.2:1 on white */
+  font-weight: 600;
 }
 
 .level-error {
   color: #8b0000; /* 10.0:1 on white */
+  font-weight: 700;
 }
 
 .level-fatal {
