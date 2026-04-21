@@ -11,6 +11,18 @@ import { LogTable } from "./components/log-table.js";
 const ALL_LEVELS = [0, 1, 2, 3, 4];
 const RECONNECT_DELAY = 2000;
 const ENTRY_ANNOUNCE_INTERVAL = 3000;
+/**
+ * Maximum number of live log entries the React state retains. Newer
+ * entries push older ones out FIFO. Without this cap, a long-running
+ * viewer accumulates the entire session — at ~1 entry/sec that's
+ * 3,600 entries per hour, and the array spread on every push becomes
+ * an O(n) cost per message.
+ *
+ * 10,000 entries ≈ ~10 MB of JS object memory for typical entry sizes
+ * and several hours of typical session length. Users who need older
+ * data can switch to a historical session via the Session selector.
+ */
+const MAX_LIVE_ENTRIES = 10_000;
 
 interface SessionInfo {
   filename: string;
@@ -88,7 +100,14 @@ function App() {
       ws.onmessage = (event) => {
         try {
           const entry = JSON.parse(event.data as string) as LogEntry;
-          setLiveEntries((prev) => [...prev, entry]);
+          setLiveEntries((prev) => {
+            const next = [...prev, entry];
+            // FIFO trim: keep only the most recent MAX_LIVE_ENTRIES.
+            // slice() returns a new array so React detects the change.
+            return next.length > MAX_LIVE_ENTRIES
+              ? next.slice(next.length - MAX_LIVE_ENTRIES)
+              : next;
+          });
           newEntryCountRef.current++;
         } catch {
           // Ignore invalid messages
