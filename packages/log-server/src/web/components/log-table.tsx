@@ -4,16 +4,20 @@
  * Accessible log table with plain HTML semantics.
  *
  * Uses a standard `<table>` (NOT role="grid") so NVDA's native table
- * navigation (Ctrl+Alt+Arrow) works. Each row has:
- * - ID column (first) — entry position number for reference
- * - Details button (last) — expands inline disclosure showing data/error/stack
+ * navigation (Ctrl+Alt+Arrow) works. The table is **rectangular** —
+ * every body row has the same number of cells. Expanded detail
+ * panels live OUTSIDE the table in a sibling `<section>` region
+ * (one section per expanded entry). The previous design interleaved
+ * `<tr hidden>` rows with colSpan inside the table body, which
+ * silently broke NVDA's column index after each expanded entry.
+ *
+ * Each row's Details button uses `aria-controls` to point at the
+ * sibling section so the screen reader knows the relationship.
  *
  * Sorting via `<button>` inside `<th>` with `aria-sort`.
- * Detail rows use `hidden` attribute when collapsed, `aria-expanded`
- * + `aria-controls` on the toggle button.
  */
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { CheckboxGroup, Checkbox } from "react-aria-components";
 import { VisuallyHidden } from "react-aria";
 import { enqueueAnnounce } from "../lib/announce.js";
@@ -169,9 +173,6 @@ export function LogTable({
 
   const activeColumns = ALL_COLUMNS.filter((c) => visibleColumns.includes(c.id));
 
-  /** Total column count for detail row colspan. */
-  const totalColCount = activeColumns.length;
-
   /** Which special columns are visible. */
   const showIdColumn = visibleColumns.includes("id");
   const showDetailsColumn = visibleColumns.includes("details");
@@ -179,7 +180,7 @@ export function LogTable({
   /** Data columns only (exclude id and details for sort headers). */
   const sortableColumns = activeColumns.filter((c) => c.id !== "id" && c.id !== "details");
 
-  const getCellContent = (entry: LogEntry, columnId: string): React.ReactNode => {
+  const getCellContent = (entry: LogEntry, columnId: string): ReactNode => {
     switch (columnId) {
       case "date":
         return formatDate(entry.timestamp);
@@ -232,11 +233,7 @@ export function LogTable({
           gridFocusedRef.current = false;
         }}
       >
-        <table
-          className="log-grid"
-          aria-describedby="table-instructions"
-          aria-rowcount={entries.length}
-        >
+        <table className="log-grid" aria-describedby="table-instructions">
           <caption className="sr-only">Log entries</caption>
           <thead>
             <tr>
@@ -271,63 +268,79 @@ export function LogTable({
               const detailsId = `details-${entry.id}`;
 
               return (
-                <React.Fragment key={entry.id}>
-                  {/* Data row */}
-                  <tr aria-rowindex={index + 1}>
-                    {showIdColumn && <td>{index + 1}</td>}
-                    {sortableColumns.map((col) => (
-                      <td key={col.id}>{getCellContent(entry, col.id)}</td>
-                    ))}
-                    {showDetailsColumn && (
-                      <td>
-                        <button
-                          type="button"
-                          aria-expanded={isExpanded}
-                          aria-controls={detailsId}
-                          aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
-                          onClick={() => toggleDetails(entry.id, index, entry)}
-                        >
-                          {isExpanded ? "Hide details" : "Show details"}
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-
-                  {/* Detail row — hidden when collapsed */}
-                  <tr id={detailsId} hidden={!isExpanded} className="detail-row">
-                    <td colSpan={totalColCount}>
-                      <div className="detail-content">
-                        {entry.data && (
-                          <div>
-                            <strong>Data:</strong>
-                            {"\n"}
-                            {JSON.stringify(entry.data, null, 2)}
-                          </div>
-                        )}
-                        {entry.error && (
-                          <div>
-                            <strong>Error:</strong> {entry.error.name}: {entry.error.message}
-                            {entry.error.stack && (
-                              <>
-                                {"\n"}
-                                <strong>Stack:</strong>
-                                {"\n"}
-                                {entry.error.stack}
-                              </>
-                            )}
-                          </div>
-                        )}
-                        {!entry.data && !entry.error && (
-                          <div>No additional details for this entry.</div>
-                        )}
-                      </div>
+                <tr key={entry.id}>
+                  {showIdColumn && <td>{index + 1}</td>}
+                  {sortableColumns.map((col) => (
+                    <td key={col.id}>{getCellContent(entry, col.id)}</td>
+                  ))}
+                  {showDetailsColumn && (
+                    <td>
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={detailsId}
+                        aria-label={`${isExpanded ? "Hide" : "Show"} details for entry ${index + 1}, ${levelLabel}: ${msgPreview}`}
+                        onClick={() => toggleDetails(entry.id, index, entry)}
+                      >
+                        {isExpanded ? "Hide details" : "Show details"}
+                      </button>
                     </td>
-                  </tr>
-                </React.Fragment>
+                  )}
+                </tr>
               );
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Expanded details live outside the table so the table stays    */}
+      {/* rectangular for NVDA's column navigation. Each section is     */}
+      {/* labelled by an sr-only h3 that names the entry it describes.  */}
+      {/* Sections only render when their entry is expanded; collapsed  */}
+      {/* entries contribute nothing to the DOM.                         */}
+      <div role="region" aria-label="Expanded entry details">
+        {sortedEntries.map((entry, index) => {
+          if (!expandedIds.has(entry.id)) return null;
+          const levelLabel = LEVEL_LABELS[entry.level] ?? "LOG";
+          const msgPreview = entry.message.slice(0, 50);
+          const detailsId = `details-${entry.id}`;
+          const headingId = `details-heading-${entry.id}`;
+          return (
+            <section
+              key={entry.id}
+              id={detailsId}
+              aria-labelledby={headingId}
+              className="detail-section"
+            >
+              <h3 id={headingId} className="sr-only">
+                Details for entry {index + 1}, {levelLabel}: {msgPreview}
+              </h3>
+              <div className="detail-content">
+                {entry.data && (
+                  <div>
+                    <strong>Data:</strong>
+                    {"\n"}
+                    {JSON.stringify(entry.data, null, 2)}
+                  </div>
+                )}
+                {entry.error && (
+                  <div>
+                    <strong>Error:</strong> {entry.error.name}: {entry.error.message}
+                    {entry.error.stack && (
+                      <>
+                        {"\n"}
+                        <strong>Stack:</strong>
+                        {"\n"}
+                        {entry.error.stack}
+                      </>
+                    )}
+                  </div>
+                )}
+                {!entry.data && !entry.error && <div>No additional details for this entry.</div>}
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       <div ref={tableEndRef} />
