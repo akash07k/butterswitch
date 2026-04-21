@@ -58,9 +58,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="text-muted-foreground mb-4">
               ButterSwitch encountered an error. Try reloading the extension.
             </p>
+            {/* Visible heading, sr-only so it doesn't add visual noise but */}
+            {/* still names the pre for screen readers via aria-labelledby. */}
+            {/* The previous aria-label="Error details" overrode the visible */}
+            {/* error text for SR users — they heard the label but not the   */}
+            {/* error message body until they navigated into the pre.        */}
+            <h2 id="error-details-heading" className="sr-only">
+              Error details
+            </h2>
             <pre
               className="text-sm bg-muted p-3 rounded overflow-auto max-h-40"
-              aria-label="Error details"
+              aria-labelledby="error-details-heading"
             >
               {this.state.error?.message ?? "Unknown error"}
             </pre>

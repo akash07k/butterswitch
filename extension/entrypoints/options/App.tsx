@@ -142,8 +142,17 @@ export default function App() {
       </h1>
 
       {showWelcome && (
-        <div role="region" aria-label="Welcome" className="mb-6 border rounded-lg p-4 space-y-2">
-          <h2 ref={welcomeHeadingRef} tabIndex={-1} className="text-lg font-semibold">
+        <div
+          role="region"
+          aria-labelledby="welcome-heading"
+          className="mb-6 border rounded-lg p-4 space-y-2"
+        >
+          <h2
+            id="welcome-heading"
+            ref={welcomeHeadingRef}
+            tabIndex={-1}
+            className="text-lg font-semibold"
+          >
             Welcome to ButterSwitch
           </h2>
           <p className="text-muted-foreground">
