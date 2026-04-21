@@ -206,6 +206,19 @@ function App() {
 
   return (
     <>
+      {/* Skip links — only visible when keyboard-focused. With hundreds */}
+      {/* of potential tab stops inside the table (sort buttons + one    */}
+      {/* Details button per row) a user who just wants to read entries  */}
+      {/* or get past them to the export controls would otherwise spend  */}
+      {/* dozens of Tab presses getting there. Both targets are anchors  */}
+      {/* that already exist below.                                       */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <a href="#after-log-table" className="skip-link">
+        Skip past log table
+      </a>
+
       <header role="banner">
         <h1>ButterSwitch Log Viewer</h1>
         <StatusBar
@@ -245,6 +258,9 @@ function App() {
           autoScroll={autoScroll && isLiveSession}
           isLiveSession={isLiveSession}
         />
+        {/* Skip-past-table target. tabIndex={-1} makes it programmatically */}
+        {/* focusable via hash nav but not in the Tab sequence.              */}
+        <div id="after-log-table" tabIndex={-1} />
       </main>
     </>
   );
