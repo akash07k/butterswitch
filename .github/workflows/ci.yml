@@ -1,0 +1,57 @@
+# Runs the three hard gates (typecheck, test, lint) on every pull
+# request and every push to main. Mirrors what the pre-push lefthook
+# runs locally so a --no-verify push can't sneak broken code through.
+#
+# release.yml runs the SAME gates on manual dispatch before submitting
+# to the Chrome Web Store and Firefox AMO. This workflow is the first
+# line of defence; release.yml is the second.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least-privilege: gates need to read the tree and write nothing.
+permissions:
+  contents: read
+
+# Cancel any in-flight run for the same ref when a new commit arrives.
+# Wasted compute on rapid pushes was the most common complaint on the
+# old setup; this drops it to zero.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The extension imports @butterswitch/logger from its dist/
+      # output, not from source. pnpm's topological resolve means the
+      # extension's typecheck step below would fail to find the
+      # published .d.ts types without this build first.
+      - name: Build logger package
+        run: pnpm build:logger
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm -r test
