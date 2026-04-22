@@ -29,6 +29,17 @@ import { CONFIG } from "../../config/index.js";
 export const SOUND_ENGINE_MODULE_ID = "sound-engine";
 
 /**
+ * Shape of the per-event user override stored under `sounds.events.<id>`.
+ * Fields are optional (absent = "use registry default") except `enabled`,
+ * which is the authoritative on/off for the event.
+ */
+interface EventConfig {
+  enabled: boolean;
+  volume?: number;
+  pitch?: number;
+}
+
+/**
  * Sound engine module — implements ButterSwitchModule.
  *
  * Lifecycle:
@@ -70,6 +81,22 @@ export class SoundEngineModule implements ButterSwitchModule {
 
   /** Unwatch functions for settings watchers. */
   private unwatchers: (() => void)[] = [];
+
+  /**
+   * Cached mute state. handleBrowserEvent reads this synchronously
+   * instead of awaiting `settings.get` on every event. Kept fresh by
+   * the watcher registered in activate().
+   */
+  private muted = false;
+
+  /**
+   * Cached per-event config. handleBrowserEvent reads from this map
+   * instead of awaiting `settings.get` for each event. Only entries
+   * with user overrides are stored; missing entries fall through to
+   * `getEventDefaults` at read time. Kept fresh by per-event
+   * watchers registered in activate().
+   */
+  private readonly eventConfigs = new Map<string, EventConfig>();
 
   /**
    * Inject the platform-specific audio backend.
@@ -190,20 +217,28 @@ export class SoundEngineModule implements ButterSwitchModule {
     }
     const { logger, messageBus, settings } = this.context;
 
-    // Subscribe to browser-event messages from the event engine
-    this.unsubscribe = messageBus.subscribe(BROWSER_EVENT_CHANNEL, (data: unknown) => {
-      const message = data as BrowserEventMessage;
-      this.handleBrowserEvent(message).catch((error: unknown) => {
-        logger.error("Failed to handle browser event", error instanceof Error ? error : undefined);
-      });
-    });
+    // Warm the in-memory caches BEFORE subscribing so the very first
+    // event arriving through the message bus reads the user's actual
+    // mute / per-event configuration instead of defaults. Reads run
+    // in parallel via Promise.all to keep cold-start latency low.
+    const [mutedValue, masterVolume] = await Promise.all([
+      settings.get<boolean>("general.muted"),
+      settings.get<number>("general.masterVolume"),
+    ]);
+    this.muted = mutedValue ?? false;
 
-    // Set global volume from settings
-    const masterVolume = (await settings.get<number>("general.masterVolume")) ?? 80;
-    await this.backend.setGlobalVolume(masterVolume / 100);
+    await Promise.all(
+      EVENT_REGISTRY.map(async (event) => {
+        const config = await settings.get<EventConfig>(`sounds.events.${event.id}`);
+        if (config) this.eventConfigs.set(event.id, config);
+      }),
+    );
 
-    // Watch for live settings changes (mute, volume, theme).
-    // All async backend calls have .catch() to prevent unhandled rejections.
+    await this.backend.setGlobalVolume((masterVolume ?? 80) / 100);
+
+    // Watch for live settings changes. All async backend calls have
+    // .catch() so a broken transport cannot surface as an unhandled
+    // rejection.
     this.unwatchers.push(
       settings.watch("general.masterVolume", (newValue) => {
         const vol = (newValue as number) ?? 80;
@@ -214,6 +249,7 @@ export class SoundEngineModule implements ButterSwitchModule {
       }),
       settings.watch("general.muted", (newValue) => {
         const muted = (newValue as boolean) ?? false;
+        this.muted = muted; // keep the hot-path cache in sync
         if (muted) {
           this.backend?.stopAll().catch((e: unknown) => {
             logger.error("Failed to stop sounds", e instanceof Error ? e : undefined);
@@ -238,6 +274,33 @@ export class SoundEngineModule implements ButterSwitchModule {
         }
       }),
     );
+
+    // Per-event config watchers keep eventConfigs fresh. When a user
+    // resets a setting to its default, browser.storage.local emits an
+    // onChanged event with `newValue === undefined` — delete the cache
+    // entry so the read falls back to `getEventDefaults` again.
+    for (const event of EVENT_REGISTRY) {
+      this.unwatchers.push(
+        settings.watch(`sounds.events.${event.id}`, (newValue) => {
+          if (newValue === undefined) {
+            this.eventConfigs.delete(event.id);
+          } else {
+            this.eventConfigs.set(event.id, newValue as EventConfig);
+          }
+        }),
+      );
+    }
+
+    // Subscribe LAST so the cache is already warm when events start
+    // arriving. Events that fire before activate() returns would
+    // otherwise see empty caches and use defaults instead of user
+    // overrides.
+    this.unsubscribe = messageBus.subscribe(BROWSER_EVENT_CHANNEL, (data: unknown) => {
+      const message = data as BrowserEventMessage;
+      this.handleBrowserEvent(message).catch((error: unknown) => {
+        logger.error("Failed to handle browser event", error instanceof Error ? error : undefined);
+      });
+    });
 
     logger.info("Sound engine activated");
   }
@@ -272,14 +335,21 @@ export class SoundEngineModule implements ButterSwitchModule {
 
   /**
    * Handle a browser event by resolving and playing the appropriate sound.
+   *
+   * **Hot path — stays synchronous** until the `backend.play()` await at
+   * the end. Mute + per-event config are read from in-memory caches
+   * (populated at activate(), kept fresh via settings.watch) instead
+   * of awaiting `settings.get`, which avoids two async storage reads
+   * per event. For a busy session that's hundreds of saved hops per
+   * second and tighter race windows for the cooldown gate.
    */
   private async handleBrowserEvent(message: BrowserEventMessage): Promise<void> {
     if (!this.context || !this.backend || !this.themeManager) return;
-    const { logger, settings } = this.context;
+    const { logger } = this.context;
 
-    // Check if muted
-    const muted = (await settings.get<boolean>("general.muted")) ?? false;
-    if (muted) return;
+    // Mute — from the in-memory cache populated by activate() and the
+    // "general.muted" watcher.
+    if (this.muted) return;
 
     // Find the event definition to get its tier
     const eventDef = EVENT_REGISTRY.find((e) => e.id === message.eventId);
@@ -288,12 +358,8 @@ export class SoundEngineModule implements ButterSwitchModule {
       return;
     }
 
-    // Check per-event enabled setting: user override → config default
-    const eventConfig = await settings.get<{
-      enabled: boolean;
-      volume?: number;
-      pitch?: number;
-    }>(`sounds.events.${message.eventId}`);
+    // Per-event config — user override from cache → registry default.
+    const eventConfig = this.eventConfigs.get(message.eventId);
     const isEnabled = eventConfig?.enabled ?? getEventDefaults(message.eventId).enabled;
     if (!isEnabled) return;
 
