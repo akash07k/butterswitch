@@ -148,10 +148,21 @@ export default defineBackground(() => {
         }
       });
 
-      // 12. Clean up on service worker suspension
+      // 12. Clean up on service worker suspension.
+      //     Dispose the settings store AFTER modules — modules may
+      //     still read settings during their own dispose(). Firing
+      //     settings.dispose() first would rip the storage.onChanged
+      //     listener out from under any module still settling.
       browser.runtime.onSuspend.addListener(() => {
         logger.info("Service worker suspending — disposing modules");
-        loader.disposeAll().catch(console.error);
+        loader
+          .disposeAll()
+          .catch((e: unknown) => {
+            console.error("[ButterSwitch] Module disposal error:", e);
+          })
+          .finally(() => {
+            settings.dispose();
+          });
       });
     } catch (error) {
       logger.fatal("ButterSwitch failed to start", error instanceof Error ? error : undefined);
