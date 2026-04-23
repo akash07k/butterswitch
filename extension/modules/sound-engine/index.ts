@@ -19,7 +19,7 @@ import type { ButterSwitchModule, ModuleContext } from "../../core/module-system
 import type { AudioBackend } from "./audio-backends/types.js";
 import { EventEngine, BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "./event-engine.js";
 import { ThemeManager } from "./theme-manager.js";
-import { EVENT_REGISTRY } from "./event-registry.js";
+import { EVENT_REGISTRY, EVENT_REGISTRY_BY_ID } from "./event-registry.js";
 import { CooldownGate } from "./cooldown-gate.js";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
 import { getEventDefaults } from "../../config/events.js";
@@ -351,8 +351,9 @@ export class SoundEngineModule implements ButterSwitchModule {
     // "general.muted" watcher.
     if (this.muted) return;
 
-    // Find the event definition to get its tier
-    const eventDef = EVENT_REGISTRY.find((e) => e.id === message.eventId);
+    // Find the event definition to get its tier. O(1) Map lookup —
+    // the handleBrowserEvent hot path sees every fire.
+    const eventDef = EVENT_REGISTRY_BY_ID.get(message.eventId);
     if (!eventDef) {
       logger.warn("Unknown event ID in message", { eventId: message.eventId });
       return;

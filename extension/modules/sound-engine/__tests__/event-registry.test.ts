@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { EVENT_REGISTRY, TIER_1_COUNT, TIER_2_COUNT, TIER_3_COUNT } from "../event-registry.js";
+import {
+  EVENT_REGISTRY,
+  EVENT_REGISTRY_BY_ID,
+  TIER_1_COUNT,
+  TIER_2_COUNT,
+  TIER_3_COUNT,
+} from "../event-registry.js";
 import { getEventDefaults } from "../../../config/events.js";
 import { BUILT_IN_THEMES } from "../../../config/themes.js";
 
@@ -19,6 +25,16 @@ describe("EVENT_REGISTRY", () => {
     const uniqueIds = new Set(ids);
 
     expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it("EVENT_REGISTRY_BY_ID mirrors EVENT_REGISTRY exactly", () => {
+    // Locks the invariant that the O(1) lookup map and the array stay
+    // in sync. A definition added to EVENT_REGISTRY without a Map entry
+    // (or vice versa) would silently break the hot-path lookup.
+    expect(EVENT_REGISTRY_BY_ID.size).toBe(EVENT_REGISTRY.length);
+    for (const event of EVENT_REGISTRY) {
+      expect(EVENT_REGISTRY_BY_ID.get(event.id), `missing ${event.id}`).toBe(event);
+    }
   });
 
   it("all events have required fields", () => {

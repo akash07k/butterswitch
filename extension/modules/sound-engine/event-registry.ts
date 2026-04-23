@@ -1020,6 +1020,15 @@ export const EVENT_REGISTRY: EventDefinition[] = [
   ...TIER_3_EVENTS,
 ];
 
+/**
+ * O(1) lookup from event id to its definition. Built once at module
+ * load time from EVENT_REGISTRY so the hot path in handleBrowserEvent
+ * does not scan a 60+ entry array on every browser event.
+ */
+export const EVENT_REGISTRY_BY_ID: ReadonlyMap<string, EventDefinition> = new Map(
+  EVENT_REGISTRY.map((e) => [e.id, e]),
+);
+
 /** Number of Tier 1 (essential) events. */
 export const TIER_1_COUNT = TIER_1_EVENTS.length;
 
