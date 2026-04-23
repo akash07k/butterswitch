@@ -53,7 +53,7 @@ const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   // notification badge updates) — disabled by default to keep navigation
   // feedback clean. Users who specifically want title-change cues can
   // opt in; the theme provides tab-title.ogg for them.
-  "tabs.onUpdated.title": { enabled: false, debounceMs: 500 },
+  "tabs.onUpdated.title": { enabled: true, debounceMs: 500 },
   "tabs.onMoved": { enabled: true },
   "tabs.onDetached": { enabled: true },
   "tabs.onAttached": { enabled: true },
