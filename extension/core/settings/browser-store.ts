@@ -46,15 +46,25 @@ export class BrowserSettingsStore implements SettingsStore {
   constructor(defaults: Record<string, unknown>) {
     this.defaults = defaults;
 
-    // Listen for storage changes to notify watchers
+    // Listen for storage changes to notify watchers.
+    //
+    // Iteration invariants match InMemorySettingsStore.set and
+    // MessageBusImpl.publish: snapshot to isolate against
+    // mid-iteration watcher registration, and catch/log per-handler
+    // so one buggy subscriber cannot break remaining subscribers.
     this.onStorageChanged = (changes, areaName) => {
       if (areaName !== "local") return;
 
       for (const [key, change] of Object.entries(changes)) {
         const handlers = this.watchers.get(key);
         if (handlers) {
-          for (const handler of handlers) {
-            handler(change.newValue);
+          const snapshot = [...handlers];
+          for (const handler of snapshot) {
+            try {
+              handler(change.newValue);
+            } catch (error) {
+              console.error(`[SettingsStore] Watcher error on key "${key}":`, error);
+            }
           }
         }
       }

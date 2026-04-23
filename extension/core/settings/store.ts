@@ -52,11 +52,27 @@ export class InMemorySettingsStore implements SettingsStore {
   async set<T>(key: string, value: T): Promise<void> {
     this.data.set(key, value);
 
-    // Notify watchers for this key
+    // Notify watchers for this key.
+    //
+    // Two invariants matter here, matching MessageBusImpl.publish:
+    // 1. Snapshot before iteration — a watcher that registers a new
+    //    watcher for the same key must not have its new watcher fire
+    //    for the current notification; it should only start on the
+    //    next set() call.
+    // 2. Isolate handler errors — one throwing watcher must not
+    //    prevent remaining watchers from receiving the notification.
+    //    Without this, a buggy component (e.g., a UI throwing during
+    //    a re-render triggered by a setting change) would silently
+    //    break the sound engine's mute/config cache refresh.
     const handlers = this.watchers.get(key);
     if (handlers) {
-      for (const handler of handlers) {
-        handler(value);
+      const snapshot = [...handlers];
+      for (const handler of snapshot) {
+        try {
+          handler(value);
+        } catch (error) {
+          console.error(`[SettingsStore] Watcher error on key "${key}":`, error);
+        }
       }
     }
   }

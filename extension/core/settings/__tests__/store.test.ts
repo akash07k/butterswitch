@@ -78,4 +78,51 @@ describe("InMemorySettingsStore", () => {
     expect(handlerA).toHaveBeenCalledOnce();
     expect(handlerB).toHaveBeenCalledOnce();
   });
+
+  it("isolates watcher errors — a throwing handler does not block other handlers on the same key", async () => {
+    // Regression guard: before this was fixed, a throw inside a
+    // watcher would propagate out of set() and stop subsequent
+    // watchers from firing. Now handler errors are caught and the
+    // rest of the list still receives the notification.
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const throwingHandler = vi.fn(() => {
+      throw new Error("boom");
+    });
+    const goodHandler = vi.fn();
+
+    store.watch("key", throwingHandler);
+    store.watch("key", goodHandler);
+
+    await store.set("key", "value");
+
+    expect(throwingHandler).toHaveBeenCalledOnce();
+    expect(goodHandler).toHaveBeenCalledOnce();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Watcher error on key "key"'),
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it("snapshots the watcher list — a watcher added during notification does not fire for the current set()", async () => {
+    // Regression guard: without the snapshot, Set iteration-with-add
+    // would cause the newly-registered watcher to fire for the same
+    // set() call that triggered it. The invariant is "a watcher fires
+    // only for changes AFTER it was registered."
+    const lateHandler = vi.fn();
+    const earlyHandler = vi.fn(() => {
+      store.watch("key", lateHandler);
+    });
+
+    store.watch("key", earlyHandler);
+    await store.set("key", "first");
+
+    expect(earlyHandler).toHaveBeenCalledOnce();
+    expect(lateHandler).not.toHaveBeenCalled();
+
+    // But the late handler is alive and fires on the next change.
+    await store.set("key", "second");
+    expect(lateHandler).toHaveBeenCalledOnce();
+    expect(lateHandler).toHaveBeenCalledWith("second");
+  });
 });
