@@ -40,7 +40,7 @@
 import type { Logger } from "@butterswitch/logger";
 
 /** Tunable thresholds for the gate. */
-export interface CooldownGateConfig {
+interface CooldownGateConfig {
   /**
    * Global suppression window in milliseconds. After any sound plays,
    * all subsequent events are suppressed for this duration. Set to 0

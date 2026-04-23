@@ -22,7 +22,7 @@ import {
 /**
  * Result of loading a theme.
  */
-export interface ThemeLoadResult {
+interface ThemeLoadResult {
   /** Whether the theme loaded successfully. */
   success: boolean;
 
@@ -33,7 +33,7 @@ export interface ThemeLoadResult {
 /**
  * Basic info about a loaded theme (for UI display).
  */
-export interface ThemeInfo {
+interface ThemeInfo {
   /** Theme display name. */
   name: string;
 

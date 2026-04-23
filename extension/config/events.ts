@@ -12,7 +12,7 @@
  */
 
 /** Default configuration for a single event. */
-export interface EventDefaults {
+interface EventDefaults {
   /** Whether this event plays a sound by default. */
   enabled: boolean;
   /** Default volume override (0-100). Omit to use master volume. */
@@ -37,7 +37,7 @@ export interface EventDefaults {
  * "downloads.onChanged.failed": { enabled: true, volume: 100 },
  * ```
  */
-export const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
+const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   // ─── Tier 1: Essential (enabled by default) ───────────────────
 
   // Tabs

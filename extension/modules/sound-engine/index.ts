@@ -26,7 +26,7 @@ import { getEventDefaults } from "../../config/events.js";
 import { CONFIG } from "../../config/index.js";
 
 /** Module ID used for registration and dependency references. */
-export const SOUND_ENGINE_MODULE_ID = "sound-engine";
+const SOUND_ENGINE_MODULE_ID = "sound-engine";
 
 /**
  * Shape of the per-event user override stored under `sounds.events.<id>`.

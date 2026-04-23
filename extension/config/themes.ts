@@ -6,7 +6,7 @@
  */
 
 /** Definition of a built-in sound theme. */
-export interface ThemeDefinition {
+interface ThemeDefinition {
   /** Unique theme identifier (used in storage and theme.json lookups). */
   id: string;
   /** Human-readable name shown in the UI. */
