@@ -48,12 +48,38 @@ interface EventConfig {
   pitch: number;
 }
 
-/** Available tier filter options. */
+/**
+ * Available tier filter options. Each option shows ONLY that tier's
+ * events — the previous cumulative model ("essential + useful") was
+ * replaced because it made "All events" the only way to see a pure
+ * Tier 2 or Tier 3 view, and the count drift between "showing X of
+ * total" (mixed tiers) was confusing for screen reader users.
+ *
+ * Label format matches docs/sound-themes.md section headers ("Tier 1:
+ * Essential") so written doc and UI stay in sync.
+ */
 const TIER_OPTIONS = [
-  { value: "1", label: "Essential only (Tier 1)" },
-  { value: "1-2", label: "Essential + Useful (Tier 1-2)" },
-  { value: "all", label: "All events" },
+  { value: "1", label: "Tier 1: Essential" },
+  { value: "2", label: "Tier 2: Useful" },
+  { value: "3", label: "Tier 3: Advanced" },
 ] as const;
+
+/** Count of events per tier — computed once at module load so the
+ *  filtered denominator ("Showing X of Y essential events") doesn't
+ *  recompute on every render. Keyed by the tier-filter value. */
+const EVENTS_PER_TIER: Record<string, number> = {
+  "1": PLATFORM_EVENTS.filter((e) => e.tier === 1).length,
+  "2": PLATFORM_EVENTS.filter((e) => e.tier === 2).length,
+  "3": PLATFORM_EVENTS.filter((e) => e.tier === 3).length,
+};
+
+/** Short noun-phrase per tier for the count text ("20 of 20 essential
+ *  events match"). Keyed by the tier-filter value. */
+const TIER_NOUN: Record<string, string> = {
+  "1": "essential",
+  "2": "useful",
+  "3": "advanced",
+};
 
 /** Sound Events settings tab — filterable table of all browser events with per-event controls. */
 export function SoundEventsTab() {
@@ -111,13 +137,13 @@ export function SoundEventsTab() {
     load();
   }, []);
 
-  // Filter events by search + tier
+  // Filter events by search + tier. Per-tier means exactly ONE tier
+  // is visible at a time — no cumulative views.
   const filteredEvents = useMemo(() => {
     const query = search.toLowerCase();
+    const tier = Number(tierFilter);
     return PLATFORM_EVENTS.filter((event) => {
-      // Tier filter
-      if (tierFilter === "1" && event.tier !== 1) return false;
-      if (tierFilter === "1-2" && event.tier > 2) return false;
+      if (event.tier !== tier) return false;
 
       // Search filter
       if (query) {
@@ -256,16 +282,25 @@ export function SoundEventsTab() {
         </fieldset>
 
         {/* Result count — visible (sighted users get instant feedback). */}
-        {/* No role=status here so it does NOT announce on every keystroke. */}
+        {/* The denominator is the per-tier total so the text stays      */}
+        {/* honest when the user is viewing Tier 2 or Tier 3 in          */}
+        {/* isolation: "Showing 12 of 30 useful events" not "of 64".     */}
+        {/* No role=status here so it does NOT announce on every         */}
+        {/* keystroke.                                                    */}
         <div id="event-count" className="text-sm text-muted-foreground">
-          Showing {filteredEvents.length} of {PLATFORM_EVENTS.length} events
+          Showing {filteredEvents.length} of {EVENTS_PER_TIER[tierFilter]} {TIER_NOUN[tierFilter]}{" "}
+          events
         </div>
         {/* Live-region announcement, debounced to 250ms so SR users hear  */}
         {/* ONE count update after they stop typing. announcedMatchCount   */}
-        {/* starts as null so no announcement fires on initial mount.      */}
+        {/* starts as null so no announcement fires on initial mount.     */}
+        {/* Phrasing mirrors the visible count so SR and sighted users    */}
+        {/* get the same denominator — catches the "20 of 64 events"     */}
+        {/* vs "20 of 20 essential events" mismatch that confused              */}
+        {/* screen-reader users during testing.                  */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {announcedMatchCount !== null &&
-            `${announcedMatchCount} of ${PLATFORM_EVENTS.length} events match`}
+            `${announcedMatchCount} of ${EVENTS_PER_TIER[tierFilter]} ${TIER_NOUN[tierFilter]} events match`}
         </div>
       </section>
 
