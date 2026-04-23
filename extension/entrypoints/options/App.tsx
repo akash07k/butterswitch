@@ -4,9 +4,12 @@
  * ButterSwitch Options page — full settings interface.
  *
  * Organized into tabs: General, Sound Events, Themes, Logging.
- * Uses shadcn/ui Tabs (Radix) with default automatic activation.
- * Keyboard shortcuts (Alt+1-4) switch tabs via hotkeys-js.
- * Press Shift+? for a help announcement.
+ * Uses shadcn/ui Tabs (Radix) with default automatic activation —
+ * tab switching uses the WAI-ARIA keyboard model: Tab into the tab
+ * list, then Left/Right/Home/End to move between tabs. Alt+1..4
+ * overrides were removed in favour of the standard model.
+ * Local shortcuts that survive: Alt+T cycles theme, Shift+? reads
+ * the help announcement.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,12 +23,13 @@ import { SoundEventsTab } from "./tabs/SoundEventsTab.js";
 import { ThemesTab } from "./tabs/ThemesTab.js";
 import { LoggingTab } from "./tabs/LoggingTab.js";
 
-/** Tab definitions — id, label, and keyboard shortcut. */
+/** Tab definitions — id and label. Keyboard switching uses Radix's
+ *  built-in WAI-ARIA Tabs model (Left/Right/Home/End on focused tab list). */
 const TAB_DEFINITIONS = [
-  { id: "general", label: "General", shortcut: "Alt+1" },
-  { id: "sound-events", label: "Sound Events", shortcut: "Alt+2" },
-  { id: "themes", label: "Themes", shortcut: "Alt+3" },
-  { id: "logging", label: "Logging", shortcut: "Alt+4" },
+  { id: "general", label: "General" },
+  { id: "sound-events", label: "Sound Events" },
+  { id: "themes", label: "Themes" },
+  { id: "logging", label: "Logging" },
 ] as const;
 
 /** Options page root — tabbed settings interface with local keyboard shortcuts. */
@@ -64,12 +68,12 @@ export default function App() {
    * Handle tab change — announce the new tab name AND move focus into
    * the newly-rendered panel.
    *
-   * Without the focus move, Alt+1-4 (or clicking a trigger) would leave
-   * focus on whatever element had it before — typically the previous
-   * tab's last interaction, the body, or the trigger itself. Screen
-   * reader users would hear the announcement but then have to manually
-   * navigate forward to find the new content. focusFirst() drops them
-   * straight onto the first interactive control of the panel.
+   * Without the focus move, clicking a trigger or using the WAI-ARIA
+   * arrow-key model to switch tabs would leave focus on the tab list
+   * itself. Screen reader users would hear the announcement but then
+   * have to manually navigate forward to find the new content.
+   * focusFirst() drops them straight onto the first interactive control
+   * of the panel.
    */
   const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -95,38 +99,29 @@ export default function App() {
     announce(`Theme changed to ${next}`, "polite");
   }, []);
 
-  // Register local keyboard shortcuts via hotkeys-js
+  // Register local keyboard shortcuts via hotkeys-js.
+  //
+  // Alt+1..4 tab-switching used to live here but was removed — the
+  // WAI-ARIA Tabs keyboard model (Tab into list, then Left/Right to
+  // move) is reliable, discoverable, and doesn't collide with Alt-key
+  // shortcuts that other extensions or the browser may bind. Only
+  // two local shortcuts remain: Alt+T to cycle theme and Shift+? to
+  // read the help announcement.
   useEffect(() => {
     const originalFilter = hotkeys.filter;
     // Scope the filter override to ONLY the shortcuts we register here
-    // (Alt+1-4, Alt+T, Shift+/). The hotkeys-js default filter blocks
-    // shortcuts when focus is inside a text input — that default is
-    // sensible for arbitrary future shortcuts, so we delegate to it.
-    // Replacing it wholesale with `() => true` would let any future
-    // single-letter shortcut fire while the user is typing in the
-    // search box on Sound Events or the URL field on Logging.
+    // (Alt+T, Shift+?). The hotkeys-js default filter blocks shortcuts
+    // when focus is inside a text input — sensible for arbitrary future
+    // shortcuts, so we delegate to it. Replacing it wholesale with
+    // `() => true` would let any future single-letter shortcut fire
+    // while the user is typing in the search box on Sound Events or
+    // the URL field on Logging.
     hotkeys.filter = (event) => {
-      if (event.altKey) return true;
+      if (event.altKey && event.key.toLowerCase() === "t") return true;
       if (event.shiftKey && event.key === "?") return true;
       return originalFilter(event);
     };
 
-    hotkeys("alt+1", (e) => {
-      e.preventDefault();
-      handleTabChange("general");
-    });
-    hotkeys("alt+2", (e) => {
-      e.preventDefault();
-      handleTabChange("sound-events");
-    });
-    hotkeys("alt+3", (e) => {
-      e.preventDefault();
-      handleTabChange("themes");
-    });
-    hotkeys("alt+4", (e) => {
-      e.preventDefault();
-      handleTabChange("logging");
-    });
     hotkeys("alt+t", (e) => {
       e.preventDefault();
       handleCycleTheme();
@@ -134,17 +129,17 @@ export default function App() {
     hotkeys("shift+/", (e) => {
       e.preventDefault();
       announce(
-        "Keyboard shortcuts: Alt+1 through Alt+4 switch tabs. Alt+T cycles theme. " +
-          "Global shortcuts like Alt+M for mute work from any tab.",
+        "Keyboard shortcuts: Alt+T cycles theme. Alt+M toggles mute from any tab. " +
+          "To switch settings tabs, focus the tab list with Tab, then use Left and Right arrow keys.",
         "assertive",
       );
     });
 
     return () => {
-      hotkeys.unbind("alt+1,alt+2,alt+3,alt+4,alt+t,shift+/");
+      hotkeys.unbind("alt+t,shift+/");
       hotkeys.filter = originalFilter;
     };
-  }, [handleTabChange, handleCycleTheme]);
+  }, [handleCycleTheme]);
 
   return (
     <main className="max-w-4xl mx-auto p-6">
@@ -185,7 +180,7 @@ export default function App() {
       <Tabs id="tab-panels" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="w-full justify-start">
           {TAB_DEFINITIONS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id} aria-keyshortcuts={tab.shortcut}>
+            <TabsTrigger key={tab.id} value={tab.id}>
               {tab.label}
             </TabsTrigger>
           ))}
