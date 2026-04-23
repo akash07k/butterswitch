@@ -15,6 +15,7 @@ function createMockModule(
     initOrder?: string[];
     failOnInitialize?: boolean;
     failOnActivate?: boolean;
+    failOnDispose?: boolean;
   },
 ): ButterSwitchModule {
   return {
@@ -34,7 +35,11 @@ function createMockModule(
       }
     }),
     deactivate: vi.fn(async () => {}),
-    dispose: vi.fn(async () => {}),
+    dispose: vi.fn(async () => {
+      if (options?.failOnDispose) {
+        throw new Error(`${id} failed to dispose`);
+      }
+    }),
   };
 }
 
@@ -150,6 +155,23 @@ describe("ModuleLoader", () => {
       expect(b.initialize).not.toHaveBeenCalled();
     });
 
+    it("logs an error via the context logger when a module fails to initialize", async () => {
+      // Regression guard: the init failure must surface through the
+      // logger, not only through registry.setError, so an operator
+      // watching the log stream sees the failure without having to
+      // introspect registry state.
+      const errorSpy = vi.spyOn(context.logger, "error");
+      const a = createMockModule("a", { failOnInitialize: true });
+      registry.register(a);
+
+      await loader.initializeAll();
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"a" failed to initialize'),
+        expect.any(Error),
+      );
+    });
+
     it("throws for missing dependency", async () => {
       const a = createMockModule("a", { dependencies: ["nonexistent"] });
       registry.register(a);
@@ -262,6 +284,31 @@ describe("ModuleLoader", () => {
       expect(b.dispose).toHaveBeenCalledOnce();
       expect(registry.get("a")!.state).toBe("disposed");
       expect(registry.get("b")!.state).toBe("disposed");
+    });
+
+    it("logs a warning and still disposes remaining modules when one dispose throws", async () => {
+      // Regression guard: a throw from module.dispose() must not
+      // silence the failure (was the case before — only the state
+      // was updated, no log entry) and must not halt disposal of
+      // other modules (best-effort behaviour).
+      const warnSpy = vi.spyOn(context.logger, "warn");
+      const a = createMockModule("a", { failOnDispose: true });
+      const b = createMockModule("b");
+
+      registry.register(a);
+      registry.register(b);
+      await loader.initializeAll();
+
+      await loader.disposeAll();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"a" failed to dispose cleanly'),
+        expect.objectContaining({ error: expect.stringContaining("failed to dispose") }),
+      );
+      // Both must still reach disposed state — one failure doesn't block others.
+      expect(registry.get("a")!.state).toBe("disposed");
+      expect(registry.get("b")!.state).toBe("disposed");
+      expect(b.dispose).toHaveBeenCalledOnce();
     });
   });
 });

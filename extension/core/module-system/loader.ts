@@ -67,6 +67,14 @@ export class ModuleLoader {
         this.registry.setState(id, "initialized");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        // Surface the failure through the logger so an operator watching
+        // the log stream sees it. Storing only in the registry leaves
+        // the cause of a silent "extension appears broken" mystery with
+        // no breadcrumb for root-cause analysis.
+        this.context.logger.error(
+          `Module "${id}" failed to initialize`,
+          error instanceof Error ? error : undefined,
+        );
         this.registry.setError(id, message);
 
         // Mark all transitive dependents as errored too
@@ -157,8 +165,13 @@ export class ModuleLoader {
       try {
         await entry.module.dispose();
         this.registry.setState(id, "disposed");
-      } catch {
-        // Best-effort disposal — don't let one failure block others
+      } catch (error) {
+        // Best-effort disposal — one failure must not block the rest,
+        // but a silent swallow leaves resource leaks invisible. Warn so
+        // the operator sees it without failing the shutdown path.
+        this.context.logger.warn(`Module "${id}" failed to dispose cleanly`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
         this.registry.setState(id, "disposed");
       }
     }
