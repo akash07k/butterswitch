@@ -100,8 +100,11 @@ export class WebSocketTransport implements Transport {
   private flushBuffer(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
-    while (this.buffer.length > 0) {
-      const entry = this.buffer.shift()!;
+    // splice(0) drains the buffer into a new array and empties the
+    // original atomically. Clearer than a `while (length > 0) shift()!`
+    // loop and avoids the non-null assertion on shift()'s return.
+    const pending = this.buffer.splice(0);
+    for (const entry of pending) {
       this.ws.send(JSON.stringify(entry));
     }
   }
