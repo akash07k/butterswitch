@@ -49,19 +49,24 @@ interface EventConfig {
 }
 
 /**
- * Available tier filter options. Each option shows ONLY that tier's
- * events — the previous cumulative model ("essential + useful") was
- * replaced because it made "All events" the only way to see a pure
- * Tier 2 or Tier 3 view, and the count drift between "showing X of
- * total" (mixed tiers) was confusing for screen reader users.
+ * Available tier filter options.
+ *
+ * The default three "Tier N" options each show exactly that tier —
+ * no cumulative views — so the count denominator can be per-tier and
+ * stay honest. "All tiers" is the opt-in escape hatch for users who
+ * want to browse everything at once; it is NOT the default (the
+ * default is `"1"` so a new install lands on the essential events).
  *
  * Label format matches docs/sound-themes.md section headers ("Tier 1:
- * Essential") so written doc and UI stay in sync.
+ * Essential") so written doc and UI stay in sync. "All tiers" parallels
+ * "Tier N" phrasing so NVDA reads a consistent axis within the radio
+ * group instead of a second noun ("tier" vs "event") mid-list.
  */
 const TIER_OPTIONS = [
   { value: "1", label: "Tier 1: Essential" },
   { value: "2", label: "Tier 2: Useful" },
   { value: "3", label: "Tier 3: Advanced" },
+  { value: "all", label: "All tiers" },
 ] as const;
 
 /** Count of events per tier — computed once at module load so the
@@ -71,15 +76,32 @@ const EVENTS_PER_TIER: Record<string, number> = {
   "1": PLATFORM_EVENTS.filter((e) => e.tier === 1).length,
   "2": PLATFORM_EVENTS.filter((e) => e.tier === 2).length,
   "3": PLATFORM_EVENTS.filter((e) => e.tier === 3).length,
+  all: PLATFORM_EVENTS.length,
 };
 
 /** Short noun-phrase per tier for the count text ("20 of 20 essential
- *  events match"). Keyed by the tier-filter value. */
+ *  events match"). Keyed by the tier-filter value. Empty string for
+ *  "all" so the count-text helper drops the noun segment entirely —
+ *  "Showing X of Y events" reads better than "Showing X of Y  events". */
 const TIER_NOUN: Record<string, string> = {
   "1": "essential",
   "2": "useful",
   "3": "advanced",
+  all: "",
 };
+
+/**
+ * Build the result-count text shared by the visible div and the
+ * debounced live region. The noun-less branch handles the "all"
+ * tier case where TIER_NOUN is an empty string; collapsing that to a
+ * distinct template avoids the double-space artefact that a naive
+ * template string would produce.
+ */
+function countText(matched: number, total: number, noun: string, suffix: string): string {
+  return noun
+    ? `${matched} of ${total} ${noun} events${suffix}`
+    : `${matched} of ${total} events${suffix}`;
+}
 
 /** Sound Events settings tab — filterable table of all browser events with per-event controls. */
 export function SoundEventsTab() {
@@ -138,12 +160,16 @@ export function SoundEventsTab() {
   }, []);
 
   // Filter events by search + tier. Per-tier means exactly ONE tier
-  // is visible at a time — no cumulative views.
+  // is visible at a time; "all" is the explicit opt-in for every tier.
   const filteredEvents = useMemo(() => {
     const query = search.toLowerCase();
+    // Load-bearing short-circuit: Number("all") === NaN, and
+    // `event.tier !== NaN` is always true, so every event would be
+    // filtered out if we dropped the `tierFilter !== "all"` guard.
+    // Do not "simplify" the guard away.
     const tier = Number(tierFilter);
     return PLATFORM_EVENTS.filter((event) => {
-      if (event.tier !== tier) return false;
+      if (tierFilter !== "all" && event.tier !== tier) return false;
 
       // Search filter
       if (query) {
@@ -284,12 +310,19 @@ export function SoundEventsTab() {
         {/* Result count — visible (sighted users get instant feedback). */}
         {/* The denominator is the per-tier total so the text stays      */}
         {/* honest when the user is viewing Tier 2 or Tier 3 in          */}
-        {/* isolation: "Showing 12 of 30 useful events" not "of 64".     */}
+        {/* isolation: "Showing 12 of 30 useful events" not "of 64". For */}
+        {/* the "all tiers" filter the denominator is the global total   */}
+        {/* and the noun drops out of the template via countText.        */}
         {/* No role=status here so it does NOT announce on every         */}
         {/* keystroke.                                                    */}
         <div id="event-count" className="text-sm text-muted-foreground">
-          Showing {filteredEvents.length} of {EVENTS_PER_TIER[tierFilter]} {TIER_NOUN[tierFilter]}{" "}
-          events
+          Showing{" "}
+          {countText(
+            filteredEvents.length,
+            EVENTS_PER_TIER[tierFilter]!,
+            TIER_NOUN[tierFilter]!,
+            "",
+          )}
         </div>
         {/* Live-region announcement, debounced to 250ms so SR users hear  */}
         {/* ONE count update after they stop typing. announcedMatchCount   */}
@@ -300,7 +333,12 @@ export function SoundEventsTab() {
         {/* screen-reader users during testing.                  */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {announcedMatchCount !== null &&
-            `${announcedMatchCount} of ${EVENTS_PER_TIER[tierFilter]} ${TIER_NOUN[tierFilter]} events match`}
+            countText(
+              announcedMatchCount,
+              EVENTS_PER_TIER[tierFilter]!,
+              TIER_NOUN[tierFilter]!,
+              " match",
+            )}
         </div>
       </section>
 
