@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   EVENT_REGISTRY,
   EVENT_REGISTRY_BY_ID,
@@ -97,11 +98,17 @@ describe("EVENT_REGISTRY", () => {
   it("every default-enabled event has a direct mapping in every built-in theme", async () => {
     const defaultEnabled = EVENT_REGISTRY.filter((e) => getEventDefaults(e.id).enabled);
 
+    // Resolve theme.json paths relative to this test file rather than
+    // process.cwd(). The test was originally written assuming vitest
+    // runs from extension/, but the root vitest.config.ts's projects:
+    // ["packages/*", "extension"] invokes the suite from the repo
+    // root — where "public/sounds/pulse/theme.json" does not exist.
+    // fileURLToPath + dirname anchors the resolution to the file on
+    // disk so either runner works.
+    const extensionDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+
     for (const theme of BUILT_IN_THEMES) {
-      // vitest runs from the extension package root, so theme.path
-      // ("sounds/pulse") combined with the public/ asset dir gives
-      // the on-disk theme.json location.
-      const themeJsonPath = resolve(process.cwd(), "public", theme.path, "theme.json");
+      const themeJsonPath = resolve(extensionDir, "public", theme.path, "theme.json");
       const raw = await readFile(themeJsonPath, "utf8");
       const manifest = JSON.parse(raw) as { mappings: Record<string, string> };
 

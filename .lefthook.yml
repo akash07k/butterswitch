@@ -14,4 +14,6 @@ pre-push:
     typecheck:
       run: pnpm -r typecheck
     test:
-      run: pnpm test
+      run: pnpm -r test
+    lint:
+      run: pnpm lint
