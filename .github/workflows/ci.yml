@@ -37,15 +37,22 @@ jobs:
           node-version: 22
           cache: "pnpm"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      # --ignore-scripts skips the extension's `postinstall: wxt prepare`
+      # hook. That hook loads wxt.config.ts which transitively imports
+      # @butterswitch/logger — a workspace package that resolves to
+      # packages/logger/dist/index.js via its `exports` field. On a fresh
+      # clone the dist/ doesn't exist yet, so the import fails with
+      # "No exports main defined". We build the logger first, then run
+      # wxt prepare manually once dist/ is present.
+      - name: Install dependencies (skip lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # The extension imports @butterswitch/logger from its dist/
-      # output, not from source. pnpm's topological resolve means the
-      # extension's typecheck step below would fail to find the
-      # published .d.ts types without this build first.
       - name: Build logger package
         run: pnpm build:logger
+
+      - name: Prepare WXT (generates .wxt/tsconfig.json the extension typecheck needs)
+        working-directory: extension
+        run: pnpm exec wxt prepare
 
       - name: Typecheck
         run: pnpm -r typecheck

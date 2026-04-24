@@ -53,8 +53,21 @@ jobs:
       # package.json and the lockfile disagree the install fails. We
       # want the Store build to match exactly what was tested in the
       # pre-push hook on a developer machine.
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      #
+      # --ignore-scripts skips the extension's `postinstall: wxt prepare`
+      # hook. That hook loads wxt.config.ts which transitively imports
+      # @butterswitch/logger, which resolves via its `exports` field to
+      # packages/logger/dist/index.js — missing on a fresh clone. We
+      # build the logger first, then run wxt prepare manually.
+      - name: Install dependencies (skip lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build logger package
+        run: pnpm build:logger
+
+      - name: Prepare WXT (generates .wxt/tsconfig.json the gates need)
+        working-directory: extension
+        run: pnpm exec wxt prepare
 
       # Same gates the pre-push lefthook enforces locally. Running them
       # here prevents a broken commit from slipping to the Chrome Web
