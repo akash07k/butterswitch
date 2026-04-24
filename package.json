@@ -16,6 +16,7 @@
   },
   "packageManager": "pnpm@10.32.1",
   "scripts": {
+    "setup": "pnpm install --ignore-scripts && pnpm build:logger && pnpm --filter butterswitch-extension exec wxt prepare",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
