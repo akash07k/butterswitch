@@ -406,12 +406,18 @@ export function SoundEventsTab() {
                   />
                 </TableCell>
                 <TableCell>
+                  {/* Preview stays interactive regardless of config.enabled —
+                      users routinely want to hear an event's sound before
+                      deciding whether to enable it. handlePreview already
+                      announces "Preview unavailable for X" via polite live
+                      region if the theme has no mapping, so the no-sound
+                      case is gracefully handled without needing to query
+                      resolveSound from the UI layer. */}
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label={`Preview sound for ${event.label}`}
                     onClick={() => handlePreview(event)}
-                    disabled={!config.enabled}
                   >
                     <Play className="h-4 w-4" aria-hidden="true" />
                   </Button>
