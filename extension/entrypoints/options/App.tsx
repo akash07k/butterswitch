@@ -38,6 +38,14 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const welcomeHeadingRef = useRef<HTMLHeadingElement>(null);
+  // One-shot guard for the welcome announcement. React.StrictMode (see
+  // options/main.tsx) intentionally double-invokes effects in dev to
+  // surface non-idempotent code. Storage reads and setShowWelcome are
+  // idempotent (React dedupes equal state updates), but announce() is
+  // fire-and-forget so NVDA would hear "Welcome ..." twice without
+  // this ref gate. Scoped to the component so an unlikely future
+  // multi-root mount doesn't cross-contaminate.
+  const announcedWelcomeRef = useRef(false);
 
   // Check if this is the first visit (show welcome banner)
   useEffect(() => {
@@ -45,10 +53,13 @@ export default function App() {
       const stored = await browser.storage.local.get("onboarding.seen");
       if (!stored["onboarding.seen"]) {
         setShowWelcome(true);
-        announce(
-          "Welcome to ButterSwitch. A welcome banner is available above the tabs.",
-          "polite",
-        );
+        if (!announcedWelcomeRef.current) {
+          announcedWelcomeRef.current = true;
+          announce(
+            "Welcome to ButterSwitch. A welcome banner is available above the tabs.",
+            "polite",
+          );
+        }
       }
     }
     init();
