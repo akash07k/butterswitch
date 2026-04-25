@@ -1,8 +1,9 @@
 # Builds and submits the extension to Chrome Web Store and Firefox AMO.
 #
 # Triggered manually via workflow_dispatch so you control when releases happen.
-# Before first use, run `pnpm wxt submit init` locally to generate credentials,
-# then add the secrets listed below to your GitHub repo settings.
+# Before first use, run `pnpm submit:init` locally (in extension/) to write
+# .env.submit, then copy the values from that file into your GitHub repo
+# secrets using the names listed below.
 #
 # Required secrets:
 #   Chrome Web Store:
@@ -30,7 +31,9 @@ jobs:
   submit:
     runs-on: ubuntu-latest
     # Store credentials hoisted to job level so they're defined once
-    # rather than duplicated on every step that needs them.
+    # rather than duplicated on every step that needs them. `wxt submit`
+    # and `wxt-publish-extension` both read these from the environment
+    # directly — no .env.submit file is required on CI.
     env:
       CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
       CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
@@ -54,11 +57,10 @@ jobs:
       # want the Store build to match exactly what was tested in the
       # pre-push hook on a developer machine.
       #
-      # --ignore-scripts skips the extension's `postinstall: wxt prepare`
-      # hook. That hook loads wxt.config.ts which transitively imports
-      # @butterswitch/logger, which resolves via its `exports` field to
-      # packages/logger/dist/index.js — missing on a fresh clone. We
-      # build the logger first, then run wxt prepare manually.
+      # --ignore-scripts skips the extension's postinstall hook. That
+      # hook is already guarded (no-ops when packages/logger/dist/
+      # doesn't exist yet), but being explicit here keeps the step
+      # order obvious: install → build logger → prepare → gates → zip.
       - name: Install dependencies (skip lifecycle scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
@@ -82,32 +84,30 @@ jobs:
       - name: Test
         run: pnpm -r test
 
-      - name: Build packages
-        run: pnpm build
-
+      # `wxt zip` runs `wxt build` internally then packages the output,
+      # so there is no separate `pnpm build` step — it would just
+      # produce the same artifacts twice. Chrome first, Firefox second;
+      # Firefox also produces the sources ZIP that AMO review requires.
       - name: Zip Chrome extension
         working-directory: extension
         run: pnpm zip
 
-      - name: Zip Firefox extension
+      - name: Zip Firefox extension (+ sources ZIP)
         working-directory: extension
         run: pnpm zip:firefox
 
+      # Dry-run first. Verifies the store credentials reach publish-
+      # -extension correctly and the zip filenames scripts/submit.mjs
+      # discovered match what the stores expect. If a secret is mistyped
+      # or an extension ID changed, we fail here without consuming a
+      # real submission review slot.
       - name: Dry-run submission (verify credentials)
         working-directory: extension
-        run: |
-          pnpm wxt submit --dry-run \
-            --chrome-zip .output/*-chrome.zip \
-            --firefox-zip .output/*-firefox.zip \
-            --firefox-sources-zip .output/*-sources.zip
+        run: pnpm submit:dry-run
 
       - name: Submit to stores
         working-directory: extension
-        run: |
-          pnpm wxt submit \
-            --chrome-zip .output/*-chrome.zip \
-            --firefox-zip .output/*-firefox.zip \
-            --firefox-sources-zip .output/*-sources.zip
+        run: pnpm submit
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
