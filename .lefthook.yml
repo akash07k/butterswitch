@@ -1,19 +1,35 @@
+# Why `pnpm.exe` (not `pnpm`) below:
+#
+# When lefthook spawns these commands on Windows, its bash subshell
+# resolves `pnpm` to the no-extension placeholder file that ships
+# alongside the real `pnpm.exe` (a one-line "This file intentionally
+# left blank" stub meant for unix systems). Bash treats it as a shell
+# script, fails on word `This`, exits 127. Direct `pnpm` from your
+# normal shell works fine because mise's shim resolves to `pnpm.exe`,
+# but lefthook's spawn context misses the shim.
+#
+# Forcing `.exe` is Windows-specific. If a non-Windows contributor
+# starts using these hooks locally, switch back to bare `pnpm`
+# (the .exe form will not exist on Linux/macOS). CI does not run
+# lefthook — release.yml and ci.yml invoke the gates directly as
+# workflow steps, so this stays local-only.
+
 pre-commit:
   commands:
     lint-staged:
-      run: pnpm exec lint-staged
+      run: pnpm.exe exec lint-staged
 
 commit-msg:
   commands:
     commitlint:
-      run: pnpm exec commitlint --edit {1}
+      run: pnpm.exe exec commitlint --edit {1}
 
 pre-push:
   parallel: true
   commands:
     typecheck:
-      run: pnpm -r typecheck
+      run: pnpm.exe -r typecheck
     test:
-      run: pnpm -r test
+      run: pnpm.exe -r test
     lint:
-      run: pnpm lint
+      run: pnpm.exe lint
