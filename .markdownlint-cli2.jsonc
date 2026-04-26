@@ -1,0 +1,47 @@
+// markdownlint-cli2 configuration.
+//
+// Disables / overrides:
+//   MD013 (line length) — Prettier handles wrapping; we do not enforce
+//     a hard line-length limit on prose.
+//   MD024 (no duplicate headings) — siblings_only=true allows the same
+//     heading at different nesting levels (e.g. "### Why" repeated under
+//     different decision entries in docs/decisions.md).
+//   MD033 (no inline HTML) — allow a small set of elements that are
+//     genuinely useful in prose: <br>, <details>/<summary> for
+//     collapsible sections, <kbd> for keyboard shortcuts, <sup>/<sub>
+//     for footnote markers.
+//
+// Ignored paths:
+//   - node_modules, .wxt, .output, dist — generated / vendored.
+//   - .claude, .agents, .playwright-mcp — local agent state outside
+//     the repo's authored documentation surface.
+//   - LICENSE.md — verbatim AGPL-3.0 legal text, not authored markdown.
+//   - CHANGELOG.md (auto-generated from v1.1.1 onward) — release-it
+//     formats the conventional-changelog output to its own conventions;
+//     we don't second-guess it.
+//
+// `gitignore: true` belt-and-braces — also respect any .gitignore
+// patterns in the working tree.
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/main/schema/markdownlint-cli2-config-schema.json",
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": { "siblings_only": true },
+    "MD033": {
+      "allowed_elements": ["br", "details", "summary", "kbd", "sup", "sub"]
+    }
+  },
+  "ignores": [
+    "**/node_modules/**",
+    "**/.wxt/**",
+    "**/.output/**",
+    "**/dist/**",
+    "**/.claude/**",
+    "**/.agents/**",
+    "**/.playwright-mcp/**",
+    "LICENSE.md",
+    "CHANGELOG.md"
+  ],
+  "gitignore": true
+}

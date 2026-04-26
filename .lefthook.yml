@@ -33,3 +33,5 @@ pre-push:
       run: pnpm.exe -r test
     lint:
       run: pnpm.exe lint
+    lint-md:
+      run: pnpm.exe lint:md
