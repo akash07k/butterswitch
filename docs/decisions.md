@@ -6,6 +6,10 @@ Reverse chronological (newest first).
 
 ---
 
+## What's New page on extension update
+
+The background script now opens an in-extension `whats-new.html` tab when `browser.runtime.onInstalled` fires with `reason === "update"` and the previous version differs from the current version. The page reads its content from `/whats-new.json`, written at build time by `extension/scripts/build-whats-new.mjs` from the matching `## [<version>]` section of `CHANGELOG.md`. Build-time markdown-to-HTML conversion keeps the runtime bundle free of a markdown parser, and the JSON is gitignored so each branch builds against its own CHANGELOG. The opt-out lives in the General tab (`general.showWhatsNewOnUpdate`, default true) rather than Logging because it controls a user-facing notification, not telemetry. Headings are demoted by one level during conversion (`### Bug Fixes` becomes `<h2>`) so the page H1 sits at the top of an unbroken outline. Focus moves to the H1 on mount and there is no live-region announcement, which would double-announce the heading.
+
 ## Display extension version in options page footer
 
 The options page now ends with a `<footer role="contentinfo">` showing `{ExtensionName} v{version}`, where the version is a link to the GitHub release tag for that version. Both fields come from `browser.runtime.getManifest()` so a release bump in `extension/package.json` flows through without UI changes. Placed at the bottom of the page outside the `<main>` so screen readers reach it via the contentinfo landmark and it does not interrupt the tab content.

@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
     logStreamEnabled: CONFIG.settings.logStreamEnabled,
     logServerUrl: CONFIG.settings.logServerUrl,
     enabledModules: [...CONFIG.settings.enabledModules],
+    showWhatsNewOnUpdate: CONFIG.settings.showWhatsNewOnUpdate,
   },
 
   sounds: {

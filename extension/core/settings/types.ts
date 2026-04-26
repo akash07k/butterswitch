@@ -47,6 +47,9 @@ export interface GeneralSettings {
 
   /** List of enabled module IDs. */
   enabledModules: string[];
+
+  /** Open the What's New page when the extension updates to a new version. */
+  showWhatsNewOnUpdate: boolean;
 }
 
 /**

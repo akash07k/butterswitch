@@ -31,6 +31,7 @@ export function GeneralTab() {
   const [volume, setVolume] = useState(80);
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
+  const [showWhatsNewOnUpdate, setShowWhatsNewOnUpdate] = useState(true);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmGeneralReset, setConfirmGeneralReset] = useState(false);
   const confirmResetRef = useRef<HTMLButtonElement>(null);
@@ -61,6 +62,7 @@ export function GeneralTab() {
           "general.masterVolume",
           "general.activeTheme",
           "general.enabledModules",
+          "general.showWhatsNewOnUpdate",
         ]);
         if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"] as boolean);
         if (stored["general.masterVolume"] !== undefined)
@@ -70,6 +72,9 @@ export function GeneralTab() {
         if (stored["general.enabledModules"] !== undefined) {
           const modules = stored["general.enabledModules"] as string[];
           setSoundEngineEnabled(modules.includes("sound-engine"));
+        }
+        if (stored["general.showWhatsNewOnUpdate"] !== undefined) {
+          setShowWhatsNewOnUpdate(stored["general.showWhatsNewOnUpdate"] as boolean);
         }
       } catch {
         // Use defaults
@@ -117,6 +122,16 @@ export function GeneralTab() {
       "general.enabledModules",
       modules,
       checked ? "Sound engine enabled" : "Sound engine disabled",
+    );
+  };
+
+  /** Toggle the post-update What's New page. */
+  const handleWhatsNewToggle = (checked: boolean) => {
+    setShowWhatsNewOnUpdate(checked);
+    saveSetting(
+      "general.showWhatsNewOnUpdate",
+      checked,
+      checked ? "What's New page enabled on update" : "What's New page disabled on update",
     );
   };
 
@@ -199,6 +214,34 @@ export function GeneralTab() {
         </div>
       </section>
 
+      {/* Notifications — single toggle for now. Lives in General (not  */}
+      {/* Logging) because it controls a user-facing notification, and  */}
+      {/* users looking to silence the post-update page expect to find  */}
+      {/* it next to other behavioural toggles like Sound Engine.       */}
+      <section
+        aria-labelledby="general-notifications-heading"
+        className="space-y-4 border rounded-lg p-4"
+      >
+        <h3 id="general-notifications-heading" className="text-sm font-semibold">
+          Notifications
+        </h3>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="whats-new-toggle">Show What&apos;s New on update</Label>
+            <p id="whats-new-desc" className="text-sm text-muted-foreground">
+              Open a page describing new features when ButterSwitch updates to a new version.
+            </p>
+          </div>
+          <Switch
+            id="whats-new-toggle"
+            aria-describedby="whats-new-desc"
+            checked={showWhatsNewOnUpdate}
+            onCheckedChange={handleWhatsNewToggle}
+          />
+        </div>
+      </section>
+
       {/* Reset General Settings — two-step confirm to prevent accidental */}
       {/* clobber of user's volume / theme / module choices. Mirrors the   */}
       {/* Factory Reset pattern below.                                      */}
@@ -221,11 +264,13 @@ export function GeneralTab() {
             setVolume(80);
             setActiveTheme(DEFAULT_THEME_ID);
             setSoundEngineEnabled(true);
+            setShowWhatsNewOnUpdate(true);
             browser.storage.local.set({
               "general.muted": false,
               "general.masterVolume": 80,
               "general.activeTheme": DEFAULT_THEME_ID,
               "general.enabledModules": ["sound-engine"],
+              "general.showWhatsNewOnUpdate": true,
             });
             announce("General settings reset to defaults", "polite");
             sendLog("warn", "General settings reset to defaults", { source: "options" });
@@ -256,6 +301,7 @@ export function GeneralTab() {
             setVolume(80);
             setActiveTheme(DEFAULT_THEME_ID);
             setSoundEngineEnabled(true);
+            setShowWhatsNewOnUpdate(true);
             announce(
               "All settings reset to factory defaults. Reload the extension for full effect.",
               "assertive",

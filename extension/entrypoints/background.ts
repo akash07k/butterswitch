@@ -140,11 +140,46 @@ export default defineBackground(() => {
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
 
-      // 11. Open options page on first install for onboarding
-      browser.runtime.onInstalled.addListener((details) => {
+      // 11. onInstalled handler — first install opens the options page
+      //     for onboarding, version updates open the What's New page.
+      //     Both branches are mutually exclusive on details.reason, so
+      //     they share one listener. The update branch is gated on the
+      //     user setting general.showWhatsNewOnUpdate (default true) and
+      //     skipped when previousVersion equals the current version (some
+      //     reload paths fire onInstalled with reason="update" but no
+      //     real version bump).
+      browser.runtime.onInstalled.addListener(async (details) => {
         if (details.reason === "install") {
           browser.runtime.openOptionsPage();
           logger.info("First install — opened options page for onboarding");
+          return;
+        }
+        if (details.reason !== "update") return;
+
+        const previousVersion = details.previousVersion;
+        const currentVersion = browser.runtime.getManifest().version;
+        if (!previousVersion || previousVersion === currentVersion) return;
+
+        const optedIn =
+          (await settings.get<boolean>("general.showWhatsNewOnUpdate")) ??
+          DEFAULT_SETTINGS.general.showWhatsNewOnUpdate;
+        if (!optedIn) {
+          logger.info(
+            `Update detected from ${previousVersion} to ${currentVersion}; What's New disabled by user`,
+          );
+          return;
+        }
+
+        const url = browser.runtime.getURL(
+          `/whats-new.html?from=${encodeURIComponent(previousVersion)}`,
+        );
+        try {
+          await browser.tabs.create({ url });
+          logger.info(
+            `Update detected from ${previousVersion} to ${currentVersion}; opened What's New page`,
+          );
+        } catch (error) {
+          logger.error("Failed to open What's New tab", error instanceof Error ? error : undefined);
         }
       });
 

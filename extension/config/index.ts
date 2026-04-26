@@ -24,6 +24,7 @@ export const CONFIG = {
     logStreamEnabled: false,
     logServerUrl: "ws://localhost:8089",
     enabledModules: ["sound-engine"],
+    showWhatsNewOnUpdate: true,
   },
 
   /** Sound engine tuning. */
