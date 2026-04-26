@@ -31,11 +31,13 @@ on:
     tags:
       - "v*"
 
-# Least-privilege: this job only needs to read the source and upload
-# artifacts. It does NOT push commits, tag releases, or comment on PRs,
-# so the default GITHUB_TOKEN write scope is unnecessary surface area.
+# Least-privilege: read the source for build/test/zip; write to
+# `contents` so softprops/action-gh-release can create the GitHub
+# Release and attach the extension zips. The job does NOT need
+# permissions for issues, PRs, packages, or actions — those stay
+# at their default no-access state.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   submit:
@@ -155,3 +157,44 @@ jobs:
             extension/.output/*-chrome.zip
             extension/.output/*-firefox.zip
             extension/.output/*-sources.zip
+
+      # Extract the matching `## [<version>]` section from CHANGELOG.md
+      # for use as the GitHub Release body. awk prints from the version
+      # header through to the next `## [` (or EOF). Failing the step
+      # when no section matches prevents shipping a release with empty
+      # notes — the most common cause is forgetting to land the
+      # changelog entry before tagging.
+      - name: Extract changelog section for release notes
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; print; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::No CHANGELOG.md section found for version $VERSION. Add a '## [$VERSION] — YYYY-MM-DD' entry before tagging."
+            exit 1
+          fi
+          echo "Extracted $(wc -l < release-notes.md) lines of release notes for v$VERSION"
+
+      # Create the GitHub Release and attach the Chrome and Firefox
+      # zips for sideloading. Sources zip is included for transparency
+      # (it is what AMO reviewers receive). The default GITHUB_TOKEN
+      # — granted via `contents: write` above — has the minimal
+      # privilege needed; no PAT is required.
+      - name: Create GitHub Release with sideloadable assets
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ButterSwitch ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            extension/.output/*-chrome.zip
+            extension/.output/*-firefox.zip
+            extension/.output/*-sources.zip
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
