@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-only",
   "homepage": "https://github.com/akash07k/butterswitch",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

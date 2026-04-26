@@ -44,7 +44,7 @@
         ]
       },
       "infile": "../CHANGELOG.md",
-      "header": "# Changelog\n\nAll notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.0.2 are released by hand; everything from v1.0.2 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.\n",
+      "header": "# Changelog\n\nAll notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.1.1 are released by hand; everything from v1.1.1 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.\n",
       "ignoreRecommendedBump": false
     }
   }
