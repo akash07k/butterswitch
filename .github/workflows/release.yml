@@ -159,18 +159,25 @@ jobs:
             extension/.output/*-sources.zip
 
       # Extract the matching `## [<version>]` section from CHANGELOG.md
-      # for use as the GitHub Release body. awk prints from the version
-      # header through to the next `## [` (or EOF). Failing the step
-      # when no section matches prevents shipping a release with empty
-      # notes — the most common cause is forgetting to land the
-      # changelog entry before tagging.
+      # for use as the GitHub Release body. The literal-prefix match
+      # via `index() == 1` sidesteps a gawk regex pitfall: `\[` inside
+      # an awk string is silently stripped to plain `[`, which turns
+      # `[1.1.0]` into a regex character class (matching one of `1`,
+      # `.`, `0`) instead of a literal-bracket match — so the regex
+      # form would never match the version header and would fail this
+      # step on every run. `index()` matches a literal substring,
+      # unambiguously. Walks from the header through to the next
+      # `## [` (or EOF). Failing the step when no section matches
+      # prevents shipping a release with empty notes — the most common
+      # cause is forgetting to land the changelog entry before tagging.
       - name: Extract changelog section for release notes
         if: github.ref_type == 'tag'
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
           awk -v ver="$VERSION" '
-            $0 ~ "^## \\[" ver "\\]" { found=1; print; next }
-            found && /^## \[/ { exit }
+            BEGIN { hdr = "## [" ver "]" }
+            index($0, hdr) == 1 { found=1; print; next }
+            found && index($0, "## [") == 1 { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md
           if [ ! -s release-notes.md ]; then
