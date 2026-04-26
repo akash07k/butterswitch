@@ -29,6 +29,8 @@
     "build:log-server": "pnpm --filter @butterswitch/log-server build",
     "log-server": "pnpm build:log-server && node packages/log-server/dist/bin.js",
     "log-server:dev": "pnpm exec tsx packages/log-server/src/bin.ts",
+    "release": "pnpm --filter butterswitch-extension release",
+    "release:dry": "pnpm --filter butterswitch-extension release:dry",
     "clean": "pnpm -r clean"
   },
   "pnpm": {

@@ -17,6 +17,8 @@
     "submit:init": "wxt-publish-extension init",
     "submit:dry-run": "node scripts/submit.mjs --dry-run",
     "submit": "node scripts/submit.mjs",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -44,12 +46,14 @@
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^11.0.0",
     "@types/chrome": "^0.1.40",
     "@types/howler": "^2.2.12",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.2.2",
     "jsdom": "^29.0.2",
+    "release-it": "^20.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4",
     "wxt": "^0.20.25"
