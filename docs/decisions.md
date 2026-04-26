@@ -6,6 +6,10 @@ Reverse chronological (newest first).
 
 ---
 
+## Display extension version in options page footer
+
+The options page now ends with a `<footer role="contentinfo">` showing `{ExtensionName} v{version}`, where the version is a link to the GitHub release tag for that version. Both fields come from `browser.runtime.getManifest()` so a release bump in `extension/package.json` flows through without UI changes. Placed at the bottom of the page outside the `<main>` so screen readers reach it via the contentinfo landmark and it does not interrupt the tab content.
+
 ## markdownlint-cli2 as a fourth hard gate
 
 Prettier already formats markdown but doesn't enforce semantic rules: duplicate H1s, fenced blocks without a language, bare URLs, missing top-level headings. Adding markdownlint-cli2 as a fourth gate (alongside typecheck, lint, test) catches those at commit time. Same author as the underlying markdownlint library, JSONC config so disables can carry their reason inline. Disables: MD013 (line length, prettier handles wrapping), MD024 with siblings_only, MD033 with a small allowlist of inline HTML elements. LICENSE.md and CHANGELOG.md ignored (legal text, auto-generated).

@@ -32,6 +32,11 @@ const TAB_DEFINITIONS = [
   { id: "logging", label: "Logging" },
 ] as const;
 
+const MANIFEST = browser.runtime.getManifest();
+const VERSION = MANIFEST.version;
+const EXTENSION_NAME = MANIFEST.name;
+const RELEASE_URL = `https://github.com/akash07k/butterswitch/releases/tag/v${VERSION}`;
+
 /** Options page root — tabbed settings interface with local keyboard shortcuts. */
 export default function App() {
   const [activeTab, setActiveTab] = useState("general");
@@ -153,66 +158,84 @@ export default function App() {
   }, [handleCycleTheme]);
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
-      <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold mb-6">
-        ButterSwitch Options
-      </h1>
+    <>
+      <main className="max-w-4xl mx-auto p-6">
+        <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold mb-6">
+          ButterSwitch Options
+        </h1>
 
-      {showWelcome && (
-        <div
-          role="region"
-          aria-labelledby="welcome-heading"
-          className="mb-6 border rounded-lg p-4 space-y-2"
-        >
-          <h2
-            id="welcome-heading"
-            ref={welcomeHeadingRef}
-            tabIndex={-1}
-            className="text-lg font-semibold"
+        {showWelcome && (
+          <div
+            role="region"
+            aria-labelledby="welcome-heading"
+            className="mb-6 border rounded-lg p-4 space-y-2"
           >
-            Welcome to ButterSwitch
-          </h2>
-          <p className="text-muted-foreground">
-            ButterSwitch plays audio cues for browser events — tabs, bookmarks, downloads, and
-            navigation. Sounds play automatically as you browse. Use the General tab to adjust
-            volume and mute. Use Sound Events to enable or disable individual events. Press Shift+?
-            for keyboard shortcuts.
-          </p>
-          <button
-            type="button"
-            onClick={dismissWelcome}
-            className="mt-2 px-4 py-2 rounded border border-input bg-transparent text-sm hover:bg-accent"
+            <h2
+              id="welcome-heading"
+              ref={welcomeHeadingRef}
+              tabIndex={-1}
+              className="text-lg font-semibold"
+            >
+              Welcome to ButterSwitch
+            </h2>
+            <p className="text-muted-foreground">
+              ButterSwitch plays audio cues for browser events — tabs, bookmarks, downloads, and
+              navigation. Sounds play automatically as you browse. Use the General tab to adjust
+              volume and mute. Use Sound Events to enable or disable individual events. Press
+              Shift+? for keyboard shortcuts.
+            </p>
+            <button
+              type="button"
+              onClick={dismissWelcome}
+              className="mt-2 px-4 py-2 rounded border border-input bg-transparent text-sm hover:bg-accent"
+            >
+              Got it
+            </button>
+          </div>
+        )}
+
+        <Tabs id="tab-panels" value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="w-full justify-start">
+            {TAB_DEFINITIONS.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="general">
+            <GeneralTab />
+          </TabsContent>
+
+          <TabsContent value="sound-events">
+            <SoundEventsTab />
+          </TabsContent>
+
+          <TabsContent value="themes">
+            <ThemesTab />
+          </TabsContent>
+
+          <TabsContent value="logging">
+            <LoggingTab />
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      <footer
+        role="contentinfo"
+        aria-label={`About ${EXTENSION_NAME}`}
+        className="max-w-4xl mx-auto px-6 pb-6 pt-2 mt-4 border-t border-border text-sm text-muted-foreground"
+      >
+        <p>
+          {EXTENSION_NAME}{" "}
+          <a
+            href={RELEASE_URL}
+            className="underline hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            Got it
-          </button>
-        </div>
-      )}
-
-      <Tabs id="tab-panels" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-full justify-start">
-          {TAB_DEFINITIONS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="general">
-          <GeneralTab />
-        </TabsContent>
-
-        <TabsContent value="sound-events">
-          <SoundEventsTab />
-        </TabsContent>
-
-        <TabsContent value="themes">
-          <ThemesTab />
-        </TabsContent>
-
-        <TabsContent value="logging">
-          <LoggingTab />
-        </TabsContent>
-      </Tabs>
-    </main>
+            v{VERSION}
+          </a>
+        </p>
+      </footer>
+    </>
   );
 }
