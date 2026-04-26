@@ -4,6 +4,15 @@ ButterSwitch is an audio-feedback browser extension. Browser events are mapped t
 
 The codebase is a small pnpm monorepo with three packages: the extension itself plus two supporting libraries used during development.
 
+- `extension/` - the WXT browser extension (the product).
+- `packages/logger/` - `@butterswitch/logger`, consumed by the extension.
+- `packages/log-server/` - `@butterswitch/log-server`, the dev-only WebSocket sink and React viewer.
+- `docs/` - this directory.
+- `README.md` and `LICENSE.md` at the root.
+
+<details>
+<summary>Visual tree</summary>
+
 ```text
 butterswitch/
 ├── extension/                       # the product (WXT browser extension)
@@ -13,6 +22,8 @@ butterswitch/
 ├── docs/                            # this directory
 └── README.md, LICENSE.md
 ```
+
+</details>
 
 The deeper exploration of any subsystem is in its own document; this one is the map.
 
@@ -86,7 +97,7 @@ The deep dive is in [`sound-engine.md`](./sound-engine.md).
 
 | Concern                  | Chrome (MV3)                                       | Firefox (MV2)                                                                 |
 | ------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Background context       | Service worker — no DOM                            | Background page — has DOM                                                     |
+| Background context       | Service worker - no DOM                            | Background page - has DOM                                                     |
 | Audio playback           | Offscreen document; backend sends play via runtime | Background page calls Howler.js inline                                        |
 | `offscreen` permission   | Required in manifest                               | Stripped at build time by `wxt.config.ts`                                     |
 | Notification / badge API | `browser.action`                                   | `browser.browserAction`                                                       |
@@ -108,15 +119,15 @@ The user base is dominated by NVDA and VoiceOver users. Accessibility is a hard 
 
 `BrowserSettingsStore` ([`extension/core/settings/browser-store.ts`](../extension/core/settings/browser-store.ts)) is backed by `browser.storage.local`. Keys are flat dot-notation strings (`general.masterVolume`, `sounds.events.tabs.onCreated`), built by flattening the nested `DEFAULT_SETTINGS` tree at startup. `browser.storage.local`'s `get/set` operate on top-level keys and `onChanged` events fire on top-level keys, so flat storage gives cheap single-key reads and per-key watchers.
 
-Reading nested objects requires multiple `get` calls — the trade-off is worth it because the service worker frequently sleeps and wakes, and a single-key warm cache is valuable.
+Reading nested objects requires multiple `get` calls - the trade-off is worth it because the service worker frequently sleeps and wakes, and a single-key warm cache is valuable.
 
 ## Logger and log server
 
 `packages/logger` is a structured logger with three transports:
 
-- `ConsoleTransport` — formatted output via `console.debug` / `info` / `warn` / `error`.
-- `IndexedDBTransport` — persists every entry to `butterswitch-logs`, rotates at 10,000 entries (`CONFIG.logger.idbMaxEntries`). Supports `query()` for export.
-- `WebSocketTransport` — opt-in, buffers up to 1,000 entries while disconnected, exponential-backoff reconnect.
+- `ConsoleTransport` - formatted output via `console.debug` / `info` / `warn` / `error`.
+- `IndexedDBTransport` - persists every entry to `butterswitch-logs`, rotates at 10,000 entries (`CONFIG.logger.idbMaxEntries`). Supports `query()` for export.
+- `WebSocketTransport` - opt-in, buffers up to 1,000 entries while disconnected, exponential-backoff reconnect.
 
 `packages/log-server` is a Node `commander` CLI that opens a WebSocket server, holds a ring buffer of recent entries for replay to new clients, and serves a small accessible React UI over HTTP. It exists because Chrome's service-worker DevTools console is awkward to use with a screen reader; the log-server gives screen-reader-friendly real-time visibility.
 
@@ -154,18 +165,53 @@ Required secrets: `CHROME_EXTENSION_ID`, `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECR
 
 ## Tooling
 
-- Prettier — 100-column, double quotes, trailing commas, LF.
-- ESLint — `typescript-eslint` recommended + `eslint-plugin-react` + `eslint-plugin-react-hooks` + `eslint-plugin-jsx-a11y`. Pinned to ESLint 9 because the React and jsx-a11y plugins haven't released ESLint 10 compatible versions yet.
-- markdownlint-cli2 — semantic markdown rules; runs as the fourth pre-push and CI gate.
-- Lefthook — `pre-commit` runs lint-staged; `commit-msg` runs commitlint; `pre-push` runs the four gates in parallel.
-- TypeScript 6.0+ — strict mode. The extension has a one-line `globals.d.ts` with `/// <reference types="chrome" />` because TS 6 tightened auto-loading of ambient types.
+- Prettier - 100-column, double quotes, trailing commas, LF.
+- ESLint - `typescript-eslint` recommended + `eslint-plugin-react` + `eslint-plugin-react-hooks` + `eslint-plugin-jsx-a11y`. Pinned to ESLint 9 because the React and jsx-a11y plugins haven't released ESLint 10 compatible versions yet.
+- markdownlint-cli2 - semantic markdown rules; runs as the fourth pre-push and CI gate.
+- Lefthook - `pre-commit` runs lint-staged; `commit-msg` runs commitlint; `pre-push` runs the four gates in parallel.
+- TypeScript 6.0+ - strict mode. The extension has a one-line `globals.d.ts` with `/// <reference types="chrome" />` because TS 6 tightened auto-loading of ambient types.
 
 ## File map
+
+The `extension/` directory contains:
+
+- `wxt.config.ts` - manifest, browser-specific manifest hooks, Vite config.
+- `globals.d.ts` - `/// <reference types="chrome" />`, required since TS 6.0.
+- `entrypoints/` - WXT file-based entrypoints:
+  - `background.ts` - service worker (Chrome) or background page (Firefox).
+  - `offscreen/main.ts` - Chrome-only audio playback document.
+  - `popup/{main,App}.tsx` - the toolbar popup.
+  - `options/{main,App}.tsx` plus `options/tabs/{General,SoundEvents,Themes,Logging}Tab.tsx` - the tabbed settings shell using the WAI-ARIA Tabs model.
+- `config/` - ship-time defaults:
+  - `index.ts` - the `CONFIG` object covering cooldown, logger limits, log-server tuning.
+  - `events.ts` - `EVENT_DEFAULTS`, per-event enabled flag and debounce window.
+  - `themes.ts` - `BUILT_IN_THEMES` and `DEFAULT_THEME_ID`.
+- `core/` - cross-cutting infrastructure:
+  - `module-system/` - `ButterSwitchModule`, `ModuleRegistry`, `ModuleLoader`.
+  - `message-bus/` - in-process pub/sub.
+  - `settings/` - `SettingsStore` over `browser.storage.local`.
+  - `messaging/` - typed `chrome.runtime.sendMessage` wrapper.
+- `modules/sound-engine/` - the audio feature module:
+  - `index.ts` - `SoundEngineModule`.
+  - `event-registry.ts` - all supported browser events.
+  - `event-engine.ts` - generic router.
+  - `cooldown-gate.ts` - atomic gate with priority preemption.
+  - `theme-manager.ts` - resolves event id to sound file URL.
+  - `theme-schema.ts` - `theme.json` validator.
+  - `types.ts` - `EventDefinition`, `BrowserEventMessage`.
+  - `audio-backends/` - Chrome offscreen vs Firefox direct.
+- `shared/` - `a11y/` for announcer and focus utilities, `platform/` for browser and OS detection.
+- `components/ui/` - shadcn/ui components (button, slider, tabs, and so on).
+- `lib/utils.ts` - the `cn()` Tailwind class merger.
+- `public/` - `icon/` for extension icons, `sounds/<theme>/` for `theme.json` and `.ogg` files.
+
+<details>
+<summary>Visual tree</summary>
 
 ```text
 extension/
 ├── wxt.config.ts                       # Manifest, browser-specific manifest hooks, Vite config
-├── globals.d.ts                        # /// <reference types="chrome" /> — required since TS 6.0
+├── globals.d.ts                        # /// <reference types="chrome" /> - required since TS 6.0
 ├── entrypoints/
 │   ├── background.ts                   # Service worker / background page entry
 │   ├── offscreen/main.ts               # Chrome-only audio playback document
@@ -175,7 +221,7 @@ extension/
 │       └── tabs/{General,SoundEvents,Themes,Logging}Tab.tsx
 ├── config/                             # Ship-time defaults
 │   ├── index.ts                        # CONFIG: cooldown, logger limits, log-server tuning
-│   ├── events.ts                       # EVENT_DEFAULTS — per-event enabled/debounce
+│   ├── events.ts                       # EVENT_DEFAULTS - per-event enabled/debounce
 │   └── themes.ts                       # BUILT_IN_THEMES, DEFAULT_THEME_ID
 ├── core/                               # Cross-cutting infrastructure
 │   ├── module-system/                  # ButterSwitchModule, ModuleRegistry, ModuleLoader
@@ -187,16 +233,18 @@ extension/
 │   ├── event-registry.ts               # All supported browser events
 │   ├── event-engine.ts                 # Generic router
 │   ├── cooldown-gate.ts                # Atomic gate with priority preemption
-│   ├── theme-manager.ts                # Resolves event id → sound file URL
+│   ├── theme-manager.ts                # Resolves event id to sound file URL
 │   ├── theme-schema.ts                 # theme.json validator
 │   ├── types.ts                        # EventDefinition, BrowserEventMessage
 │   └── audio-backends/                 # Chrome offscreen vs Firefox direct
 ├── shared/
 │   ├── a11y/                           # announcer, focus utilities
 │   └── platform/                       # browser + OS detection
-├── components/ui/                      # shadcn/ui (button, slider, tabs, …)
+├── components/ui/                      # shadcn/ui (button, slider, tabs, ...)
 ├── lib/utils.ts                        # cn() Tailwind class merger
 └── public/
     ├── icon/                           # Extension icons
     └── sounds/<theme>/{theme.json, *.ogg}
 ```
+
+</details>

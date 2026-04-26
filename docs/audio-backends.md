@@ -35,6 +35,16 @@ The two backends keep this complexity contained.
 
 [`ChromeAudioBackend`](../extension/modules/sound-engine/audio-backends/chrome-backend.ts) owns the offscreen document. The runtime interaction:
 
+1. `SoundEngineModule` calls `ChromeAudioBackend.play(url, opts)`.
+2. `ChromeAudioBackend.play` calls `ensureOffscreenDocument()` (creates the document if missing), then sends `{ type: PLAY_SOUND, url, opts }` via `chrome.runtime.sendMessage`.
+3. The message crosses the runtime boundary into the offscreen DOM context.
+4. `offscreen/main.ts` receives the message and calls `HowlerPlayer.play(url, opts)`.
+5. Howler.js handles caching, volume, and playback rate.
+6. The promise resolves with `{ success, latency }`, which routes back across the boundary to the backend.
+
+<details>
+<summary>Visual flow</summary>
+
 ```text
 SoundEngineModule
      │ play(url, opts)
@@ -53,11 +63,13 @@ offscreen/main.ts (DOM context)
 [ response back to backend ]
 ```
 
+</details>
+
 Three classes of bug have happened in this path; the fixes shipped, but the relevant decisions are recorded in [`decisions.md`](./decisions.md).
 
 ### Offscreen document creation race
 
-`ensureOffscreenDocument` previously had an open await between `await hasDocument()` and the `creatingPromise` assignment. Two concurrent `play()` callers landing during a long-idle period (Chrome had terminated the offscreen document) could both observe `hasDocument()` returning false, both proceed past the entry guard, and both invoke `chrome.offscreen.createDocument()` — the second errors with "Only a single offscreen document may be created."
+`ensureOffscreenDocument` previously had an open await between `await hasDocument()` and the `creatingPromise` assignment. Two concurrent `play()` callers landing during a long-idle period (Chrome had terminated the offscreen document) could both observe `hasDocument()` returning false, both proceed past the entry guard, and both invoke `chrome.offscreen.createDocument()` - the second errors with "Only a single offscreen document may be created."
 
 Fix: the `creatingPromise` field is set synchronously, before any await yields control. Concurrent callers see the same in-flight promise.
 
@@ -75,6 +87,13 @@ Fix: type the parameter as `unknown`, narrow via an `isAudioMessage` type guard,
 
 [`FirefoxAudioBackend`](../extension/modules/sound-engine/audio-backends/firefox-backend.ts) is much simpler because the background page has DOM:
 
+1. `SoundEngineModule` calls `FirefoxAudioBackend.play(url, opts)`.
+2. The backend calls `this.player.play(url, opts)` directly. `this.player` is a `HowlerPlayer` instance running in the same DOM context. No message boundary, no offscreen document.
+3. The promise resolves with `{ success, latency }`.
+
+<details>
+<summary>Visual flow</summary>
+
 ```text
 SoundEngineModule
      │ play(url, opts)
@@ -85,6 +104,8 @@ FirefoxAudioBackend.play()
      ▼
 resolves with { success, latency }
 ```
+
+</details>
 
 No message protocol, no race window, no exhaustiveness checks. The trade-off is that Firefox MV2 is being deprecated (Mozilla has signalled MV3 transition); when it lands here, the Firefox backend will collapse into the Chrome shape.
 

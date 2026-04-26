@@ -2,6 +2,16 @@
 
 `@butterswitch/logger` is the structured logger used by the extension. It is a small, dependency-free package built around three primitives: a `Logger` interface, a `Transport` interface, and a default `LogEntry` shape.
 
+Source layout under `packages/logger/src/`:
+
+- `core/` - the `Logger`, `Transport`, `LogEntry`, `LogLevel` types in `types.ts` and the `LoggerImpl` in `logger.ts`.
+- `transports/` - the three transport implementations: `console.ts` (`ConsoleTransport`), `indexed-db.ts` (`IndexedDBTransport` with rotation), `websocket.ts` (`WebSocketTransport` with backoff).
+- `exporter/` - `exporter.ts` (`LogExporter` for JSON, CSV, HTML output).
+- `index.ts` - the public API barrel.
+
+<details>
+<summary>Visual tree</summary>
+
 ```text
 packages/logger/src/
 ├── core/
@@ -15,6 +25,8 @@ packages/logger/src/
 │   └── exporter.ts      # LogExporter (JSON, CSV, HTML)
 └── index.ts             # public API
 ```
+
+</details>
 
 ## Logger and dispatch
 
@@ -38,10 +50,10 @@ Persists entries to `butterswitch-logs` (database name from `CONFIG.logger.idbNa
 
 API:
 
-- `log(entry)` — append.
-- `query(opts)` — read entries with filters (level, time range, search). Used by the export feature.
-- `clear()` — wipe the store. Used by the "Clear logs" button.
-- `count()` — current entry count.
+- `log(entry)` - append.
+- `query(opts)` - read entries with filters (level, time range, search). Used by the export feature.
+- `clear()` - wipe the store. Used by the "Clear logs" button.
+- `count()` - current entry count.
 
 The transport opens its own IDB connection on `initialize()` and closes it on `dispose()`. Methods after dispose return early without touching the closed connection.
 
@@ -55,7 +67,7 @@ Behaviour:
 - While connected, every entry is sent immediately as JSON.
 - While disconnected, entries buffer in a bounded ring buffer (`CONFIG.logger.wsBufferMax`, default 1,000). Older entries drop on overflow.
 - On reconnect, the buffered entries flush in order before resuming live forwarding.
-- Reconnect uses exponential backoff (1s, 2s, 4s, …, capped at 30s) with jitter. The transport never gives up; it keeps trying until `dispose()`.
+- Reconnect uses exponential backoff (1s, 2s, 4s, ..., capped at 30s) with jitter. The transport never gives up; it keeps trying until `dispose()`.
 
 `flush()` warns when the buffer is discarded due to a permanently disconnected socket, instead of silently dropping entries.
 
@@ -63,17 +75,15 @@ Behaviour:
 
 [`packages/logger/src/index.ts`](../packages/logger/src/index.ts) exports the surface:
 
-```text
-Logger              (interface)
-LogLevel            (enum)
-LogEntry            (interface)
-Transport           (interface)
-createLogger        (factory)
-ConsoleTransport
-IndexedDBTransport
-WebSocketTransport
-LogExporter
-```
+- `Logger` (interface)
+- `LogLevel` (enum)
+- `LogEntry` (interface)
+- `Transport` (interface)
+- `createLogger` (factory)
+- `ConsoleTransport`
+- `IndexedDBTransport`
+- `WebSocketTransport`
+- `LogExporter`
 
 The package is published as ESM with `.d.ts` types from `tsc` directly (the build uses `vite build` for the JS bundle plus a `tsc -p tsconfig.build.json` pass for type emission). The `package.json` `exports` field has `"types"` first so TypeScript under `moduleResolution: "bundler"` picks types over JS.
 
@@ -93,10 +103,10 @@ The extension calls `logger.dispose()` from `runtime.onSuspend` (when the servic
 
 55 tests under `packages/logger/__tests__/`. Highlights:
 
-- `core/logger.test.ts` — level filtering, child loggers, transport isolation, dispose idempotence.
-- `transports/console.test.ts` — level-to-method mapping.
-- `transports/indexed-db.test.ts` — rotation under burst load, query filters, concurrent-rotate guard.
-- `transports/websocket.test.ts` — buffer overflow, reconnect backoff, flush semantics.
-- `exporter/exporter.test.ts` — CSV escaping, HTML escaping (XSS test cases included), JSON round-trip.
+- `core/logger.test.ts` - level filtering, child loggers, transport isolation, dispose idempotence.
+- `transports/console.test.ts` - level-to-method mapping.
+- `transports/indexed-db.test.ts` - rotation under burst load, query filters, concurrent-rotate guard.
+- `transports/websocket.test.ts` - buffer overflow, reconnect backoff, flush semantics.
+- `exporter/exporter.test.ts` - CSV escaping, HTML escaping (XSS test cases included), JSON round-trip.
 
 `fake-indexeddb` provides the IDB implementation under Node. The WebSocket tests use a small mock server.

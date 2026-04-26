@@ -13,7 +13,7 @@ ButterSwitch requests the following browser APIs. Each one is used only to liste
 
 ## `tabs`
 
-Listens for tab lifecycle events: tab created, tab closed, tab activated, tab moved, tab attached, tab detached, tab title changed, tab audio started or stopped, tab muted or unmuted. Without this permission ButterSwitch cannot play sounds for any tab-related event — which is more than half of the defaults.
+Listens for tab lifecycle events: tab created, tab closed, tab activated, tab moved, tab attached, tab detached, tab title changed, tab audio started or stopped, tab muted or unmuted. Without this permission ButterSwitch cannot play sounds for any tab-related event - which is more than half of the defaults.
 
 ## `bookmarks`
 
@@ -29,7 +29,7 @@ Listens for navigation lifecycle events: navigation starting, navigation committ
 
 ## `storage`
 
-Stores the user's configuration (volumes, per-event enable/disable, active theme, master mute state) in the browser's local extension storage. No syncing, no cloud — strictly `browser.storage.local`.
+Stores the user's configuration (volumes, per-event enable/disable, active theme, master mute state) in the browser's local extension storage. No syncing, no cloud - strictly `browser.storage.local`.
 
 ## `notifications`
 
@@ -37,7 +37,7 @@ Shows a short visual confirmation when the mute shortcut is pressed ("ButterSwit
 
 ## `idle`
 
-Listens for system state changes: active, idle, locked. Lets ButterSwitch play an audio cue when the computer wakes from sleep or when the session locks — a small accessibility assist for users who cannot rely on the visual lock screen to know the state changed.
+Listens for system state changes: active, idle, locked. Lets ButterSwitch play an audio cue when the computer wakes from sleep or when the session locks - a small accessibility assist for users who cannot rely on the visual lock screen to know the state changed.
 
 ## `history`
 
@@ -53,8 +53,8 @@ Listens for cookie-change events. Off by default in Tier 2; used only by power u
 
 ## `offscreen` (Chrome only)
 
-Chrome's MV3 service worker has no DOM and cannot play audio directly. ButterSwitch creates a hidden offscreen document solely to host an `<audio>` element for playback. No UI, no user-visible window — purely an implementation detail of Chrome's service-worker model. Firefox builds do not include this permission because Firefox's background page already has DOM access.
+Chrome's MV3 service worker has no DOM and cannot play audio directly. ButterSwitch creates a hidden offscreen document solely to host an `<audio>` element for playback. No UI, no user-visible window - purely an implementation detail of Chrome's service-worker model. Firefox builds do not include this permission because Firefox's background page already has DOM access.
 
 ## No host permissions
 
-ButterSwitch does not request `host_permissions` or any "access all websites" permission. It cannot read page content, inject scripts, observe network requests, or see form data. The `web_accessible_resources` entry only exposes the extension's own bundled sound files (`sounds/**/*.ogg`) to web pages — necessary because Chrome serves audio files to any requesting frame; nothing about user content flows out.
+ButterSwitch does not request `host_permissions` or any "access all websites" permission. It cannot read page content, inject scripts, observe network requests, or see form data. The `web_accessible_resources` entry only exposes the extension's own bundled sound files (`sounds/**/*.ogg`) to web pages - necessary because Chrome serves audio files to any requesting frame; nothing about user content flows out.

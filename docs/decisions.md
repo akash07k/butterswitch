@@ -16,7 +16,7 @@ The release workflow now creates a public GitHub Release on every tag-push, atta
 
 ## Automated changelog and signed-tag releases via release-it
 
-release-it runs locally and uses `git commit -S` / `git tag -s` directly, so the YubiKey signs both the version-bump commit and the tag. semantic-release and release-please were rejected — both are CI-bot driven and would either publish unsigned commits or require a software GPG key on the runner, neither of which fits the YubiKey-only signing posture. Configuration in `extension/.release-it.json` keeps the maintainer in control: gates run before any state mutation, requireBranch/requireCleanWorkingDir/requireUpstream/requireCommits refuse to release from a feature branch or with uncommitted changes, and `git.push: false` means the maintainer reviews locally before pushing. CHANGELOG types filter to feat/fix/perf/revert; everything else is housekeeping.
+release-it runs locally and uses `git commit -S` / `git tag -s` directly, so the YubiKey signs both the version-bump commit and the tag. semantic-release and release-please were rejected - both are CI-bot driven and would either publish unsigned commits or require a software GPG key on the runner, neither of which fits the YubiKey-only signing posture. Configuration in `extension/.release-it.json` keeps the maintainer in control: gates run before any state mutation, requireBranch/requireCleanWorkingDir/requireUpstream/requireCommits refuse to release from a feature branch or with uncommitted changes, and `git.push: false` means the maintainer reviews locally before pushing. CHANGELOG types filter to feat/fix/perf/revert; everything else is housekeeping.
 
 ## Release workflow auto-fires on tag push with version sanity check
 
@@ -24,7 +24,7 @@ release-it runs locally and uses `git commit -S` / `git tag -s` directly, so the
 
 ## Keep the Preview button interactive for disabled events
 
-The Preview button on each row of the Sound Events table no longer carries `disabled={!config.enabled}`. The old behaviour forced users who wanted to hear a sound before deciding whether to enable it into a three-step detour: enable, wait for storage, click Preview, disable again. `handlePreview` already degrades gracefully when the active theme has no mapping for the event — it returns `{ success: false }` and the UI announces "Preview unavailable for X" via polite live region. Volume and Pitch sliders still carry the disabled prop; that's a separate UX question for a later pass.
+The Preview button on each row of the Sound Events table no longer carries `disabled={!config.enabled}`. The old behaviour forced users who wanted to hear a sound before deciding whether to enable it into a three-step detour: enable, wait for storage, click Preview, disable again. `handlePreview` already degrades gracefully when the active theme has no mapping for the event - it returns `{ success: false }` and the UI announces "Preview unavailable for X" via polite live region. Volume and Pitch sliders still carry the disabled prop; that's a separate UX question for a later pass.
 
 ## Guard welcome announcement against StrictMode double-invoke
 
@@ -48,11 +48,11 @@ Both `InMemorySettingsStore.set` and `BrowserSettingsStore`'s storage-changed ha
 
 ## Surface module lifecycle failures through the logger
 
-`ModuleLoader.initializeAll` and `disposeAll` now log through the structured logger when a module throws — `error` for init failures, `warn` for dispose failures. The catches previously had silent-swallow behaviour; the registry entry got the error message but nothing logged, so an operator watching the log stream saw no signal when a module failed to boot or leaked on shutdown.
+`ModuleLoader.initializeAll` and `disposeAll` now log through the structured logger when a module throws - `error` for init failures, `warn` for dispose failures. The catches previously had silent-swallow behaviour; the registry entry got the error message but nothing logged, so an operator watching the log stream saw no signal when a module failed to boot or leaked on shutdown.
 
 ## Replace linear event lookup with a Map on the hot path
 
-`EVENTS_BY_ID` is built once at module load — a `Map<string, EventDefinition>` keyed by event id. `SoundEngineModule.handleBrowserEvent` calls `eventsById.get(message.eventId)` instead of `EVENT_REGISTRY.find(e => e.id === ...)`. A profile during a busy session showed the linear find dominating the hot path. Build cost is one O(n) loop at startup; lookup cost goes from O(n) to O(1).
+`EVENTS_BY_ID` is built once at module load - a `Map<string, EventDefinition>` keyed by event id. `SoundEngineModule.handleBrowserEvent` calls `eventsById.get(message.eventId)` instead of `EVENT_REGISTRY.find(e => e.id === ...)`. A profile during a busy session showed the linear find dominating the hot path. Build cost is one O(n) loop at startup; lookup cost goes from O(n) to O(1).
 
 ## Cache mute and per-event config in the sound engine hot path
 
@@ -64,7 +64,7 @@ The gate previously exposed `tryEnter` and `markPlayed` as separate calls. `hand
 
 ## Move suppression gating out of event-engine
 
-The global cooldown and per-event debounce timestamps used to be updated in `event-engine` at message-bus publish time, before the sound engine had a chance to check whether the event was even enabled. Disabled events were poisoning the cooldown for subsequent enabled events — visible as `tabs.onUpdated.loading -> webNavigation.onCompleted` cascades silently eating the user-relevant "page loaded" sound. Fix: the cooldown gate is consulted from `SoundEngineModule.handleBrowserEvent` after the mute and per-event-enabled checks, and the cooldown is committed only after the audio backend confirms a successful play.
+The global cooldown and per-event debounce timestamps used to be updated in `event-engine` at message-bus publish time, before the sound engine had a chance to check whether the event was even enabled. Disabled events were poisoning the cooldown for subsequent enabled events - visible as `tabs.onUpdated.loading -> webNavigation.onCompleted` cascades silently eating the user-relevant "page loaded" sound. Fix: the cooldown gate is consulted from `SoundEngineModule.handleBrowserEvent` after the mute and per-event-enabled checks, and the cooldown is committed only after the audio backend confirms a successful play.
 
 ## Priority preemption in CooldownGate
 
@@ -72,11 +72,11 @@ Higher-priority events (errors, page-loaded) can play through the global cooldow
 
 ## Snapshot subscribers in MessageBus.publish
 
-`MessageBusImpl.publish()` now iterates `[...this.handlers]` instead of the live array. A handler that unsubscribed itself or another during dispatch caused `splice` to shift later entries down and the indexed walk to skip whichever entry took the removed slot. Snapshot semantics: a handler that subscribes during a publish does not receive that publish — it receives subsequent ones. Matches DOM event semantics (`addEventListener` mid-dispatch).
+`MessageBusImpl.publish()` now iterates `[...this.handlers]` instead of the live array. A handler that unsubscribed itself or another during dispatch caused `splice` to shift later entries down and the indexed walk to skip whichever entry took the removed slot. Snapshot semantics: a handler that subscribes during a publish does not receive that publish - it receives subsequent ones. Matches DOM event semantics (`addEventListener` mid-dispatch).
 
 ## Close race in ChromeAudioBackend offscreen creation
 
-`ensureOffscreenDocument` previously had an open await between `await hasDocument()` and the `creatingPromise` assignment. Two concurrent `play()` callers landing during a long-idle period (Chrome had terminated the offscreen document) could both observe `hasDocument()` returning false, both proceed past the entry guard, and both invoke `chrome.offscreen.createDocument()` — which Chrome rejects with "Only a single offscreen document may be created." The `creatingPromise` is now set synchronously before any await yields. Concurrent callers see the same in-flight promise.
+`ensureOffscreenDocument` previously had an open await between `await hasDocument()` and the `creatingPromise` assignment. Two concurrent `play()` callers landing during a long-idle period (Chrome had terminated the offscreen document) could both observe `hasDocument()` returning false, both proceed past the entry guard, and both invoke `chrome.offscreen.createDocument()` - which Chrome rejects with "Only a single offscreen document may be created." The `creatingPromise` is now set synchronously before any await yields. Concurrent callers see the same in-flight promise.
 
 ## Narrow incoming offscreen messages with an exhaustiveness check
 
@@ -84,19 +84,19 @@ Higher-priority events (errors, page-loaded) can play through the global cooldow
 
 ## Logger no-ops after dispose
 
-`Logger.dispose()` previously awaited each transport's dispose but didn't update any state on the logger. Subsequent `log()` / `addTransport()` / `flush()` calls would fan out to already-disposed transports — silent garbage at best, transport-specific errors at worst (e.g., IndexedDB rejecting writes to a closed db). A `disposed: boolean` flag short-circuits all four methods after `dispose()`. The transports' `dispose` is awaited only on the first call, so double-dispose is idempotent.
+`Logger.dispose()` previously awaited each transport's dispose but didn't update any state on the logger. Subsequent `log()` / `addTransport()` / `flush()` calls would fan out to already-disposed transports - silent garbage at best, transport-specific errors at worst (e.g., IndexedDB rejecting writes to a closed db). A `disposed: boolean` flag short-circuits all four methods after `dispose()`. The transports' `dispose` is awaited only on the first call, so double-dispose is idempotent.
 
 ## Stop misusing fieldset for non-radio-group control clusters
 
-Every settings card in popup and options used to wrap a mix of sliders / switches / selects / inputs in `<fieldset>` + `<legend>`. NVDA re-announces the legend on every nested control focus, producing severe verbosity for the primary blind user. `<fieldset>` is for a single semantic group of related form controls — radio buttons, checkbox groups. Replaced 9 misuses with `<section aria-labelledby>` + an `<h3>` heading, plus one `<div role="group" aria-label>` for a button cluster. Visual styling preserved.
+Every settings card in popup and options used to wrap a mix of sliders / switches / selects / inputs in `<fieldset>` + `<legend>`. NVDA re-announces the legend on every nested control focus, producing severe verbosity for the primary blind user. `<fieldset>` is for a single semantic group of related form controls - radio buttons, checkbox groups. Replaced 9 misuses with `<section aria-labelledby>` + an `<h3>` heading, plus one `<div role="group" aria-label>` for a button cluster. Visual styling preserved.
 
 ## Move focus into tab panel after tab switch
 
-`HandleTabChange` used to call `announce()` but never moved focus. Alt+1-4 (or clicking a trigger) left focus on whatever element had it before — the previous tab's last interaction, the body, or the trigger itself. Screen-reader users heard the announcement but then had to navigate forward to find the new content. Now uses `focusFirst()` on the active tabpanel after Radix renders it, deferred via `requestAnimationFrame`.
+`HandleTabChange` used to call `announce()` but never moved focus. Alt+1-4 (or clicking a trigger) left focus on whatever element had it before - the previous tab's last interaction, the body, or the trigger itself. Screen-reader users heard the announcement but then had to navigate forward to find the new content. Now uses `focusFirst()` on the active tabpanel after Radix renders it, deferred via `requestAnimationFrame`.
 
 ## Two-step confirm on destructive Reset buttons
 
-Reset General Settings, Reset Sound Event Settings, and Reset Theme Settings each used to wipe state on a single click — no confirmation, no undo. Now each follows the existing Factory Reset pattern: first click flips a `confirmReset` state and announces "Are you sure? Press the button again to confirm." at assertive priority; second click executes; `setTimeout` cancels the pending confirm after 5 seconds. The confirm button uses the destructive variant for visual emphasis and gets focus via `requestAnimationFrame` so the second Enter lands on it deterministically.
+Reset General Settings, Reset Sound Event Settings, and Reset Theme Settings each used to wipe state on a single click - no confirmation, no undo. Now each follows the existing Factory Reset pattern: first click flips a `confirmReset` state and announces "Are you sure? Press the button again to confirm." at assertive priority; second click executes; `setTimeout` cancels the pending confirm after 5 seconds. The confirm button uses the destructive variant for visual emphasis and gets focus via `requestAnimationFrame` so the second Enter lands on it deterministically.
 
 ## Prefer aria-labelledby with a real heading over aria-label
 
@@ -120,7 +120,7 @@ The `#event-count` div had `role="status"` so NVDA queued a fresh announcement o
 
 ## Surface log-server startup errors with non-zero exit code
 
-`bin.ts` called `startServer(options)` without await or catch. If the server failed to bind (port in use, permission denied, log directory not writable), the unhandled promise rejection only printed a Node deprecation warning and the process exited 0 — indistinguishable from success for shell wrappers and CI. Now caught with a clear message to stderr and exit code 1.
+`bin.ts` called `startServer(options)` without await or catch. If the server failed to bind (port in use, permission denied, log directory not writable), the unhandled promise rejection only printed a Node deprecation warning and the process exited 0 - indistinguishable from success for shell wrappers and CI. Now caught with a clear message to stderr and exit code 1.
 
 ## Harden log-server network surface
 
@@ -132,7 +132,7 @@ The web viewer's live-entries array used to spread-and-push every received entry
 
 ## Centralise log-viewer announcements through a throttled queue
 
-The viewer fired `@react-aria/live-announcer.announce()` from many independent callers (sort, filter, expand, count tick, session change, column toggle, connection state). NVDA cancels the previous polite message every time a new one arrives — a user toggling a checkbox while sort + count tick fired within 200 ms heard only the last message. Several assertive calls (connection up/down, session loads) interrupted real content, and the imperative connection announces duplicated the visible `<span role="status">` region in StatusBar — the user heard "Connected" twice. Two helpers in `web/lib/announce.ts`: `enqueueAnnounce` collects polite messages within a 200 ms window and delivers them as one combined announcement; `announceAssertive` bypasses the queue and is reserved for genuine errors.
+The viewer fired `@react-aria/live-announcer.announce()` from many independent callers (sort, filter, expand, count tick, session change, column toggle, connection state). NVDA cancels the previous polite message every time a new one arrives - a user toggling a checkbox while sort + count tick fired within 200 ms heard only the last message. Several assertive calls (connection up/down, session loads) interrupted real content, and the imperative connection announces duplicated the visible `<span role="status">` region in StatusBar - the user heard "Connected" twice. Two helpers in `web/lib/announce.ts`: `enqueueAnnounce` collects polite messages within a 200 ms window and delivers them as one combined announcement; `announceAssertive` bypasses the queue and is reserved for genuine errors.
 
 ## Keep the log table rectangular, move expanded details out of body
 
@@ -144,7 +144,7 @@ Two skip links: "Skip to main content" → `#main-content`, "Skip past log table
 
 ## Hidden H3 headings for sibling regions
 
-The log viewer's H1 in `<header>` and two visually-hidden H2s gave an incomplete outline — several sibling regions (StatusBar, SearchBar, LevelFilter, column-visibility CheckboxGroup) had no heading of their own. NVDA users navigating with the H key hit an H1 then two H2s and then nothing for those regions. Each region now carries an `sr-only` H3.
+The log viewer's H1 in `<header>` and two visually-hidden H2s gave an incomplete outline - several sibling regions (StatusBar, SearchBar, LevelFilter, column-visibility CheckboxGroup) had no heading of their own. NVDA users navigating with the H key hit an H1 then two H2s and then nothing for those regions. Each region now carries an `sr-only` H3.
 
 ## Default autoScroll to false in the log viewer
 
@@ -152,7 +152,7 @@ Auto-scroll was on by default, which fights the screen-reader virtual cursor whi
 
 ## Per-event debounce in the sound engine
 
-Each `EventDefinition` carries an optional `debounceMs`. The cooldown gate's per-event debounce ignores duplicates of the same event within the window. `tabs.onUpdated.title` is the canonical example — pages rewrite their title several times during load (loading state, real title, notification badge updates). 500 ms debounce produces one sound, not five.
+Each `EventDefinition` carries an optional `debounceMs`. The cooldown gate's per-event debounce ignores duplicates of the same event within the window. `tabs.onUpdated.title` is the canonical example - pages rewrite their title several times during load (loading state, real title, notification badge updates). 500 ms debounce produces one sound, not five.
 
 ## Custom event handlers with async support
 
@@ -164,11 +164,11 @@ Events can have an optional `handler` that receives the raw browser event argume
 
 ## Curate default-enabled navigation events
 
-Suppression-log analysis (95s session, 51 plays vs 286 suppressions) showed 84.9% of events being eaten by the global cooldown, almost entirely cross-event navigation cascades. The cooldown was reliably biasing toward the first event in each cascade — `onBeforeNavigate` played 21 times while the more-informative `onCompleted` only played 3, because intermediate phases were stealing the cooldown window. Fix: move `onCommitted`, `onDOMContentLoaded`, `onHistoryStateUpdated` from tier 1 to tier 2 (opt-in only); move `tabs.onUpdated.loading` and `.complete` from tier 1 to tier 2 (the webNavigation versions cover the same intent at the tab level). Add a `frameId === 0` filter to `onBeforeNavigate` and `onCompleted` so they only fire for the main frame.
+Suppression-log analysis (95s session, 51 plays vs 286 suppressions) showed 84.9% of events being eaten by the global cooldown, almost entirely cross-event navigation cascades. The cooldown was reliably biasing toward the first event in each cascade - `onBeforeNavigate` played 21 times while the more-informative `onCompleted` only played 3, because intermediate phases were stealing the cooldown window. Fix: move `onCommitted`, `onDOMContentLoaded`, `onHistoryStateUpdated` from tier 1 to tier 2 (opt-in only); move `tabs.onUpdated.loading` and `.complete` from tier 1 to tier 2 (the webNavigation versions cover the same intent at the tab level). Add a `frameId === 0` filter to `onBeforeNavigate` and `onCompleted` so they only fire for the main frame.
 
 ## Promote tab title changed to tier 1 by default
 
-After living with the event on, the signal is genuinely useful — NVDA users in particular get a confirmation when a tab's title updates (page finished loading something dynamic, chat tab got a new message) without the cooldown gate letting it spam. The 500 ms debounce stays. Reclassifying to tier 1 matches how it's actually being used.
+After living with the event on, the signal is genuinely useful - NVDA users in particular get a confirmation when a tab's title updates (page finished loading something dynamic, chat tab got a new message) without the cooldown gate letting it spam. The 500 ms debounce stays. Reclassifying to tier 1 matches how it's actually being used.
 
 ## Surface error reason in played-sound message text
 
@@ -188,7 +188,7 @@ The `offscreen` permission is Chrome-only. Firefox ignores unknown permissions b
 
 ## Firefox AMO data_collection_permissions
 
-Required by Firefox AMO for new extensions. Cast in via the WXT manifest hook because WXT's TypeScript types don't yet model this field. Set to `required: ["none"]` with `techdata_collected: false` and `interactiondata_collected: false` — ButterSwitch collects nothing.
+Required by Firefox AMO for new extensions. Cast in via the WXT manifest hook because WXT's TypeScript types don't yet model this field. Set to `required: ["none"]` with `techdata_collected: false` and `interactiondata_collected: false` - ButterSwitch collects nothing.
 
 ## CI workflow runs the same gates as pre-push
 
@@ -196,7 +196,7 @@ Required by Firefox AMO for new extensions. Cast in via the WXT manifest hook be
 
 ## Two-step setup for fresh clones via `pnpm setup`
 
-The extension's `postinstall: wxt prepare` hook used to run during `pnpm install`, which loaded `wxt.config.ts`, which transitively imports `@butterswitch/logger` — a workspace package that resolves to `packages/logger/dist/index.js`. On a fresh clone, dist doesn't exist yet, so the hook fails. Three-step fix: install with `--ignore-scripts` to skip lifecycle hooks; run `pnpm build:logger` to populate dist; run `wxt prepare` manually. The root `pnpm setup` script chains these for first-time contributors. The extension's `postinstall` is now guarded — it no-ops if `packages/logger/dist/index.js` doesn't exist.
+The extension's `postinstall: wxt prepare` hook used to run during `pnpm install`, which loaded `wxt.config.ts`, which transitively imports `@butterswitch/logger` - a workspace package that resolves to `packages/logger/dist/index.js`. On a fresh clone, dist doesn't exist yet, so the hook fails. Three-step fix: install with `--ignore-scripts` to skip lifecycle hooks; run `pnpm build:logger` to populate dist; run `wxt prepare` manually. The root `pnpm setup` script chains these for first-time contributors. The extension's `postinstall` is now guarded - it no-ops if `packages/logger/dist/index.js` doesn't exist.
 
 ## Emit logger .d.ts via tsc directly
 
@@ -208,7 +208,7 @@ The Subtle theme used Kenney CC0 sound packs; Pulse replaces it with curated cue
 
 ## Centralized config with theme registry and event defaults
 
-`extension/config/` holds three files: `index.ts` (CONFIG: cooldown, logger limits, log-server tuning), `themes.ts` (BUILT_IN_THEMES, DEFAULT_THEME_ID), `events.ts` (EVENT_DEFAULTS — per-event enabled/debounce). The single place to change ship-time defaults. Decoupled from the event registry so default-enabled state isn't part of the registry shape.
+`extension/config/` holds three files: `index.ts` (CONFIG: cooldown, logger limits, log-server tuning), `themes.ts` (BUILT_IN_THEMES, DEFAULT_THEME_ID), `events.ts` (EVENT_DEFAULTS - per-event enabled/debounce). The single place to change ship-time defaults. Decoupled from the event registry so default-enabled state isn't part of the registry shape.
 
 ## Filter Sound Events UI by current platform
 
@@ -216,7 +216,7 @@ The Subtle theme used Kenney CC0 sound packs; Pulse replaces it with curated cue
 
 ## Adopt React 19, Radix UI, Tailwind 4
 
-React 19 for the latest concurrent-rendering primitives. Radix UI primitives because they bake the WAI-ARIA keyboard models in (Tabs, Slider, Switch, Select). Tailwind 4 via Vite plugin — no separate config dance. shadcn/ui "new-york" components live under `extension/components/ui/` for the styled wrappers.
+React 19 for the latest concurrent-rendering primitives. Radix UI primitives because they bake the WAI-ARIA keyboard models in (Tabs, Slider, Switch, Select). Tailwind 4 via Vite plugin - no separate config dance. shadcn/ui "new-york" components live under `extension/components/ui/` for the styled wrappers.
 
 ## Module system with lifecycle and topological-sort init
 
@@ -224,7 +224,7 @@ Every "feature" implements `ButterSwitchModule` with `initialize` / `activate` /
 
 ## Flat dot-notation keys in BrowserSettingsStore
 
-`browser.storage.local`'s `get/set` operate on top-level keys and `onChanged` events fire on top-level keys. Flat keys (`general.masterVolume`, `sounds.events.tabs.onCreated`) enable cheap single-key reads and per-key watchers. The trade-off — reading nested objects requires multiple `get` calls — is worthwhile because the service worker frequently sleeps and wakes, and a single-key warm cache is valuable.
+`browser.storage.local`'s `get/set` operate on top-level keys and `onChanged` events fire on top-level keys. Flat keys (`general.masterVolume`, `sounds.events.tabs.onCreated`) enable cheap single-key reads and per-key watchers. The trade-off - reading nested objects requires multiple `get` calls - is worthwhile because the service worker frequently sleeps and wakes, and a single-key warm cache is valuable.
 
 ## Logger transport architecture
 
@@ -240,11 +240,11 @@ The HTML log exporter escapes `<`, `>`, `&`, `"` in tag, message, and context fi
 
 ## Per-tab reset buttons
 
-General, Sound Events, Themes, and Logging tabs each carry a Reset button scoped to that tab's settings. Plus Factory Reset on General which wipes everything. Asymmetric one-click vs two-step UX got fixed in a later pass — every Reset is now two-step with an assertive-then-polite announcement pair.
+General, Sound Events, Themes, and Logging tabs each carry a Reset button scoped to that tab's settings. Plus Factory Reset on General which wipes everything. Asymmetric one-click vs two-step UX got fixed in a later pass - every Reset is now two-step with an assertive-then-polite announcement pair.
 
 ## Shortcut recorder with manual-text fallback
 
-The hotkey capture supports both a record mode (native `<input>` with `aria-roledescription="shortcut recorder"` capturing keydown) and a manual-type mode (plain text input for users who prefer typing "alt+t" directly). Manual mode is required for WCAG AAA 3.3.5 (Help) and 2.5.6 (Concurrent Input Mechanisms) — not all assistive tech can reliably capture key events.
+The hotkey capture supports both a record mode (native `<input>` with `aria-roledescription="shortcut recorder"` capturing keydown) and a manual-type mode (plain text input for users who prefer typing "alt+t" directly). Manual mode is required for WCAG AAA 3.3.5 (Help) and 2.5.6 (Concurrent Input Mechanisms) - not all assistive tech can reliably capture key events.
 
 ## Probe log server via HTTP before WebSocket
 
@@ -264,15 +264,11 @@ Both Chrome offscreen and Firefox background backends delegate to a shared `Howl
 
 ## TypeScript 6.0+ strict mode
 
-TS 6 tightened auto-loading of ambient types from `@types/*` packages. `@types/chrome` no longer contributes its global `chrome` namespace to source files automatically. `extension/globals.d.ts` adds back the `/// <reference types="chrome" />` directive — the minimum required fix; no source files changed.
+TS 6 tightened auto-loading of ambient types from `@types/*` packages. `@types/chrome` no longer contributes its global `chrome` namespace to source files automatically. `extension/globals.d.ts` adds back the `/// <reference types="chrome" />` directive - the minimum required fix; no source files changed.
 
 ## Ramp log-level font-weight in the viewer
 
 Log levels (DEBUG / INFO / WARN / ERROR / FATAL) now use a font-weight ramp (300 / 400 / 500 / 600 / 700) so severity survives grayscale rendering and grayscale-passing accessibility tests. Before, all levels were the same weight and the only visual cue was colour, which fails for users with colour-vision differences.
-
-## Snapshot the notifier list in the message bus
-
-Same pattern as the settings stores — `MessageBus.publish` iterates a `[...this.handlers]` snapshot. Three pub/sub surfaces in `core/` now share the same iteration semantics. A handler that subscribes during dispatch doesn't see the in-flight message; subsequent publishes respect the new state.
 
 ## Use AGPL-3.0-only
 

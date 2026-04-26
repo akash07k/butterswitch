@@ -1,20 +1,20 @@
 # butterswitch-extension
 
-The WXT browser extension. The repository root has the project README, contributing guide, and license — see [`../README.md`](../README.md).
+The WXT browser extension. The repository root has the project README, contributing guide, and license - see [`../README.md`](../README.md).
 
 ## Layout
 
-```text
-config/         tunables (defaults, theme registry, event defaults)
-core/           module system, message bus, settings store, messaging
-modules/        feature modules (only sound-engine so far)
-entrypoints/    background, popup, options, offscreen
-shared/         a11y utilities, platform detection
-components/     shadcn/ui components
-public/         icons, sound files (theme assets)
-store-listing/  copy uploaded to Chrome Web Store and Firefox AMO
-scripts/        local helpers (postinstall, submit)
-```
+| Directory        | Purpose                                               |
+| ---------------- | ----------------------------------------------------- |
+| `config/`        | Tunables (defaults, theme registry, event defaults)   |
+| `core/`          | Module system, message bus, settings store, messaging |
+| `modules/`       | Feature modules (only sound-engine so far)            |
+| `entrypoints/`   | Background, popup, options, offscreen                 |
+| `shared/`        | A11y utilities, platform detection                    |
+| `components/`    | shadcn/ui components                                  |
+| `public/`        | Icons, sound files (theme assets)                     |
+| `store-listing/` | Copy uploaded to Chrome Web Store and Firefox AMO     |
+| `scripts/`       | Local helpers (postinstall, submit)                   |
 
 ## Local development
 
@@ -35,7 +35,7 @@ Chrome 140 or later (MV3, service worker). Firefox 142 or later (MV2, background
 
 ## Submission
 
-Day-to-day, you don't run the submission scripts directly — `pnpm release` plus `git push --follow-tags` triggers the CI workflow that submits to the stores. These scripts are here for local debugging:
+Day-to-day, you don't run the submission scripts directly - `pnpm release` plus `git push --follow-tags` triggers the CI workflow that submits to the stores. These scripts are here for local debugging:
 
 ```sh
 pnpm submit:init      # one-time: write .env.submit with store credentials

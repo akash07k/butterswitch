@@ -8,7 +8,7 @@ Check character count before publishing:
     wc -c extension/store-listing/description.md
 -->
 
-# ButterSwitch — audio cues for browser events
+# ButterSwitch - audio cues for browser events
 
 ButterSwitch plays short audio cues when things happen in your browser. A tab opens. A download finishes. A page loads. A bookmark gets saved. Instead of waiting for a visual indicator or wondering whether an action went through, you hear it.
 
@@ -47,7 +47,7 @@ Sounds are organised into themes. The extension ships with the Pulse theme, a se
 
 ## Smart suppression
 
-Browsers fire events in bursts. Clicking a link can produce navigation-starting, page-loading, navigation-committed, DOM-ready, and page-loaded in under a second — five events for one user action. Playing five sounds for one action would be overwhelming.
+Browsers fire events in bursts. Clicking a link can produce navigation-starting, page-loading, navigation-committed, DOM-ready, and page-loaded in under a second - five events for one user action. Playing five sounds for one action would be overwhelming.
 
 ButterSwitch includes:
 
@@ -65,19 +65,19 @@ ButterSwitch does not play music or continuous audio. It does not read page cont
 
 No telemetry. No analytics. No crash reports. No accounts. No third-party services or CDN fetches at runtime. All settings live in the browser's own extension storage and never leave your machine. Sound files ship inside the extension package.
 
-The extension includes an optional local log viewer for developers — runs on localhost:8089, off by default, never reachable from outside the machine. A normal user does not need to touch it.
+The extension includes an optional local log viewer for developers - runs on localhost:8089, off by default, never reachable from outside the machine. A normal user does not need to touch it.
 
 ## Keyboard shortcuts
 
 Global, work from any tab:
 
-- Alt + M — toggle mute
-- Alt + Shift + O — open the options page
+- Alt + M - toggle mute
+- Alt + Shift + O - open the options page
 
 Inside the options page:
 
-- Alt + T — cycle through sound themes
-- Shift + ? — read a help announcement listing the available shortcuts
+- Alt + T - cycle through sound themes
+- Shift + ? - read a help announcement listing the available shortcuts
 
 Tab navigation in the options page uses the standard WAI-ARIA pattern: Tab into the tab list, then Left or Right to move between General, Sound Events, Themes, and Logging.
 
@@ -91,6 +91,6 @@ Chrome 140 or later. Firefox 142 or later.
 
 ## Open source
 
-ButterSwitch is released under the GNU Affero General Public License v3.0. Source code, documentation, and release history are available at <https://github.com/akash07k/butterswitch>.
+ButterSwitch is released under the GNU Affero General Public License v3.0. Source code, documentation, and release history are available on GitHub at [https://github.com/akash07k/butterswitch](https://github.com/akash07k/butterswitch).
 
 Issue reports, theme submissions, and pull requests are welcome.

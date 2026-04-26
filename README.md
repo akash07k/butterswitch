@@ -31,8 +31,8 @@ The optional log viewer for development runs only on `localhost:8089` and is off
 
 - [`CHANGELOG.md`](./CHANGELOG.md)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-- [`LICENSE.md`](./LICENSE.md) — AGPL-3.0
-- [`docs/`](./docs/) — architecture and design docs; see [`docs/README.md`](./docs/README.md) for the index
+- [`LICENSE.md`](./LICENSE.md) - AGPL-3.0
+- [`docs/`](./docs/) - architecture and design docs; see [`docs/README.md`](./docs/README.md) for the index
 - [GitHub Issues](https://github.com/akash07k/butterswitch/issues)
 - [GitHub Releases](https://github.com/akash07k/butterswitch/releases)
 
@@ -88,9 +88,9 @@ Then enable log streaming in the extension's options page (Logging tab). The vie
 
 pnpm monorepo with three packages:
 
-- `extension/` — the WXT browser extension (the product)
-- `packages/logger/` — `@butterswitch/logger`, structured logger used by the extension
-- `packages/log-server/` — `@butterswitch/log-server`, dev-only WebSocket sink and React viewer
+- `extension/` - the WXT browser extension (the product)
+- `packages/logger/` - `@butterswitch/logger`, structured logger used by the extension
+- `packages/log-server/` - `@butterswitch/log-server`, dev-only WebSocket sink and React viewer
 
 The extension uses a module-system with lifecycle stages (initialize, activate, deactivate, dispose). Modules talk via a message bus and never import each other directly. The sound engine module is the only module so far.
 

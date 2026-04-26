@@ -6,7 +6,7 @@ This document explains how to author a new sound theme for ButterSwitch and what
 
 A theme is a directory under `extension/public/sounds/<theme-id>/` containing:
 
-- `theme.json` — the manifest. Maps event ids to sound file paths plus a small set of fallbacks.
+- `theme.json` - the manifest. Maps event ids to sound file paths plus a small set of fallbacks.
 - One or more `.ogg` audio files referenced by the manifest.
 
 The theme manager loads the manifest at runtime, validates it, and uses it to answer "which sound plays for this event?". The fallback chain handles events the manifest doesn't explicitly map.
@@ -43,7 +43,7 @@ Required fields: `id`, `name`, `description`, `version`, `mappings`, `fallbacks`
 
 `mappings` keys are event ids from [`event-registry.ts`](../extension/modules/sound-engine/event-registry.ts). Values are filenames relative to the theme directory.
 
-`fallbacks` covers the cases where `mappings` doesn't have an entry — see the resolution order below.
+`fallbacks` covers the cases where `mappings` doesn't have an entry - see the resolution order below.
 
 ## Fallback resolution
 
