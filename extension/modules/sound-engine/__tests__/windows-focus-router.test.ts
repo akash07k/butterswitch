@@ -22,12 +22,15 @@ async function invoke(
 
 describe("createWindowFocusEvents", () => {
   let events: EventDefinition[];
+  let dispose: () => void;
   let focused: EventDefinition;
   let unfocused: EventDefinition;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    events = createWindowFocusEvents();
+    const built = createWindowFocusEvents();
+    events = built.events;
+    dispose = built.dispose;
     [focused, unfocused] = events;
   });
 
@@ -41,6 +44,10 @@ describe("createWindowFocusEvents", () => {
     expect(focused.label).toBe("Window Focused");
     expect(unfocused.id).toBe("windows.onUnfocused");
     expect(unfocused.label).toBe("Window Unfocused");
+  });
+
+  it("returns a dispose function alongside the events", () => {
+    expect(typeof dispose).toBe("function");
   });
 
   it("both events register against the same browser API", () => {
@@ -113,8 +120,8 @@ describe("createWindowFocusEvents", () => {
   });
 
   it("two factory calls have independent state", async () => {
-    const otherEvents = createWindowFocusEvents();
-    const [, otherUnfocused] = otherEvents;
+    const other = createWindowFocusEvents();
+    const [, otherUnfocused] = other.events;
 
     // Start a pending unfocused on the first instance.
     const firstPending = invoke(unfocused, WINDOW_ID_NONE);
@@ -131,5 +138,28 @@ describe("createWindowFocusEvents", () => {
     await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
     const secondResult = await secondPending;
     expect(secondResult?.suppress).toBeUndefined();
+  });
+
+  it("dispose cancels a pending unfocus and resolves it as suppressed", async () => {
+    // Arm the debounce: WINDOW_ID_NONE puts an unfocus in flight.
+    const pending = invoke(unfocused, WINDOW_ID_NONE);
+
+    // Tear down before the timer fires.
+    dispose();
+
+    // The awaiting promise settles cleanly via the cancellation path
+    // (resolver invoked with shouldEmit=false → handler returns
+    // { suppress: true }).
+    const result = await pending;
+    expect(result?.suppress).toBe(true);
+
+    // Advancing past the original debounce must not produce a late
+    // emission — the timer is gone, the resolver is gone.
+    await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS * 2);
+    expect(result?.suppress).toBe(true);
+  });
+
+  it("dispose with no pending unfocus is a no-op", () => {
+    expect(() => dispose()).not.toThrow();
   });
 });

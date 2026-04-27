@@ -53,14 +53,38 @@ const WINDOW_ID_NONE = -1;
 export const WINDOW_SWITCH_DEBOUNCE_MS = 150;
 
 /**
+ * Pair of event definitions and a `dispose()` that cancels any
+ * in-flight debounce timer. Returned by {@link createWindowFocusEvents}.
+ *
+ * `dispose()` exists because `WINDOW_FOCUS_EVENTS` is built once at
+ * module load. Without it, a `setTimeout` armed by the unfocused
+ * handler would survive the sound engine's own `dispose()` and fire
+ * later, resolving a stale promise and publishing into a torn-down
+ * message bus.
+ */
+export interface WindowFocusEvents {
+  events: EventDefinition[];
+  /**
+   * Cancel any pending unfocus timer and resolve its promise with
+   * `false` (so the awaiting handler's promise settles cleanly with
+   * `{ suppress: true }` instead of leaking).
+   */
+  dispose: () => void;
+}
+
+/**
  * Build the paired `windows.onFocused` / `windows.onUnfocused`
  * event definitions with a shared debounce that handles the
  * WINDOW_ID_NONE quirk on Windows and some Linux window managers.
  *
  * Calling the factory again returns a fresh pair with its own
  * closure state, which is what tests need to stay independent.
+ *
+ * The returned `dispose()` cancels any pending unfocus timer so a
+ * sound-engine teardown does not leave a stray `setTimeout` armed
+ * to fire after the message bus is gone.
  */
-export function createWindowFocusEvents(): EventDefinition[] {
+export function createWindowFocusEvents(): WindowFocusEvents {
   let pendingUnfocusResolver: ((shouldEmit: boolean) => void) | null = null;
   let pendingUnfocusTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -79,7 +103,7 @@ export function createWindowFocusEvents(): EventDefinition[] {
     return resolver;
   }
 
-  return [
+  const events: EventDefinition[] = [
     {
       id: "windows.onFocused",
       namespace: "windows",
@@ -140,4 +164,12 @@ export function createWindowFocusEvents(): EventDefinition[] {
       },
     },
   ];
+
+  return {
+    events,
+    dispose() {
+      const resolver = takePendingResolver();
+      if (resolver) resolver(false);
+    },
+  };
 }
