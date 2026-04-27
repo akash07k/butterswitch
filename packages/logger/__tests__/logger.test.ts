@@ -157,6 +157,35 @@ describe("child logger", () => {
 
     expect(transport.entries).toHaveLength(2);
   });
+
+  it("child stops writing once parent is disposed", async () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const child = logger.child({ tag: "ui" });
+
+    child.info("before parent dispose");
+    expect(transport.log).toHaveBeenCalledTimes(1);
+
+    await logger.dispose();
+
+    child.info("after parent dispose");
+    child.warn("still after");
+    child.error("with error", new Error("x"));
+
+    // Parent's dispose closed the shared transport. The child must
+    // see that and skip dispatch instead of writing into closed handles.
+    expect(transport.log).toHaveBeenCalledTimes(1);
+  });
+
+  it("grandchild stops writing once any ancestor is disposed", async () => {
+    const root = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const child = root.child({ tag: "a" });
+    const grandchild = child.child({ tag: "b" });
+
+    await root.dispose();
+
+    grandchild.info("walks the chain");
+    expect(transport.log).toHaveBeenCalledTimes(0);
+  });
 });
 
 describe("flush and dispose", () => {
