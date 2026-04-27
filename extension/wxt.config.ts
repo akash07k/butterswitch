@@ -83,12 +83,6 @@ export default defineConfig({
         } as Record<string, unknown>),
       },
     },
-    web_accessible_resources: [
-      {
-        resources: ["sounds/**/*"],
-        matches: ["<all_urls>"],
-      },
-    ],
   },
   hooks: {
     "build:manifestGenerated": (wxt, manifest) => {
