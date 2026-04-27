@@ -190,15 +190,20 @@ export function LoggingTab() {
             onChange={(e) => handleUrlChange(e.target.value)}
             onBlur={() => setUrlTouched(true)}
             placeholder="ws://localhost:8089"
-            aria-describedby={urlInvalid ? "log-server-error log-server-hint" : "log-server-hint"}
+            aria-describedby="log-server-error log-server-hint"
             aria-invalid={urlInvalid}
             disabled={!logStreamEnabled}
           />
-          {urlInvalid && (
-            <p id="log-server-error" role="alert" className="text-sm text-destructive">
-              URL must start with ws:// or wss://
-            </p>
-          )}
+          {/* Stable polite live region — always mounted so toggling validity */}
+          {/* updates the same node instead of remounting role="alert" and    */}
+          {/* re-firing assertive announcements on every keystroke.           */}
+          <p
+            id="log-server-error"
+            aria-live="polite"
+            className="text-sm text-destructive min-h-[1.25rem]"
+          >
+            {urlInvalid ? "URL must start with ws:// or wss://" : ""}
+          </p>
           <p id="log-server-hint" className="text-sm text-muted-foreground">
             WebSocket URL (ws:// or wss://). Start the log server with: pnpm log-server
           </p>
