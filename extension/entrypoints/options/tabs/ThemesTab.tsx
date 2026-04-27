@@ -107,9 +107,14 @@ export function ThemesTab() {
           Import custom sound themes from .zip files. Each theme contains a theme.json manifest and
           OGG sound files.
         </p>
-        <Button variant="outline" disabled>
-          Import Theme (.zip) — Coming Soon
-        </Button>
+        <div className="space-y-2">
+          <Button variant="outline" disabled aria-describedby="import-theme-status">
+            Import Theme (.zip)
+          </Button>
+          <p id="import-theme-status" className="text-sm text-muted-foreground">
+            Coming in a future version.
+          </p>
+        </div>
       </section>
 
       {/* Reset — two-step confirm so a single accidental click can't wipe */}
