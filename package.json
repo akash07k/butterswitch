@@ -33,6 +33,8 @@
     "log-server:dev": "pnpm exec tsx packages/log-server/src/bin.ts",
     "release": "pnpm --filter butterswitch-extension release",
     "release:dry": "pnpm --filter butterswitch-extension release:dry",
+    "release:push": "pnpm --filter butterswitch-extension release:push",
+    "do-release": "pnpm --filter butterswitch-extension do-release",
     "clean": "pnpm -r clean"
   },
   "pnpm": {

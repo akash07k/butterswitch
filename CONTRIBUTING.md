@@ -79,11 +79,18 @@ The release flow is automated by [release-it](https://github.com/release-it/rele
 pnpm release:dry                 # preview bump and CHANGELOG entry
 pnpm release                     # bump, write CHANGELOG, signed commit + signed tag
 git push --follow-tags origin main
+# OR equivalent shortcut:
+pnpm release:push                # same `git push --follow-tags origin main`
+# OR one-shot (release + push together):
+pnpm do-release
 ```
 
 `pnpm release` runs the four gates first (typecheck, test, lint, lint:md), so a failing gate prevents the bump. The tag push fires `.github/workflows/release.yml`, which verifies the tag matches `extension/package.json`'s version, runs the gates again, builds and zips both browsers, and submits to the Chrome Web Store and Firefox AMO. It also creates a GitHub Release with the Chrome zip, Firefox zip, and sources zip attached.
 
-`pnpm release` does not push automatically (`git.push: false` in the config). You review the local commit and tag, then push when ready.
+`pnpm release` does not push automatically (`git.push: false` in the config) — that's deliberate so you review the local commit and tag before they go to origin. Two shortcuts coexist with the manual `git push --follow-tags`:
+
+- `pnpm release:push` runs only the push (use after a `pnpm release` if you've reviewed and want to ship).
+- `pnpm do-release` chains `pnpm release && pnpm release:push` for the case where you trust the conventional-commits bump and want to skip the review pause. The pre-push lefthook still runs gates a second time before the push goes out.
 
 If conventional-commits picks the wrong bump, override:
 

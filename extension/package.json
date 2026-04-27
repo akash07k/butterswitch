@@ -24,6 +24,8 @@
     "submit:firefox": "node scripts/submit.mjs --firefox-only",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
+    "release:push": "git push --follow-tags origin main",
+    "do-release": "pnpm release && pnpm release:push",
     "typecheck": "tsc --noEmit",
     "prepare:clean-types": "node scripts/prepare-clean-types.mjs",
     "lint": "eslint .",

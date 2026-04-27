@@ -6,6 +6,15 @@ Reverse chronological (newest first).
 
 ---
 
+## release:push and do-release shortcuts on top of the review-first release flow
+
+`pnpm release` keeps `git.push: false` from `extension/.release-it.json` so the maintainer can review the bumped commit, the CHANGELOG diff, and the signed tag locally before they leave the workstation. Two new wrappers sit alongside it:
+
+- `pnpm release:push` is just `git push --follow-tags origin main` — a 16-character shortcut for the manual command. It changes nothing about the policy; it just shortens what you type after reviewing.
+- `pnpm do-release` chains `pnpm release && pnpm release:push` for the case where you trust the conventional-commits bump and want to skip the review pause. The pre-push lefthook still re-runs typecheck + test + lint + lint:md before the push hits origin, so a regression introduced between the release-it gate run and the push window is still caught.
+
+Both wrappers exist in `extension/package.json` (with mirrored entries in the root `package.json` so they run from anywhere in the repo). The default flow is unchanged — `pnpm release` then `git push --follow-tags origin main` still works exactly as before.
+
 ## GitHub Release creation is independent of store-submission outcome
 
 The release workflow's `Upload artifacts`, `Extract changelog section`, and `Create GitHub Release` steps gate on `!cancelled() && steps.zip.outcome == 'success'` rather than the implicit "succeed only if every prior step succeeded" default. A partial submit failure (e.g., Chrome rejecting with `ITEM_NOT_UPDATABLE` because a previous review is still in flight) used to skip Release creation entirely, leaving users without a sideloadable bundle even though the zips already existed and the other store had accepted. The new gate runs the post-submit steps whenever zip succeeded, regardless of submit outcome — sideloading does not depend on store status.

@@ -72,7 +72,9 @@ The pre-push hook runs typecheck, lint, lint:md, and test in parallel.
 ```sh
 pnpm release:dry           # preview the next bump and CHANGELOG entry
 pnpm release               # bump, write CHANGELOG, signed commit + tag
-git push --follow-tags origin main
+pnpm release:push          # push main + tag (or `git push --follow-tags origin main`)
+# OR all-in-one:
+pnpm do-release            # release + push in a single command
 ```
 
 The tag push fires `.github/workflows/release.yml`, which runs the gates again and submits to both stores. The workflow also creates a GitHub Release with the Chrome zip, Firefox zip, and sources zip attached.
