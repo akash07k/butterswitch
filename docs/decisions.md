@@ -6,6 +6,10 @@ Reverse chronological (newest first).
 
 ---
 
+## Per-browser scripts: dev / build / zip / submit run both browsers; :chrome and :firefox run one
+
+The bare `dev`, `build`, and `zip` scripts target both Chrome and Firefox; `:chrome` and `:firefox` variants exist for each so a contributor can iterate on one browser when the other is not relevant. `dev` uses `concurrently -k -n chrome,firefox` so both watch processes share a labelled terminal and exit together (`-k` kills the second when the first stops). `build` and `zip` chain the per-browser scripts sequentially. `submit` keeps submitting to both stores by default; `submit:chrome` and `submit:firefox` were added for the case where one store rejects the upload and only that one needs re-submission. The `zip:chrome` and `zip:firefox` scripts now run `build-whats-new.mjs` first, closing a gap where production zips shipped without `whats-new.json` because nothing in the release pipeline had populated it.
+
 ## Mirror CI's clean public/ state in the pre-push typecheck
 
 The pre-push lefthook runs `prepare:clean-types` before `pnpm -r typecheck`. That script removes any gitignored generated artifact under `extension/public/` (right now just `whats-new.json`) and re-runs `wxt prepare`, so the WXT-generated `PublicPath` union reflects only what is committed under `public/`. Without it, a literal like `browser.runtime.getURL("/whats-new.json")` typechecks locally once `pnpm dev` or `pnpm build` has populated the file but fails in CI on a fresh checkout. The relative-URL fetch in `entrypoints/whats-new/App.tsx` removes the dependency for that one call site; the pre-push step exists so a literal of the same shape gets caught at push time instead of by CI.

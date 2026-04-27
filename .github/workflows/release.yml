@@ -133,7 +133,7 @@ jobs:
       # Firefox also produces the sources ZIP that AMO review requires.
       - name: Zip Chrome extension
         working-directory: extension
-        run: pnpm zip
+        run: pnpm zip:chrome
 
       - name: Zip Firefox extension (+ sources ZIP)
         working-directory: extension

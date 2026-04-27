@@ -19,14 +19,17 @@ The WXT browser extension. The repository root has the project README, contribut
 ## Local development
 
 ```sh
-pnpm dev           # Chrome with HMR
-pnpm dev:firefox   # Firefox
+pnpm dev            # both browsers concurrently (labelled output)
+pnpm dev:chrome     # Chrome only
+pnpm dev:firefox    # Firefox only
 
-pnpm build
-pnpm build:firefox
+pnpm build          # build both browsers
+pnpm build:chrome   # Chrome only
+pnpm build:firefox  # Firefox only
 
-pnpm zip           # Chrome zip into .output/
-pnpm zip:firefox   # Firefox zip + sources zip
+pnpm zip            # zip both browsers (chrome + firefox + sources)
+pnpm zip:chrome     # Chrome zip into .output/
+pnpm zip:firefox    # Firefox zip + sources zip
 ```
 
 ## Browser support
@@ -40,7 +43,9 @@ Day-to-day, you don't run the submission scripts directly - `pnpm release` plus 
 ```sh
 pnpm submit:init      # one-time: write .env.submit with store credentials
 pnpm submit:dry-run   # verify credentials, no real submission
-pnpm submit           # submit for real
+pnpm submit           # submit to both stores
+pnpm submit:chrome    # submit Chrome Web Store only
+pnpm submit:firefox   # submit Firefox AMO only
 ```
 
 See the contributing guide and the WXT publishing docs for credential setup.

@@ -1,17 +1,26 @@
-// Store submission helper — resolves the zip paths under .output/ and
+// Store submission helper. Resolves the zip paths under .output/ and
 // hands them to `wxt submit` with the correct flags.
 //
 // Usage (from extension/):
-//     pnpm submit:init      # one-time: writes .env.submit with store credentials
-//     pnpm build && pnpm zip && pnpm zip:firefox   # produce the three zips
-//     pnpm submit:dry-run   # verifies credentials without sending anything
-//     pnpm submit           # submits for real
+//     pnpm submit:init       # one-time: writes .env.submit with store credentials
+//     pnpm zip               # produce both browsers' zips (and the Firefox sources zip)
+//     pnpm submit:dry-run    # verify credentials without sending anything
+//     pnpm submit            # submit to both stores
+//     pnpm submit:chrome     # submit Chrome only
+//     pnpm submit:firefox    # submit Firefox only
 //
-// Why a helper script: the .output/ zip filenames embed the extension
-// name and version (e.g. butterswitch-extension-1.0.0-chrome.zip), so
-// hardcoding paths in package.json would need a manual edit on every
-// version bump. Node's readdir + filter is robust enough and avoids
-// adding a shell-glob dependency that breaks on Windows cmd.
+// The .output/ zip filenames embed the extension name and version
+// (e.g. butterswitch-extension-1.0.0-chrome.zip), so hardcoding
+// paths in package.json would need a manual edit on every version
+// bump. Node's readdir + filter avoids a shell-glob dependency that
+// breaks on Windows cmd.
+//
+// Per-browser flags:
+//     --chrome-only     skip the Firefox zip lookups, pass only --chrome-zip
+//     --firefox-only    skip the Chrome zip lookup, pass only Firefox flags
+// Any other args are forwarded to `wxt submit` unchanged, so
+// `--dry-run` from `submit:dry-run` keeps working alongside either
+// per-browser flag.
 
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -47,23 +56,26 @@ function findOne(suffix) {
   return resolve(OUTPUT_DIR, match[0]);
 }
 
-const chromeZip = findOne("-chrome.zip");
-const firefoxZip = findOne("-firefox.zip");
-const sourcesZip = findOne("-sources.zip");
+const args = process.argv.slice(2);
+const chromeOnly = args.includes("--chrome-only");
+const firefoxOnly = args.includes("--firefox-only");
 
-const passthrough = process.argv.slice(2);
+if (chromeOnly && firefoxOnly) {
+  fail("Cannot pass both --chrome-only and --firefox-only.");
+}
 
-const wxtArgs = [
-  "wxt",
-  "submit",
-  ...passthrough,
-  "--chrome-zip",
-  chromeZip,
-  "--firefox-zip",
-  firefoxZip,
-  "--firefox-sources-zip",
-  sourcesZip,
-];
+// Forward everything except our own flags to `wxt submit`.
+const passthrough = args.filter((a) => a !== "--chrome-only" && a !== "--firefox-only");
+
+const wxtArgs = ["wxt", "submit", ...passthrough];
+
+if (!firefoxOnly) {
+  wxtArgs.push("--chrome-zip", findOne("-chrome.zip"));
+}
+if (!chromeOnly) {
+  wxtArgs.push("--firefox-zip", findOne("-firefox.zip"));
+  wxtArgs.push("--firefox-sources-zip", findOne("-sources.zip"));
+}
 
 const result = spawnSync("pnpm", wxtArgs, { stdio: "inherit", shell: true });
 process.exit(result.status ?? 0);

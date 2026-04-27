@@ -16,8 +16,9 @@ To run the extension while developing:
 
 ```sh
 cd extension
-pnpm dev           # Chrome with HMR
-pnpm dev:firefox   # Firefox
+pnpm dev           # both browsers concurrently (labelled output, Ctrl+C kills both)
+pnpm dev:chrome    # Chrome only
+pnpm dev:firefox   # Firefox only
 ```
 
 ## Hard gates

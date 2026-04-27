@@ -52,8 +52,9 @@ pnpm setup
 
 ```sh
 cd extension
-pnpm dev           # Chrome dev server (HMR)
-pnpm dev:firefox   # Firefox dev server
+pnpm dev           # both browsers concurrently (labelled output)
+pnpm dev:chrome    # Chrome only
+pnpm dev:firefox   # Firefox only
 ```
 
 ```sh
