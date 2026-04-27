@@ -111,7 +111,7 @@ jobs:
           fi
           echo "Version check passed: tag v$TAG_VERSION matches extension/package.json $PKG_VERSION"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v6
         with:
@@ -209,6 +209,13 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: extension-zips
+          # `extension/.output/` starts with a dot, so actions/glob
+          # (used by upload-artifact) treats it as hidden and skips
+          # everything inside unless include-hidden-files is true.
+          # softprops/action-gh-release uses different glob semantics
+          # and does not need this flag, which is why Create Release
+          # finds the same files even when this flag is omitted.
+          include-hidden-files: true
           path: |
             extension/.output/*-chrome.zip
             extension/.output/*-firefox.zip
