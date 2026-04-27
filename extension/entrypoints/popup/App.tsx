@@ -19,7 +19,7 @@
  * of `chrome.*` for Chrome + Firefox compatibility.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import hotkeys from "hotkeys-js";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -34,7 +34,6 @@ import {
 import { ExternalLink, Settings, Volume2, VolumeOff } from "lucide-react";
 import { announce } from "@/shared/a11y/announcer";
 import { sendLog } from "@/core/messaging/send";
-import { focusFirst } from "@/shared/a11y/focus";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "@/config/themes";
 
 /**
@@ -48,11 +47,16 @@ export default function App() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(80);
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // Focus the first control on mount (for screen readers)
+  // Focus the H1 on mount so screen readers hear the page name first.
+  // The popup is small enough that landing on the heading and tabbing
+  // forward is the right model — focusing the first control would skip
+  // past the title.
   useEffect(() => {
-    const root = document.getElementById("root");
-    if (root) focusFirst(root);
+    requestAnimationFrame(() => {
+      headingRef.current?.focus();
+    });
   }, []);
 
   // Load current settings from storage on mount
@@ -170,7 +174,9 @@ export default function App() {
       aria-keyshortcuts="Shift+? Alt+T"
       className="w-[320px] p-4 space-y-4"
     >
-      <h1 className="text-lg font-bold">ButterSwitch</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold">
+        ButterSwitch
+      </h1>
 
       {/* Sound Controls — section so the heading is announced once on entry, */}
       {/* not on every nested control as fieldset/legend would force.       */}
@@ -240,7 +246,7 @@ export default function App() {
           size="sm"
           className="flex-1"
           onClick={handlePopOut}
-          aria-label="Pop out: open in separate window"
+          aria-label="Pop out into a separate window"
         >
           <ExternalLink className="h-4 w-4 mr-1" aria-hidden="true" />
           Pop out
@@ -250,7 +256,7 @@ export default function App() {
           size="sm"
           className="flex-1"
           onClick={handleOpenSettings}
-          aria-label="Settings: open full settings page"
+          aria-label="Open full settings page"
         >
           <Settings className="h-4 w-4 mr-1" aria-hidden="true" />
           Settings
