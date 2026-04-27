@@ -54,11 +54,14 @@ export default defineConfig({
       "storage",
       "notifications",
       "idle",
-      "history",
-      "management",
-      "cookies",
       "offscreen", // Chrome-only; Firefox ignores unknown permissions
     ],
+    // Permissions only needed by Tier 2 events that are off by default.
+    // Listed here instead of `permissions` so a fresh install does not
+    // ask for management / cookies / history up front. SoundEventsTab
+    // requests the relevant one when the user enables an event that
+    // needs it; see extension/shared/permissions/request.ts.
+    optional_permissions: ["management", "cookies", "history"],
     commands: {
       "toggle-mute": {
         suggested_key: { default: "Alt+M" },

@@ -39,15 +39,19 @@ Shows a short visual confirmation when the mute shortcut is pressed ("ButterSwit
 
 Listens for system state changes: active, idle, locked. Lets ButterSwitch play an audio cue when the computer wakes from sleep or when the session locks - a small accessibility assist for users who cannot rely on the visual lock screen to know the state changed.
 
-## `history`
+## Optional permissions
 
-Listens for browser-history events (URL visited, entries removed). These are off by default in Tier 2; users who enable them get audio confirmation that a history write or clear actually happened.
+The next three are declared under `optional_permissions` rather than the static list, so a fresh install does not ask for them. ButterSwitch requests each one at runtime only when the user toggles on the matching Tier 2 event in the Sound Events tab. Declining the prompt leaves the event disabled.
 
-## `management`
+## `history` (optional)
+
+Listens for browser-history events (URL visited, entries removed). Off by default in Tier 2; users who enable them get audio confirmation that a history write or clear actually happened.
+
+## `management` (optional)
 
 Listens for extension lifecycle events (extension installed, extension uninstalled, extension enabled, extension disabled). Off by default in Tier 2.
 
-## `cookies`
+## `cookies` (optional)
 
 Listens for cookie-change events. Off by default in Tier 2; used only by power users who want audio confirmation of cookie writes or deletions.
 

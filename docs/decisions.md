@@ -6,6 +6,12 @@ Reverse chronological (newest first).
 
 ---
 
+## management, cookies, and history declared as optional, requested at toggle time
+
+`management`, `cookies`, and `history` are declared under `optional_permissions` instead of the static `permissions` list. A fresh install therefore prompts only for the seven everyday permissions (`tabs`, `bookmarks`, `downloads`, `webNavigation`, `storage`, `notifications`, `idle`, plus `offscreen` on Chrome). Each of the three optional permissions is needed by exactly one cluster of Tier 2 events that ship disabled, and getting prompted up front for permissions the user may never enable is the kind of overreach store reviewers flag on audio extensions.
+
+`extension/shared/permissions/request.ts` exports `requestPermissions` (a `permissions.contains` short-circuit wrapping `permissions.request`) and `OPTIONAL_PERMISSIONS`, the consumer-side mirror of the manifest list. The Sound Events tab's `handleToggle` calls `pickOptionalPermissions(event.permissions)` when enabling a row; if the result is non-empty it requests the grant before writing storage. Denial reverts the optimistic Switch state and announces the requirement assertively. Disabling never prompts, and the existing static permissions (`tabs`, `webNavigation`, etc.) skip the helper entirely because they are already granted at install. Releasing optional permissions when the last event that needs them is disabled is left as a follow-up — `permissions.remove` works but the UX of a notification "ButterSwitch released the cookies permission" needs a separate think.
+
 ## Split windows.onFocusChanged into windows.onFocused and windows.onUnfocused
 
 The single `windows.onFocusChanged` event was replaced by two registry entries — `windows.onFocused` (a window received focus) and `windows.onUnfocused` (all browser windows lost focus). The split lets each direction carry a distinct sound and makes the Sound Events tab show two clearly-named rows instead of one ambiguous "focus changed" entry. Both default to enabled because focus state is one of the most useful audio cues for a screen-reader user; the Sound Events tab still lets either be muted independently.

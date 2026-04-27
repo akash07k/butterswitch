@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { getEventDefaults } from "@/config/events";
 import { Play } from "lucide-react";
 import { announce } from "@/shared/a11y/announcer";
+import { pickOptionalPermissions, requestPermissions } from "@/shared/permissions/request";
 import { EVENT_REGISTRY } from "@/modules/sound-engine/event-registry";
 import type { EventDefinition } from "@/modules/sound-engine/types";
 
@@ -204,8 +205,41 @@ export function SoundEventsTab() {
     browser.storage.local.set({ [`sounds.events.${eventId}`]: config });
   };
 
-  /** Toggle an event's enabled state. */
-  const handleToggle = (event: EventDefinition, checked: boolean) => {
+  /**
+   * Toggle an event's enabled state.
+   *
+   * When enabling an event whose `permissions` overlap with the
+   * extension's optional permissions (management / cookies / history),
+   * request the runtime grant first. If the user denies, the toggle
+   * does not flip — the cached state stays at its previous value and
+   * storage is not written. Disabling never prompts.
+   */
+  const handleToggle = async (event: EventDefinition, checked: boolean) => {
+    if (checked) {
+      const needed = pickOptionalPermissions(event.permissions);
+      if (needed.length > 0) {
+        // EventDefinition.permissions is `string[]` (registry shape is
+        // platform-agnostic), but chrome.permissions.Permissions expects
+        // the typed ManifestPermission union. The cast is safe because
+        // pickOptionalPermissions filters the input to OPTIONAL_PERMISSIONS.
+        const granted = await requestPermissions({
+          permissions: needed as chrome.runtime.ManifestPermissions[],
+        });
+        if (!granted) {
+          // The Switch optimistically rendered the new "on" state from
+          // its own internal value before our handler ran. Force a
+          // re-render with the previous config so the visual toggle
+          // snaps back, and tell the user assertively because the
+          // visible toggle just lied to them.
+          setConfigs((prev) => ({ ...prev, [event.id]: { ...prev[event.id]! } }));
+          announce(
+            `${event.label} requires the ${needed.join(", ")} permission. Not enabled.`,
+            "assertive",
+          );
+          return;
+        }
+      }
+    }
     const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), enabled: checked };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
     saveEventConfig(event.id, updated);
