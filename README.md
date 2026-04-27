@@ -83,13 +83,12 @@ If one store rejects an upload (most commonly Chrome's `ITEM_NOT_UPDATABLE` whil
 
 [![Re-dispatch release workflow](https://img.shields.io/badge/Actions-Re--run%20release-blue?logo=github)](https://github.com/akash07k/butterswitch/actions/workflows/release.yml)
 
-Open the workflow page above, click **Run workflow**, then pick a target:
+Open the workflow page above, click **Run workflow**, then pick:
 
-- **both** — submit to Chrome Web Store and Firefox AMO. Default; matches the tag-triggered behaviour.
-- **chrome** — only the Chrome Web Store. Use after a Chrome rejection clears.
-- **firefox** — only Firefox AMO. Use after an AMO rejection clears.
+- **target** — `both` (default; matches the tag-triggered behaviour), `chrome` (only Chrome Web Store, use after a Chrome rejection clears), or `firefox` (only Firefox AMO, use after an AMO rejection clears).
+- **create_release** — leave off for ordinary re-submissions. Toggle on if the original tag-triggered run never produced a GitHub Release page entry (e.g., every store rejected, or the tag pre-dated this workflow setup) and you want this dispatch to create one. The tag name comes from `extension/package.json` when you dispatch against a branch, or from the ref itself when you pick a tag in "Use workflow from".
 
-The dispatch UI lets you choose the ref the workflow runs against (default: `main`), so the version it submits is whatever lives in `extension/package.json` at that ref.
+The dispatch UI's "Use workflow from" dropdown also lets you choose a ref (branch or tag, default `main`). Picking the version's tag (e.g., `v1.1.0`) also makes the workflow create the Release automatically — no need to toggle `create_release` in that case.
 
 ### Log server
 

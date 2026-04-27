@@ -22,13 +22,19 @@
 name: Release
 
 on:
-  # Manual dispatch supports re-submitting after a partial failure
-  # (e.g., Chrome rejected with ITEM_NOT_UPDATABLE while Firefox
-  # accepted). Picking `chrome` or `firefox` re-runs only that store's
-  # submission; `both` is the default and matches the tag-triggered
-  # behaviour. Manual dispatches do NOT create a GitHub Release —
-  # the Release was already created on the original tag push, and
-  # creating a second one for the same tag would conflict.
+  # Manual dispatch supports two recovery cases:
+  #   1. Re-submitting one store after a partial failure (e.g.,
+  #      Chrome rejected with ITEM_NOT_UPDATABLE while Firefox
+  #      accepted). Pick `chrome` or `firefox` for `target` to limit
+  #      the run; `both` matches the tag-triggered default.
+  #   2. Creating a missing GitHub Release after a tag-triggered run
+  #      where every store rejected (so post-submit was skipped on
+  #      old workflow definitions, or simply because the original tag
+  #      push itself didn't fire the workflow). Set `create_release`
+  #      to true. The tag name is derived from `extension/package.json`
+  #      when the workflow ran against a branch, or read directly from
+  #      `github.ref_name` when it ran against a tag ref.
+  # Tag-triggered runs leave both inputs unset and behave as before.
   workflow_dispatch:
     inputs:
       target:
@@ -39,6 +45,10 @@ on:
           - chrome
           - firefox
         default: both
+      create_release:
+        description: "Also create the GitHub Release (tag dispatches do this automatically)"
+        type: boolean
+        default: false
   # Pushing a tag like v1.0.1 also fires this — pairs naturally with
   # the local version-bump → sign → tag flow we use before publishing.
   # The version-vs-tag sanity-check below catches mismatches before
@@ -216,10 +226,32 @@ jobs:
       # `## [` (or EOF). Failing the step when no section matches
       # prevents shipping a release with empty notes — the most common
       # cause is forgetting to land the changelog entry before tagging.
-      - name: Extract changelog section for release notes
-        if: ${{ !cancelled() && steps.zip.outcome == 'success' && github.ref_type == 'tag' }}
+      # Determine the tag name to release as. On tag-triggered runs,
+      # github.ref_name already is the tag (e.g., v1.1.0). On manual
+      # branch dispatches with create_release=true, fall back to the
+      # version in extension/package.json (e.g., "1.1.0" -> "v1.1.0").
+      # softprops/action-gh-release uses the tag if it exists in git
+      # and creates one at the current commit otherwise — for the
+      # branch-dispatch recovery case, the tag is expected to already
+      # exist (you are recreating a missing Release for an existing
+      # tagged version).
+      - name: Determine release tag
+        id: release_tag
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && (github.ref_type == 'tag' || inputs.create_release) }}
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(jq -r .version extension/package.json)
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract changelog section for release notes
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && (github.ref_type == 'tag' || inputs.create_release) }}
+        run: |
+          VERSION="${{ steps.release_tag.outputs.version }}"
           awk -v ver="$VERSION" '
             BEGIN { hdr = "## [" ver "]" }
             index($0, hdr) == 1 { found=1; print; next }
@@ -238,11 +270,11 @@ jobs:
       # — granted via `contents: write` above — has the minimal
       # privilege needed; no PAT is required.
       - name: Create GitHub Release with sideloadable assets
-        if: ${{ !cancelled() && steps.zip.outcome == 'success' && github.ref_type == 'tag' }}
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && (github.ref_type == 'tag' || inputs.create_release) }}
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ButterSwitch ${{ github.ref_name }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: ButterSwitch ${{ steps.release_tag.outputs.tag }}
           body_path: release-notes.md
           files: |
             extension/.output/*-chrome.zip
