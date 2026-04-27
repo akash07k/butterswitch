@@ -18,8 +18,8 @@ A browser event flows through five stages from fire to log entry:
 1. The browser fires the event (for example, the user creates a new tab).
 2. `event-engine.ts` `handleEvent` runs three checks in order: the filter (which skips sub-events like `tabs.onUpdated.loading`), the optional custom handler (which can suppress, override the sound, or attach extra data), and `extractData` (which pulls the URL, tab id, frame id, and so on).
 3. The event publishes on the message bus as `MessageBus.publish("browser-event", BrowserEventMessage)`.
-4. `SoundEngineModule.handleBrowserEvent` runs four gates in order: mute check (cached, no storage round-trip), per-event enabled check (cached), cooldown gate atomic `tryEnter`, and theme manager sound URL resolution.
-5. `AudioBackend.play(url, opts)` calls into `HowlerPlayer` (in Chrome's offscreen document, or Firefox's background page). When the result returns, the cooldown gate marks the play and the logger records it.
+4. `SoundEngineModule.handleBrowserEvent` runs four gates in order: mute check (cached, no storage round-trip), per-event enabled check (cached), cooldown gate atomic `tryEnter` (which commits the cooldown timestamp on admission), and theme manager sound URL resolution.
+5. `AudioBackend.play(url, opts)` calls into `HowlerPlayer` (in Chrome's offscreen document, or Firefox's background page). The cooldown was already committed in step 4; when the play result returns, the logger records the outcome.
 
 <details>
 <summary>Visual flow</summary>
@@ -39,7 +39,7 @@ MessageBus.publish("browser-event", BrowserEventMessage)
 SoundEngineModule.handleBrowserEvent
   │  - mute check (cached, no storage round-trip)
   │  - per-event enabled check (cached)
-  │  - cooldown gate atomic tryEnter
+  │  - cooldown gate atomic tryEnter (commits cooldown on admission)
   │  - theme manager resolves event id to sound URL
   ▼
 AudioBackend.play(url, opts)
@@ -48,7 +48,7 @@ AudioBackend.play(url, opts)
 HowlerPlayer (Chrome offscreen / Firefox background) plays the sound
   │
   ▼
-result returns; cooldown gate marks the play; logger records it
+result returns; logger records it (cooldown was committed in tryEnter)
 ```
 
 </details>
@@ -105,6 +105,8 @@ The atomic check-and-commit is essential. `SoundEngineModule.handleBrowserEvent`
 
 The fix is `tryEnter(eventId, priority): boolean`. It checks both gates and commits the cooldown timestamp in the same synchronous call before any await yields control. Concurrent callers atomically observe each other's commits.
 
+The commit happens on admission, not after `backend.play()` confirms playback. A failed play therefore consumes the global cooldown window (~150 ms) for whatever arrives next. That is intentional: backend failures are rare, and committing optimistically prevents a slow-failing backend from defeating the gate by leaving every concurrent caller free to race through the check.
+
 ### Three suppression paths
 
 1. Global cooldown - within 150 ms of any prior fire (unless preempted).
@@ -112,8 +114,6 @@ The fix is `tryEnter(eventId, priority): boolean`. It checks both gates and comm
 3. Priority preemption - global cooldown bypassed because the arriving event's priority is higher than the in-flight priority.
 
 The preemption case still updates the cooldown timestamp; this prevents the new high-priority event from being immediately preempted by something even higher arriving milliseconds later.
-
-`markPlayed(eventId)` exists separately for the "successful play" commit. It updates the per-event debounce timestamp only after the audio backend confirms playback, so a failed play doesn't poison the debounce window.
 
 ## Theme manager
 
@@ -139,11 +139,11 @@ Theme manifests live as JSON at `extension/public/sounds/<theme-id>/theme.json`.
 
 1. Checks `this.muted` (cached scalar, refreshed on settings change).
 2. Checks `this.eventConfigs.get(eventId)?.enabled` (cached map, refreshed on settings change).
-3. Calls `cooldownGate.tryEnter(eventId, priority)`.
+3. Calls `cooldownGate.tryEnter(eventId, priority)` — this both checks the gates and commits the cooldown timestamp on admission. Nothing further is needed after `play()` returns.
 4. Calls `themeManager.resolveSound(eventId)`.
 5. Calls `audioBackend.play(url, { volume, rate })`.
-6. On success, calls `cooldownGate.markPlayed(eventId)` and logs at INFO.
-7. On failure, logs at WARN and does NOT mark the cooldown.
+6. On success, logs at INFO.
+7. On failure, logs at WARN. The cooldown stays committed — a failed play eats the window (see the cooldown-gate section above for why).
 
 All settings reads happen against in-memory caches, populated at `activate()` and refreshed by per-key `settings.watch` subscriptions. The hot path is synchronous from message arrival down to the single `await backend.play(...)`.
 

@@ -105,7 +105,7 @@ Both `InMemorySettingsStore.set` and `BrowserSettingsStore`'s storage-changed ha
 
 ## Make CooldownGate.tryEnter atomic
 
-The gate previously exposed `tryEnter` and `markPlayed` as separate calls. `handleBrowserEvent` is async and called once per browser event, so several invocations could race through `tryEnter` before any reached `markPlayed`. Visible in real logs: three "navigation start" sounds within a 6 ms cluster with the cooldown supposedly active. Fix: collapse the check and the cooldown commit into a single synchronous method that runs before any await yields control. The `markPlayed` call still exists for the per-event debounce timestamp, which only updates on successful audio playback.
+The gate previously exposed `tryEnter` and `markPlayed` as separate calls. `handleBrowserEvent` is async and called once per browser event, so several invocations could race through `tryEnter` before any reached `markPlayed`. Visible in real logs: three "navigation start" sounds within a 6 ms cluster with the cooldown supposedly active. Fix: collapse the check and the cooldown commit into a single synchronous method that runs before any await yields control. The commit happens on admission, not after `backend.play()` returns — a failed play therefore consumes the cooldown window for whatever arrives next. That is intentional: backend failures are rare, and waiting for a slow-failing play to settle would leave concurrent callers free to race through the check and reintroduce the same regression.
 
 ## Move suppression gating out of event-engine
 
