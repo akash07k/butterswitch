@@ -128,12 +128,17 @@ export function SoundEventsTab() {
   useEffect(() => {
     async function load() {
       try {
-        const stored = await browser.storage.local.get(null);
+        // Query only the per-event keys we care about. A `get(null)` would
+        // pull the entire extension storage (migration markers, future
+        // feature keys, etc.) just to read these N entries.
+        const keys = EVENT_REGISTRY.map((e) => `sounds.events.${e.id}`);
+        const stored = await browser.storage.local.get(keys);
         const loadedConfigs: Record<string, EventConfig> = {};
         for (const event of PLATFORM_EVENTS) {
           const key = `sounds.events.${event.id}`;
-          if (stored[key]) {
-            loadedConfigs[event.id] = stored[key] as EventConfig;
+          const value = stored[key];
+          if (typeof value === "object" && value !== null) {
+            loadedConfigs[event.id] = value as EventConfig;
           } else {
             loadedConfigs[event.id] = {
               enabled: getEventDefaults(event.id).enabled,
