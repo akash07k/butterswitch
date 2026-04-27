@@ -42,11 +42,13 @@ export function LoggingTab() {
   const [logServerUrl, setLogServerUrl] = useState("ws://localhost:8089");
   const [logStreamEnabled, setLogStreamEnabled] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   // Validation only fires after the user has interacted with the URL field —
   // avoids flickering aria-invalid mid-typing while a partial "ws://localh"
   // looks malformed.
   const [urlTouched, setUrlTouched] = useState(false);
   const confirmClearRef = useRef<HTMLButtonElement>(null);
+  const confirmResetRef = useRef<HTMLButtonElement>(null);
 
   const urlInvalid =
     urlTouched && logStreamEnabled && logServerUrl.length > 0 && !isValidWebSocketUrl(logServerUrl);
@@ -58,6 +60,14 @@ export function LoggingTab() {
     const timer = setTimeout(() => setConfirmClear(false), 5000);
     return () => clearTimeout(timer);
   }, [confirmClear]);
+
+  // Same auto-cancel + focus pattern for Reset Logging Settings
+  useEffect(() => {
+    if (!confirmReset) return;
+    requestAnimationFrame(() => confirmResetRef.current?.focus());
+    const timer = setTimeout(() => setConfirmReset(false), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmReset]);
 
   // Load settings on mount
   useEffect(() => {
@@ -292,24 +302,39 @@ export function LoggingTab() {
         </div>
       </section>
 
-      {/* Reset */}
-      <Button
-        variant="outline"
-        onClick={() => {
-          setLogLevel("1");
-          setLogServerUrl("ws://localhost:8089");
-          setLogStreamEnabled(false);
-          browser.storage.local.set({
-            "general.logLevel": 1,
-            "general.logServerUrl": "ws://localhost:8089",
-            "general.logStreamEnabled": false,
-          });
-          announce("Logging settings reset to defaults", "polite");
-          sendLog("warn", "Logging settings reset to defaults", { source: "options" });
-        }}
-      >
-        Reset Logging Settings
-      </Button>
+      {/* Reset — two-step confirm to prevent accidentally wiping log level, */}
+      {/* server URL, and stream toggle in one click.                         */}
+      {!confirmReset ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setConfirmReset(true);
+            announce("Are you sure? Press Reset Logging Settings again to confirm.", "assertive");
+          }}
+        >
+          Reset Logging Settings
+        </Button>
+      ) : (
+        <Button
+          ref={confirmResetRef}
+          variant="destructive"
+          onClick={() => {
+            setLogLevel("1");
+            setLogServerUrl("ws://localhost:8089");
+            setLogStreamEnabled(false);
+            browser.storage.local.set({
+              "general.logLevel": 1,
+              "general.logServerUrl": "ws://localhost:8089",
+              "general.logStreamEnabled": false,
+            });
+            announce("Logging settings reset to defaults", "polite");
+            sendLog("warn", "Logging settings reset to defaults", { source: "options" });
+            setConfirmReset(false);
+          }}
+        >
+          Confirm Reset Logging Settings
+        </Button>
+      )}
     </div>
   );
 }
