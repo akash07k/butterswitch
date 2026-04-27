@@ -194,31 +194,33 @@ export default function App() {
           </div>
         )}
 
-        <Tabs id="tab-panels" value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="w-full justify-start">
-            {TAB_DEFINITIONS.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div id="tab-panels-region" tabIndex={-1} className="outline-none">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="w-full justify-start">
+              {TAB_DEFINITIONS.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          <TabsContent value="general">
-            <GeneralTab />
-          </TabsContent>
+            <TabsContent value="general">
+              <GeneralTab />
+            </TabsContent>
 
-          <TabsContent value="sound-events">
-            <SoundEventsTab />
-          </TabsContent>
+            <TabsContent value="sound-events">
+              <SoundEventsTab />
+            </TabsContent>
 
-          <TabsContent value="themes">
-            <ThemesTab />
-          </TabsContent>
+            <TabsContent value="themes">
+              <ThemesTab />
+            </TabsContent>
 
-          <TabsContent value="logging">
-            <LoggingTab />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="logging">
+              <LoggingTab />
+            </TabsContent>
+          </Tabs>
+        </div>
       </main>
 
       <footer
