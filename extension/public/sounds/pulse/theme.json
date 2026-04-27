@@ -34,7 +34,8 @@
 
     "windows.onCreated": "window-opened.ogg",
     "windows.onRemoved": "window-closed.ogg",
-    "windows.onFocusChanged": "window-focus.ogg",
+    "windows.onFocused": "window-focus.ogg",
+    "windows.onUnfocused": "window-unfocused.ogg",
 
     "notifications.onShown": "notification-shown.ogg",
 

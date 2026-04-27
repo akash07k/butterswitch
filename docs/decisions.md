@@ -6,6 +6,14 @@ Reverse chronological (newest first).
 
 ---
 
+## Split windows.onFocusChanged into windows.onFocused and windows.onUnfocused
+
+The single `windows.onFocusChanged` event was replaced by two registry entries — `windows.onFocused` (a window received focus) and `windows.onUnfocused` (all browser windows lost focus). The split lets each direction carry a distinct sound and makes the Sound Events tab show two clearly-named rows instead of one ambiguous "focus changed" entry. Both default to enabled because focus state is one of the most useful audio cues for a screen-reader user; the Sound Events tab still lets either be muted independently.
+
+The implementation handles a documented quirk of `chrome.windows.onFocusChanged`: on Windows and some Linux window managers, `WINDOW_ID_NONE` (`-1`) is dispatched immediately before a window-to-window switch even though the user never gave focus to a non-browser application. `extension/modules/sound-engine/windows-focus-router.ts` wraps both events in a 150 ms debounce: when WINDOW_ID_NONE arrives, the unfocused emission is held; if a real `windowId` arrives within the window, the unfocused side is suppressed and only `windows.onFocused` fires. Closure-scoped state in the factory keeps the cross-handler coordination out of module scope so tests can build independent pairs.
+
+A one-shot migration in `entrypoints/background.ts` copies any existing `sounds.events.windows.onFocusChanged` config to `sounds.events.windows.onFocused` (the original sound was tuned to be a focus-gain cue), removes the legacy key, and writes a marker so the migration runs at most once per profile.
+
 ## release:push and do-release shortcuts on top of the review-first release flow
 
 `pnpm release` keeps `git.push: false` from `extension/.release-it.json` so the maintainer can review the bumped commit, the CHANGELOG diff, and the signed tag locally before they leave the workstation. Two new wrappers sit alongside it:

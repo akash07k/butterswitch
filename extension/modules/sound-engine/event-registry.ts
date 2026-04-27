@@ -17,6 +17,15 @@
  */
 
 import type { EventDefinition } from "./types.js";
+import { createWindowFocusEvents } from "./windows-focus-router.js";
+
+/**
+ * Paired focus / unfocus events with shared closure state for the
+ * WINDOW_ID_NONE debounce. Built once here so production shares one
+ * pair across the entire registry; tests can build their own pair
+ * via createWindowFocusEvents() to keep state independent.
+ */
+const WINDOW_FOCUS_EVENTS = createWindowFocusEvents();
 
 // ─────────────────────────────────────────────────────────────
 // Tier 1 — Essential (enabled by default)
@@ -385,19 +394,12 @@ const TIER_1_EVENTS: EventDefinition[] = [
 
     permissions: [],
   },
-  {
-    id: "windows.onFocusChanged",
-    namespace: "windows",
-    event: "onFocusChanged",
-    label: "Window Focus Changed",
-    description: "A different window received focus.",
-    tier: 1,
-    category: "windows",
-    platforms: ["chrome", "firefox"],
-
-    permissions: [],
-    extractData: (windowId: unknown) => ({ windowId }),
-  },
+  // windows.onFocused + windows.onUnfocused — split from the
+  // single onFocusChanged event so each can carry a distinct sound.
+  // The factory's closure state coordinates the debounce that
+  // suppresses the unfocused emission during a window-to-window
+  // switch on Windows / Linux. See windows-focus-router.ts.
+  ...WINDOW_FOCUS_EVENTS,
 
   // === Runtime ===
   {

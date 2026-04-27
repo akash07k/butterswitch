@@ -86,7 +86,12 @@ const EVENT_DEFAULTS: Readonly<Record<string, EventDefaults>> = {
   // Windows
   "windows.onCreated": { enabled: true },
   "windows.onRemoved": { enabled: true },
-  "windows.onFocusChanged": { enabled: true, debounceMs: 200 },
+  // Split from the previous windows.onFocusChanged so each direction
+  // can carry a distinct sound. Both default to enabled; users who
+  // find focus-loss sounds noisy can disable onUnfocused from the
+  // Sound Events tab without affecting the focus-gain cue.
+  "windows.onFocused": { enabled: true, debounceMs: 200 },
+  "windows.onUnfocused": { enabled: true, debounceMs: 200 },
 
   // Runtime
   "runtime.onInstalled": { enabled: true },

@@ -77,6 +77,11 @@ export default defineBackground(() => {
       const messageBus = new MessageBusImpl();
       const settings = createSettingsStore();
 
+      // 3a. Run one-shot settings migrations before modules read
+      //     config. Each migration is guarded by a marker key so it
+      //     does not re-run on subsequent boots.
+      await migrateWindowsFocusEvent(logger);
+
       // 4. Build the module context — shared by all modules
       const context: ModuleContext = {
         logger,
@@ -449,6 +454,41 @@ export default defineBackground(() => {
     }
 
     return new BrowserSettingsStore(flatDefaults);
+  }
+
+  /**
+   * One-shot migration that splits the legacy
+   * `sounds.events.windows.onFocusChanged` config into
+   * `sounds.events.windows.onFocused`. Existing user settings
+   * (enabled flag, volume, pitch) follow the focused side because
+   * the original sound was tuned to be a focus-gain cue.
+   *
+   * Guarded by `_migrations.windowsFocusSplit` so it runs at most
+   * once per profile. The legacy key is removed so it cannot drift
+   * back into the registry view.
+   */
+  async function migrateWindowsFocusEvent(logger: Logger): Promise<void> {
+    const stored = await browser.storage.local.get([
+      "sounds.events.windows.onFocusChanged",
+      "sounds.events.windows.onFocused",
+      "_migrations.windowsFocusSplit",
+    ]);
+    if (stored["_migrations.windowsFocusSplit"]) return;
+
+    const legacy = stored["sounds.events.windows.onFocusChanged"];
+    const alreadyMigrated = stored["sounds.events.windows.onFocused"] !== undefined;
+
+    if (legacy !== undefined && !alreadyMigrated) {
+      await browser.storage.local.set({
+        "sounds.events.windows.onFocused": legacy,
+      });
+      logger.info("Migrated legacy windows.onFocusChanged config to windows.onFocused", {
+        migration: "windowsFocusSplit",
+      });
+    }
+
+    await browser.storage.local.remove("sounds.events.windows.onFocusChanged");
+    await browser.storage.local.set({ "_migrations.windowsFocusSplit": true });
   }
 
   /**
