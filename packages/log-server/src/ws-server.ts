@@ -40,6 +40,34 @@ const DEFAULT_BUFFER_SIZE = 1000;
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_MAX_PAYLOAD = 1024 * 1024; // 1 MiB
 
+/**
+ * Runtime guard that an arbitrary JSON value matches the {@link LogEntry}
+ * shape. Origin checks and the localhost bind already gate who can talk
+ * to the server, but parsed payloads from a permitted origin still flow
+ * through `emit("entry", ...)` into broadcast and into JSONL session
+ * files. This drops anything that does not match the real entry shape
+ * so a crafted message cannot land in a session log or be re-broadcast
+ * to web clients with an unexpected shape.
+ */
+function isValidLogEntry(value: unknown): value is LogEntry {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.id !== "string") return false;
+  if (typeof v.timestamp !== "string") return false;
+  if (typeof v.level !== "number") return false;
+  if (typeof v.tag !== "string") return false;
+  if (typeof v.message !== "string") return false;
+  if (v.data !== undefined && (typeof v.data !== "object" || v.data === null)) return false;
+  if (v.error !== undefined) {
+    if (!v.error || typeof v.error !== "object") return false;
+    const e = v.error as Record<string, unknown>;
+    if (typeof e.name !== "string") return false;
+    if (typeof e.message !== "string") return false;
+    if (e.stack !== undefined && typeof e.stack !== "string") return false;
+  }
+  return true;
+}
+
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
   ".css": "text/css",
@@ -110,8 +138,14 @@ export class LogServer extends EventEmitter {
 
         ws.on("message", (data) => {
           try {
-            const entry = JSON.parse(data.toString()) as LogEntry;
-            this.emit("entry", entry);
+            const parsed: unknown = JSON.parse(data.toString());
+            if (!isValidLogEntry(parsed)) {
+              // Drop silently — even a permitted origin can send a
+              // malformed payload, and emitting one would put a
+              // non-LogEntry value into broadcast and session files.
+              return;
+            }
+            this.emit("entry", parsed);
           } catch {
             // Ignore invalid JSON — don't crash the server
           }
