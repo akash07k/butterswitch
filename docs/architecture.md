@@ -76,8 +76,6 @@ interface ButterSwitchModule {
   activate(): Promise<void>;
   deactivate(): Promise<void>;
   dispose(): Promise<void>;
-  getSettingsSchema?(): SettingsSchema;
-  getCommands?(): CommandDefinition[];
 }
 ```
 

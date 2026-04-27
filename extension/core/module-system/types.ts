@@ -73,18 +73,6 @@ export interface ButterSwitchModule {
    * After this, the module will not be used again.
    */
   dispose(): Promise<void>;
-
-  /**
-   * Returns the settings schema for this module.
-   * Used by the settings UI to render module-specific controls.
-   */
-  getSettingsSchema?(): SettingsSchema;
-
-  /**
-   * Returns hotkey commands this module provides.
-   * Registered with the hotkey system during initialization.
-   */
-  getCommands?(): CommandDefinition[];
 }
 
 /**
@@ -182,60 +170,4 @@ export interface PlatformInfo {
 
   /** Operating system. */
   os: "win" | "mac" | "linux" | "chromeos";
-}
-
-/**
- * Schema for module-specific settings.
- * Used by the settings UI to render controls dynamically.
- */
-export interface SettingsSchema {
-  /** Schema fields. */
-  fields: SettingsField[];
-}
-
-/**
- * A single field in a settings schema.
- */
-export interface SettingsField {
-  /** Unique key for this setting. */
-  key: string;
-
-  /** Display label. */
-  label: string;
-
-  /** Help text shown below the control. */
-  description?: string;
-
-  /** Control type to render. */
-  type: "boolean" | "number" | "string" | "select";
-
-  /** Default value. */
-  defaultValue: unknown;
-
-  /** For "select" type — available options. */
-  options?: { label: string; value: string }[];
-
-  /** For "number" type — min/max constraints. */
-  min?: number;
-  max?: number;
-}
-
-/**
- * A hotkey command provided by a module.
- */
-export interface CommandDefinition {
-  /** Unique command ID (e.g., "sound-engine:toggle-mute"). */
-  id: string;
-
-  /** Human-readable command name. */
-  name: string;
-
-  /** Description of what the command does. */
-  description: string;
-
-  /** Default hotkey binding (e.g., "Alt+m"). User-configurable. */
-  defaultHotkey?: string;
-
-  /** Handler function called when the command is triggered. */
-  handler: () => void;
 }
