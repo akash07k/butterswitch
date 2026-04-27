@@ -232,6 +232,7 @@ export default function App() {
           {EXTENSION_NAME}{" "}
           <a
             href={RELEASE_URL}
+            aria-label={`Release notes for ${EXTENSION_NAME} v${VERSION} on GitHub`}
             className="underline hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             v{VERSION}
