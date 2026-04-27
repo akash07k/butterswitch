@@ -20,6 +20,7 @@
     "release": "release-it",
     "release:dry": "release-it --dry-run",
     "typecheck": "tsc --noEmit",
+    "prepare:clean-types": "node scripts/prepare-clean-types.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",

@@ -27,8 +27,12 @@ commit-msg:
 pre-push:
   parallel: true
   commands:
+    # Regenerate WXT types against an empty public/ (the same state
+    # CI sees on a fresh checkout) before typechecking. Without this
+    # step, a `browser.runtime.getURL` pointing at a build-generated
+    # artifact passes locally and fails in CI.
     typecheck:
-      run: pnpm.exe -r typecheck
+      run: pnpm.exe --filter butterswitch-extension run prepare:clean-types && pnpm.exe -r typecheck
     test:
       run: pnpm.exe -r test
     lint:

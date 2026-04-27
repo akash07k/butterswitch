@@ -6,6 +6,10 @@ Reverse chronological (newest first).
 
 ---
 
+## Mirror CI's clean public/ state in the pre-push typecheck
+
+The pre-push lefthook runs `prepare:clean-types` before `pnpm -r typecheck`. That script removes any gitignored generated artifact under `extension/public/` (right now just `whats-new.json`) and re-runs `wxt prepare`, so the WXT-generated `PublicPath` union reflects only what is committed under `public/`. Without it, a literal like `browser.runtime.getURL("/whats-new.json")` typechecks locally once `pnpm dev` or `pnpm build` has populated the file but fails in CI on a fresh checkout. The relative-URL fetch in `entrypoints/whats-new/App.tsx` removes the dependency for that one call site; the pre-push step exists so a literal of the same shape gets caught at push time instead of by CI.
+
 ## What's New page on extension update
 
 The background script now opens an in-extension `whats-new.html` tab when `browser.runtime.onInstalled` fires with `reason === "update"` and the previous version differs from the current version. The page reads its content from `/whats-new.json`, written at build time by `extension/scripts/build-whats-new.mjs` from the matching `## [<version>]` section of `CHANGELOG.md`. Build-time markdown-to-HTML conversion keeps the runtime bundle free of a markdown parser, and the JSON is gitignored so each branch builds against its own CHANGELOG. The opt-out lives in the General tab (`general.showWhatsNewOnUpdate`, default true) rather than Logging because it controls a user-facing notification, not telemetry. Headings are demoted by one level during conversion (`### Bug Fixes` becomes `<h2>`) so the page H1 sits at the top of an unbroken outline. Focus moves to the H1 on mount and there is no live-region announcement, which would double-announce the heading.
