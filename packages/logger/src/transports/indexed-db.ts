@@ -28,6 +28,15 @@ export class IndexedDBTransport implements Transport {
 
   private writeCount = 0;
   private rotating = false;
+  /**
+   * One-shot probe of the existing store size. `writeCount` is an
+   * instance field that resets every time the service worker wakes;
+   * without seeding it from the real population, a cold start sitting
+   * on a near-cap store would write up to 99 entries past the cap
+   * before the modulo-100 rotation check fires. The probe runs once
+   * on the first `log()` and anchors `writeCount` to the actual count.
+   */
+  private writeCountSeeded = false;
 
   /**
    * Persist a log entry to IndexedDB.
@@ -37,6 +46,19 @@ export class IndexedDBTransport implements Transport {
    */
   async log(entry: LogEntry): Promise<void> {
     const db = await this.dbReady;
+
+    // Seed writeCount from the real store population on the first
+    // write after construction. Any error here is non-fatal — fall
+    // back to counting from zero, the rotation cap is soft anyway.
+    if (!this.writeCountSeeded) {
+      this.writeCountSeeded = true;
+      try {
+        this.writeCount = await this.countEntries(db);
+      } catch {
+        this.writeCount = 0;
+      }
+    }
+
     await this.put(db, entry);
 
     // Only check rotation every 100 writes to avoid expensive

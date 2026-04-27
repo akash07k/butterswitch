@@ -109,4 +109,33 @@ describe("IndexedDBTransport", () => {
     const count = await transport.count();
     expect(count).toBe(2);
   });
+
+  it("seeds writeCount from store population so rotation fires on cold start", async () => {
+    // Simulate a service worker that wrote 99 entries, slept, and
+    // woke up. The dbName is shared across both instances so
+    // fake-indexeddb persists the data the way real IDB does.
+    const sharedDbName = `cold-start-${Date.now()}`;
+
+    const seeder = new IndexedDBTransport({ dbName: sharedDbName, maxEntries: 50 });
+    for (let i = 0; i < 99; i++) {
+      await seeder.log(makeEntry({ message: `seed-${i}` }));
+    }
+    // 99 writes have not yet hit the modulo-100 rotation check;
+    // the store still holds the full 99.
+    expect(await seeder.count()).toBe(99);
+    await seeder.dispose();
+
+    // Cold restart: a fresh instance against the same database.
+    // Without the probe, writeCount restarts at 0 and rotation would
+    // not fire until ~100 more writes — by which time the store
+    // would hold 199 entries against a 50-entry cap.
+    const reopened = new IndexedDBTransport({ dbName: sharedDbName, maxEntries: 50 });
+    await reopened.log(makeEntry({ message: "first-after-cold-start" }));
+
+    // Probe seeded writeCount=99; the new write took it to 100 →
+    // rotation fired → store trimmed to maxEntries.
+    const remaining = await reopened.count();
+    expect(remaining).toBeLessThanOrEqual(50);
+    await reopened.dispose();
+  });
 });
