@@ -406,9 +406,7 @@ export function SoundEventsTab() {
             };
             return (
               <TableRow key={event.id}>
-                <th scope="row" className="font-medium p-2 text-left">
-                  {event.label}
-                </th>
+                <TableHead scope="row">{event.label}</TableHead>
                 <TableCell className="text-muted-foreground">{event.description}</TableCell>
                 <TableCell className="capitalize">{event.category}</TableCell>
                 <TableCell>
