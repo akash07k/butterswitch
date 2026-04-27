@@ -28,6 +28,7 @@ import { CooldownGate } from "./cooldown-gate.js";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
 import { getEventDefaults } from "../../config/events.js";
 import { CONFIG } from "../../config/index.js";
+import { getAssetURL } from "../../shared/platform/url.js";
 
 /** Module ID used for registration and dependency references. */
 const SOUND_ENGINE_MODULE_ID = "sound-engine";
@@ -147,23 +148,17 @@ export class SoundEngineModule implements ButterSwitchModule {
     // 2. Set up the theme manager and load the default theme
     this.themeManager = new ThemeManager();
 
-    // Use chrome.runtime.getURL directly (not browser.runtime.getURL) because
-    // WXT's browser.runtime.getURL has strict PublicPath typing that rejects
-    // dynamic asset paths. The chrome global is available on both Chrome and
-    // Firefox via WXT's polyfill.
-    const getURL = (path: string): string => chrome.runtime.getURL(path);
-
     // Load all built-in themes from the theme registry
     for (const theme of BUILT_IN_THEMES) {
       try {
-        const themeUrl = getURL(`${theme.path}/theme.json`);
+        const themeUrl = getAssetURL(`${theme.path}/theme.json`);
         const response = await fetch(themeUrl);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} loading theme: ${themeUrl}`);
         }
         const manifest = await response.json();
 
-        const basePath = getURL(theme.path);
+        const basePath = getAssetURL(theme.path);
         const result = this.themeManager.loadTheme(theme.id, manifest, basePath);
 
         if (result.success) {
@@ -391,8 +386,7 @@ export class SoundEngineModule implements ButterSwitchModule {
       const activeTheme = this.themeManager.getActiveThemeId();
       const themeInfo = activeTheme ? BUILT_IN_THEMES.find((t) => t.id === activeTheme) : null;
       if (themeInfo) {
-        const getURL = (path: string): string => chrome.runtime.getURL(path);
-        soundUrl = `${getURL(themeInfo.path)}/${message.soundOverride}`;
+        soundUrl = `${getAssetURL(themeInfo.path)}/${message.soundOverride}`;
       } else {
         soundUrl = null;
       }

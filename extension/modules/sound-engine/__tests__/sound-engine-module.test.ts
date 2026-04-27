@@ -119,15 +119,19 @@ describe("SoundEngineModule integration", () => {
   let module: SoundEngineModule;
 
   beforeEach(() => {
-    // Stub chrome.runtime.getURL for ThemeManager + Module internals.
-    // Also stub namespaces so EventEngine.registerAll can index into
-    // them without crashing; it still warns and skips most events
+    // Stub runtime.getURL for ThemeManager + module internals. Both
+    // `browser` and `chrome` are stubbed: the module resolves asset
+    // URLs through `browser.runtime.getURL` (via the shared
+    // getAssetURL helper) while EventEngine.registerAll still indexes
+    // into the chrome namespace. It warns and skips most events
     // because no real browser API is present.
-    (globalThis as unknown as { chrome: unknown }).chrome = {
+    const runtimeStub = {
       runtime: {
         getURL: (path: string) => `chrome-extension://test/${path}`,
       },
     };
+    (globalThis as unknown as { chrome: unknown }).chrome = runtimeStub;
+    (globalThis as unknown as { browser: unknown }).browser = runtimeStub;
 
     // ThemeManager fetches theme.json from the extension URL; mock to
     // return our compact test manifest rather than loading from disk.
@@ -160,6 +164,7 @@ describe("SoundEngineModule integration", () => {
     await module.dispose();
     vi.unstubAllGlobals();
     delete (globalThis as unknown as { chrome?: unknown }).chrome;
+    delete (globalThis as unknown as { browser?: unknown }).browser;
   });
 
   it("plays the mapped sound when an enabled event fires", async () => {
