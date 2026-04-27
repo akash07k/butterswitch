@@ -28,7 +28,6 @@
     "do-release": "pnpm release && pnpm release:push",
     "pretypecheck": "node scripts/build-whats-new.mjs",
     "typecheck": "tsc --noEmit",
-    "prepare:clean-types": "node scripts/prepare-clean-types.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
