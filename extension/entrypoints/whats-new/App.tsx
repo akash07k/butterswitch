@@ -87,7 +87,7 @@ export default function App() {
         )}
       </header>
 
-      <main id="release-notes" className="max-w-3xl mx-auto px-6 pb-4">
+      <main id="release-notes" tabIndex={-1} className="max-w-3xl mx-auto px-6 pb-4">
         <div
           className="whats-new-prose space-y-3"
           dangerouslySetInnerHTML={{ __html: WHATS_NEW.html }}

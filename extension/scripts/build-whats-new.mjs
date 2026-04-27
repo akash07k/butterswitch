@@ -171,7 +171,7 @@ function markdownToHtml(markdown) {
     // renders as a plain <pre><code> with HTML-escaped text.
     if (/^```/.test(line)) {
       if (inCodeBlock) {
-        out.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+        out.push(`<pre tabindex="0"><code>${codeLines.join("\n")}</code></pre>`);
         codeLines = [];
         inCodeBlock = false;
       } else {
@@ -236,7 +236,7 @@ function markdownToHtml(markdown) {
   }
 
   if (inCodeBlock) {
-    out.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+    out.push(`<pre tabindex="0"><code>${codeLines.join("\n")}</code></pre>`);
   }
   closePara();
   closeList();

@@ -94,6 +94,67 @@ body {
   }
 }
 
+/*
+ * What's New page generated prose. The page renders HTML produced
+ * by extension/scripts/build-whats-new.mjs from CHANGELOG.md, so
+ * the markup is restricted to the small set of tags that converter
+ * emits. Tailwind's prose plugin would be overkill for this scope.
+ */
+.whats-new-prose a {
+  text-decoration: underline;
+}
+
+.whats-new-prose a:hover {
+  text-decoration: none;
+}
+
+.whats-new-prose a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.whats-new-prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.whats-new-prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+
+.whats-new-prose h2,
+.whats-new-prose h3 {
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.whats-new-prose code {
+  background: var(--muted);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.whats-new-prose pre {
+  background: var(--muted);
+  padding: 1rem;
+  border-radius: var(--radius);
+  overflow: auto;
+}
+
+.whats-new-prose pre:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.whats-new-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Skip links — visually hidden until focused */
 .skip-link {
   position: absolute;
