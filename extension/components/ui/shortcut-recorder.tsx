@@ -170,13 +170,13 @@ export function ShortcutRecorder({
       // Tab passes through — never capture (keyboard trap prevention)
       if (key === "Tab") return;
 
-      // Escape cancels recording — never store as a shortcut
+      // Escape cancels recording — never store as a shortcut.
+      // Focus stays on the input so users can Tab away naturally.
       if (key === "Escape") {
         e.preventDefault();
         onChange(previousValueRef.current);
         setRecording(false);
         announce("Recording cancelled.", "polite");
-        inputRef.current?.blur();
         return;
       }
 
@@ -219,7 +219,6 @@ export function ShortcutRecorder({
       onChange(shortcut);
       setRecording(false);
       announce(`Shortcut set to ${formatForAnnouncement(shortcut)}.`, "assertive");
-      inputRef.current?.blur();
     },
     [onChange],
   );
