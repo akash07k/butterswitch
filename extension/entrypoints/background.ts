@@ -249,7 +249,23 @@ export default defineBackground(() => {
     idbTransport: IndexedDBTransport,
   ): void {
     browser.runtime.onMessage.addListener(
-      (message: unknown, _sender: unknown, sendResponse: (response: unknown) => void) => {
+      (
+        message: unknown,
+        sender: chrome.runtime.MessageSender,
+        sendResponse: (response: unknown) => void,
+      ) => {
+        // Reject anything that originates from a tab — content scripts
+        // and web pages always carry a sender.tab, while extension
+        // contexts (popup, options, offscreen) do not. ButterSwitch
+        // ships no content scripts, so any tab-originated message is
+        // either another extension probing this background or a page
+        // that escalated to talk to it. Either way, none of the LOG /
+        // CONNECT_LOG_SERVER / PREVIEW_SOUND / EXPORT_LOGS / CLEAR_LOGS
+        // handlers are appropriate for that caller.
+        if (sender.tab !== undefined) {
+          return false;
+        }
+
         const msg = message as { type?: string };
 
         if (msg.type === "LOG") {
