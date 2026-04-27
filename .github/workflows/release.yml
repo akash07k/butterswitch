@@ -127,17 +127,15 @@ jobs:
       - name: Test
         run: pnpm -r test
 
-      # `wxt zip` runs `wxt build` internally then packages the output,
-      # so there is no separate `pnpm build` step — it would just
-      # produce the same artifacts twice. Chrome first, Firefox second;
-      # Firefox also produces the sources ZIP that AMO review requires.
-      - name: Zip Chrome extension
+      # `pnpm zip` runs the per-browser zip scripts in sequence —
+      # Chrome first, then Firefox (which also produces the sources
+      # ZIP that AMO review requires). Each per-browser script runs
+      # `wxt zip` (which calls `wxt build` internally), so there is
+      # no separate `pnpm build` step; that would only produce the
+      # same artifacts twice.
+      - name: Zip both extensions (chrome + firefox + sources)
         working-directory: extension
-        run: pnpm zip:chrome
-
-      - name: Zip Firefox extension (+ sources ZIP)
-        working-directory: extension
-        run: pnpm zip:firefox
+        run: pnpm zip
 
       # Dry-run first. Verifies the store credentials reach publish-
       # -extension correctly and the zip filenames scripts/submit.mjs
