@@ -118,38 +118,49 @@ export function ThemesTab() {
       </section>
 
       {/* Reset — two-step confirm so a single accidental click can't wipe */}
-      {/* the user's chosen theme.                                          */}
-      {!confirmReset ? (
-        <Button
-          variant="outline"
-          onClick={() => {
-            setConfirmReset(true);
-            announce("Are you sure? Press Reset Theme Settings again to confirm.", "assertive");
-          }}
-        >
-          Reset Theme Settings
-        </Button>
-      ) : (
-        <Button
-          ref={confirmResetRef}
-          variant="destructive"
-          onClick={() => {
-            const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === DEFAULT_THEME_ID);
-            setActiveTheme(DEFAULT_THEME_ID);
-            browser.storage.local.set({ "general.activeTheme": DEFAULT_THEME_ID });
-            announce(
-              `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`,
-              "polite",
-            );
-            sendLog("warn", `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`, {
-              source: "options",
-            });
-            setConfirmReset(false);
-          }}
-        >
-          Confirm Reset Theme Settings
-        </Button>
-      )}
+      {/* the user's chosen theme. Wrapped in its own section landmark so  */}
+      {/* region-hopping screen-reader users can jump to it instead of     */}
+      {/* skipping past a stray button at the root level.                  */}
+      <section aria-labelledby="themes-reset-heading" className="space-y-4">
+        <h3 id="themes-reset-heading" className="sr-only">
+          Reset
+        </h3>
+        {!confirmReset ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConfirmReset(true);
+              announce("Are you sure? Press Reset Theme Settings again to confirm.", "assertive");
+            }}
+          >
+            Reset Theme Settings
+          </Button>
+        ) : (
+          <Button
+            ref={confirmResetRef}
+            variant="destructive"
+            onClick={() => {
+              const defaultTheme = BUILT_IN_THEMES.find((t) => t.id === DEFAULT_THEME_ID);
+              setActiveTheme(DEFAULT_THEME_ID);
+              browser.storage.local.set({ "general.activeTheme": DEFAULT_THEME_ID });
+              announce(
+                `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`,
+                "polite",
+              );
+              sendLog(
+                "warn",
+                `Theme reset to ${defaultTheme?.name ?? DEFAULT_THEME_ID} (default)`,
+                {
+                  source: "options",
+                },
+              );
+              setConfirmReset(false);
+            }}
+          >
+            Confirm Reset Theme Settings
+          </Button>
+        )}
+      </section>
     </div>
   );
 }

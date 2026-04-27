@@ -303,38 +303,45 @@ export function LoggingTab() {
       </section>
 
       {/* Reset — two-step confirm to prevent accidentally wiping log level, */}
-      {/* server URL, and stream toggle in one click.                         */}
-      {!confirmReset ? (
-        <Button
-          variant="outline"
-          onClick={() => {
-            setConfirmReset(true);
-            announce("Are you sure? Press Reset Logging Settings again to confirm.", "assertive");
-          }}
-        >
-          Reset Logging Settings
-        </Button>
-      ) : (
-        <Button
-          ref={confirmResetRef}
-          variant="destructive"
-          onClick={() => {
-            setLogLevel("1");
-            setLogServerUrl("ws://localhost:8089");
-            setLogStreamEnabled(false);
-            browser.storage.local.set({
-              "general.logLevel": 1,
-              "general.logServerUrl": "ws://localhost:8089",
-              "general.logStreamEnabled": false,
-            });
-            announce("Logging settings reset to defaults", "polite");
-            sendLog("warn", "Logging settings reset to defaults", { source: "options" });
-            setConfirmReset(false);
-          }}
-        >
-          Confirm Reset Logging Settings
-        </Button>
-      )}
+      {/* server URL, and stream toggle in one click. Wrapped in its own     */}
+      {/* section landmark so region-hopping screen-reader users can jump    */}
+      {/* to it instead of skipping past a stray button at the root level.   */}
+      <section aria-labelledby="logging-reset-heading" className="space-y-4">
+        <h3 id="logging-reset-heading" className="sr-only">
+          Reset
+        </h3>
+        {!confirmReset ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConfirmReset(true);
+              announce("Are you sure? Press Reset Logging Settings again to confirm.", "assertive");
+            }}
+          >
+            Reset Logging Settings
+          </Button>
+        ) : (
+          <Button
+            ref={confirmResetRef}
+            variant="destructive"
+            onClick={() => {
+              setLogLevel("1");
+              setLogServerUrl("ws://localhost:8089");
+              setLogStreamEnabled(false);
+              browser.storage.local.set({
+                "general.logLevel": 1,
+                "general.logServerUrl": "ws://localhost:8089",
+                "general.logStreamEnabled": false,
+              });
+              announce("Logging settings reset to defaults", "polite");
+              sendLog("warn", "Logging settings reset to defaults", { source: "options" });
+              setConfirmReset(false);
+            }}
+          >
+            Confirm Reset Logging Settings
+          </Button>
+        )}
+      </section>
     </div>
   );
 }

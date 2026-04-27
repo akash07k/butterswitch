@@ -470,44 +470,52 @@ export function SoundEventsTab() {
       </Table>
 
       {/* Reset — two-step confirm to prevent accidentally wiping per-event */}
-      {/* enable/disable, volume, and pitch overrides for every event.       */}
-      {!confirmReset ? (
-        <Button
-          variant="outline"
-          onClick={() => {
-            setConfirmReset(true);
-            announce(
-              "Are you sure? Press Reset Sound Event Settings again to confirm.",
-              "assertive",
-            );
-          }}
-        >
-          Reset Sound Event Settings
-        </Button>
-      ) : (
-        <Button
-          ref={confirmResetRef}
-          variant="destructive"
-          onClick={async () => {
-            const defaults: Record<string, EventConfig> = {};
-            const keysToRemove = PLATFORM_EVENTS.map((e) => `sounds.events.${e.id}`);
-            for (const event of PLATFORM_EVENTS) {
-              defaults[event.id] = {
-                enabled: getEventDefaults(event.id).enabled,
-                volume: 100,
-                pitch: 1.0,
-              };
-            }
-            await browser.storage.local.remove(keysToRemove);
-            setConfigs(defaults);
-            announce("All sound event settings reset to defaults", "polite");
-            sendLog("warn", "Sound event settings reset to defaults", { source: "options" });
-            setConfirmReset(false);
-          }}
-        >
-          Confirm Reset Sound Event Settings
-        </Button>
-      )}
+      {/* enable/disable, volume, and pitch overrides for every event.      */}
+      {/* Wrapped in its own section landmark so region-hopping             */}
+      {/* screen-reader users can jump to it instead of skipping past a     */}
+      {/* stray button at the root level.                                   */}
+      <section aria-labelledby="sound-events-reset-heading" className="space-y-4">
+        <h3 id="sound-events-reset-heading" className="sr-only">
+          Reset
+        </h3>
+        {!confirmReset ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConfirmReset(true);
+              announce(
+                "Are you sure? Press Reset Sound Event Settings again to confirm.",
+                "assertive",
+              );
+            }}
+          >
+            Reset Sound Event Settings
+          </Button>
+        ) : (
+          <Button
+            ref={confirmResetRef}
+            variant="destructive"
+            onClick={async () => {
+              const defaults: Record<string, EventConfig> = {};
+              const keysToRemove = PLATFORM_EVENTS.map((e) => `sounds.events.${e.id}`);
+              for (const event of PLATFORM_EVENTS) {
+                defaults[event.id] = {
+                  enabled: getEventDefaults(event.id).enabled,
+                  volume: 100,
+                  pitch: 1.0,
+                };
+              }
+              await browser.storage.local.remove(keysToRemove);
+              setConfigs(defaults);
+              announce("All sound event settings reset to defaults", "polite");
+              sendLog("warn", "Sound event settings reset to defaults", { source: "options" });
+              setConfirmReset(false);
+            }}
+          >
+            Confirm Reset Sound Event Settings
+          </Button>
+        )}
+      </section>
     </div>
   );
 }
