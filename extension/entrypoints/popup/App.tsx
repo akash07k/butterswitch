@@ -96,7 +96,14 @@ export default function App() {
   // Register local keyboard shortcuts
   useEffect(() => {
     const originalFilter = hotkeys.filter;
-    hotkeys.filter = () => true;
+    // Scope the filter override to ONLY the shortcuts we register here
+    // (Alt+T, Shift+?). Replacing it wholesale with `() => true` would
+    // let any future shortcut fire while the user is typing in an input.
+    hotkeys.filter = (event) => {
+      if (event.altKey && event.key.toLowerCase() === "t") return true;
+      if (event.shiftKey && event.key === "?") return true;
+      return originalFilter(event);
+    };
 
     hotkeys("alt+t", (e) => {
       e.preventDefault();
