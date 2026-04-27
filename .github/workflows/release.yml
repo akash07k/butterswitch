@@ -22,7 +22,23 @@
 name: Release
 
 on:
+  # Manual dispatch supports re-submitting after a partial failure
+  # (e.g., Chrome rejected with ITEM_NOT_UPDATABLE while Firefox
+  # accepted). Picking `chrome` or `firefox` re-runs only that store's
+  # submission; `both` is the default and matches the tag-triggered
+  # behaviour. Manual dispatches do NOT create a GitHub Release —
+  # the Release was already created on the original tag push, and
+  # creating a second one for the same tag would conflict.
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Which store(s) to submit to"
+        type: choice
+        options:
+          - both
+          - chrome
+          - firefox
+        default: both
   # Pushing a tag like v1.0.1 also fires this — pairs naturally with
   # the local version-bump → sign → tag flow we use before publishing.
   # The version-vs-tag sanity-check below catches mismatches before
@@ -134,6 +150,7 @@ jobs:
       # no separate `pnpm build` step; that would only produce the
       # same artifacts twice.
       - name: Zip both extensions (chrome + firefox + sources)
+        id: zip
         working-directory: extension
         run: pnpm zip
 
@@ -142,15 +159,43 @@ jobs:
       # discovered match what the stores expect. If a secret is mistyped
       # or an extension ID changed, we fail here without consuming a
       # real submission review slot.
+      #
+      # Tag-triggered runs always submit to both stores (inputs.target
+      # is unset, the case-default fires). Manual dispatch picks
+      # chrome / firefox / both; the matching --chrome-only or
+      # --firefox-only flag is forwarded to scripts/submit.mjs.
       - name: Dry-run submission (verify credentials)
         working-directory: extension
-        run: pnpm submit:dry-run
+        env:
+          TARGET: ${{ inputs.target || 'both' }}
+        run: |
+          case "$TARGET" in
+            chrome)  node scripts/submit.mjs --dry-run --chrome-only ;;
+            firefox) node scripts/submit.mjs --dry-run --firefox-only ;;
+            both)    pnpm submit:dry-run ;;
+            *)       echo "::error::Unknown target: $TARGET"; exit 1 ;;
+          esac
 
       - name: Submit to stores
         working-directory: extension
-        run: pnpm submit
+        env:
+          TARGET: ${{ inputs.target || 'both' }}
+        run: |
+          case "$TARGET" in
+            chrome)  pnpm submit:chrome ;;
+            firefox) pnpm submit:firefox ;;
+            both)    pnpm submit ;;
+            *)       echo "::error::Unknown target: $TARGET"; exit 1 ;;
+          esac
 
+      # Post-submit steps run on `!cancelled() && steps.zip.outcome ==
+      # 'success'` so a partial submit failure (e.g., Chrome rejected
+      # with ITEM_NOT_UPDATABLE while Firefox went through) still
+      # produces the workflow artifacts and the GitHub Release. The
+      # zips were already built; the Release attaches them for
+      # sideloading regardless of store-side outcome.
       - name: Upload artifacts
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: extension-zips
@@ -172,7 +217,7 @@ jobs:
       # prevents shipping a release with empty notes — the most common
       # cause is forgetting to land the changelog entry before tagging.
       - name: Extract changelog section for release notes
-        if: github.ref_type == 'tag'
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && github.ref_type == 'tag' }}
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
           awk -v ver="$VERSION" '
@@ -193,7 +238,7 @@ jobs:
       # — granted via `contents: write` above — has the minimal
       # privilege needed; no PAT is required.
       - name: Create GitHub Release with sideloadable assets
-        if: github.ref_type == 'tag'
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}

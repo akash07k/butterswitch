@@ -95,6 +95,10 @@ If you need to abort mid-flow, release-it prompts before each destructive step. 
 
 CHANGELOG entries below v1.1.1 are hand-written. Everything from v1.1.1 onward is generated. Don't hand-edit auto-generated entries; if the wording is wrong, fix the conventional-commit message instead.
 
+### Re-submitting after a store rejection
+
+The GitHub Release page is created on the original tag push and is independent of store-submission outcome, so a partial failure (one store accepted, the other rejected) still produces a Release with the sideloadable zips. To resubmit just the failing store after a rejection clears, dispatch [`.github/workflows/release.yml`](https://github.com/akash07k/butterswitch/actions/workflows/release.yml) manually with **target** set to `chrome` or `firefox`. The default `both` matches the tag-triggered behaviour.
+
 ## Testing conventions
 
 - Vitest everywhere. Logger and log-server run in Node; extension runs in jsdom.

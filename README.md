@@ -77,6 +77,20 @@ git push --follow-tags origin main
 
 The tag push fires `.github/workflows/release.yml`, which runs the gates again and submits to both stores. The workflow also creates a GitHub Release with the Chrome zip, Firefox zip, and sources zip attached.
 
+#### Re-running the release after a partial failure
+
+If one store rejects an upload (most commonly Chrome's `ITEM_NOT_UPDATABLE` while a previous review is still in flight), you can re-dispatch the workflow against just the failing store once the rejection clears. The GitHub Release is created on the original tag push regardless of submit outcome, so re-dispatch never produces a duplicate Release.
+
+[![Re-dispatch release workflow](https://img.shields.io/badge/Actions-Re--run%20release-blue?logo=github)](https://github.com/akash07k/butterswitch/actions/workflows/release.yml)
+
+Open the workflow page above, click **Run workflow**, then pick a target:
+
+- **both** — submit to Chrome Web Store and Firefox AMO. Default; matches the tag-triggered behaviour.
+- **chrome** — only the Chrome Web Store. Use after a Chrome rejection clears.
+- **firefox** — only Firefox AMO. Use after an AMO rejection clears.
+
+The dispatch UI lets you choose the ref the workflow runs against (default: `main`), so the version it submits is whatever lives in `extension/package.json` at that ref.
+
 ### Log server
 
 ```sh

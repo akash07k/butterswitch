@@ -6,6 +6,10 @@ Reverse chronological (newest first).
 
 ---
 
+## GitHub Release creation is independent of store-submission outcome
+
+The release workflow's `Upload artifacts`, `Extract changelog section`, and `Create GitHub Release` steps now gate on `!cancelled() && steps.zip.outcome == 'success'` rather than the implicit "succeed only if every prior step succeeded" default. A partial submit failure (e.g., Chrome rejecting with `ITEM_NOT_UPDATABLE` because a previous review is still in flight) used to skip Release creation entirely, which left users without a sideloadable bundle even though the zips already existed and Firefox had accepted. The new gate runs the post-submit steps whenever zip succeeded, regardless of submit outcome — sideloading does not depend on store status. The workflow_dispatch trigger now also accepts a `target` input (`both`, `chrome`, `firefox`) so a single store can be re-submitted after a rejection clears, without re-running the other one. Tag-triggered runs leave `inputs.target` unset and fall through to the `both` default in the case-statement, so the existing flow is unchanged.
+
 ## Per-browser scripts: dev / build / zip / submit run both browsers; :chrome and :firefox run one
 
 The bare `dev`, `build`, and `zip` scripts target both Chrome and Firefox; `:chrome` and `:firefox` variants exist for each so a contributor can iterate on one browser when the other is not relevant. `dev` uses `concurrently -k -n chrome,firefox` so both watch processes share a labelled terminal and exit together (`-k` kills the second when the first stops). `build` and `zip` chain the per-browser scripts sequentially. `submit` keeps submitting to both stores by default; `submit:chrome` and `submit:firefox` were added for the case where one store rejects the upload and only that one needs re-submission. The `zip:chrome` and `zip:firefox` scripts now run `build-whats-new.mjs` first, closing a gap where production zips shipped without `whats-new.json` because nothing in the release pipeline had populated it.
