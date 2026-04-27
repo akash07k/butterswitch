@@ -87,10 +87,18 @@ export function LoggingTab() {
     await browser.storage.local.set({ "general.logStreamEnabled": checked });
 
     if (checked) {
-      // Tell the background script to connect now
-      await browser.runtime.sendMessage({ type: "CONNECT_LOG_SERVER" });
-      announce("Log streaming enabled. Connecting to log server...", "assertive");
-      sendLog("info", "Log streaming enabled by user");
+      // Tell the background script to connect now. The user's preference is
+      // already persisted above; if the message fails (service worker asleep
+      // or crashed), surface that to the user instead of silently flipping.
+      try {
+        await browser.runtime.sendMessage({ type: "CONNECT_LOG_SERVER" });
+        announce("Log streaming enabled. Connecting to log server...", "assertive");
+        sendLog("info", "Log streaming enabled by user");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        announce("Could not start log streaming. Try reloading the extension.", "assertive");
+        sendLog("warn", "Failed to start log stream", { error: message });
+      }
     } else {
       // Disconnecting requires extension reload (transport can't be removed at runtime)
       announce("Log streaming disabled. Reload the extension for full effect.", "assertive");
