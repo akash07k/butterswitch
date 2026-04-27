@@ -72,8 +72,14 @@ export default function App() {
     let cancelled = false;
     async function load() {
       try {
-        const url = browser.runtime.getURL("/whats-new.json");
-        const response = await fetch(url);
+        // Relative URL on purpose: resolves against the page origin
+        // (chrome-extension://<id>/) and produces the same URL that
+        // browser.runtime.getURL would, without the type dependency.
+        // WXT builds PublicPath by scanning extension/public/ at
+        // `wxt prepare` time, so a literal pointing at the build-
+        // generated whats-new.json typechecks locally after a build
+        // but fails in CI on a fresh checkout.
+        const response = await fetch("/whats-new.json");
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
