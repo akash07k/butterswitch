@@ -66,9 +66,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <h2 id="error-details-heading" className="sr-only">
               Error details
             </h2>
+            {/* tabIndex={0} on a non-interactive region is required by WCAG 2.1.1: */}
+            {/* a scrollable container must be reachable via keyboard so users can */}
+            {/* arrow-scroll its overflow content. Pairs with role=region + label.  */}
             <pre
-              className="text-sm bg-muted p-3 rounded overflow-auto max-h-40"
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              tabIndex={0}
+              role="region"
               aria-labelledby="error-details-heading"
+              className="text-sm bg-muted p-3 rounded overflow-auto max-h-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {this.state.error?.message ?? "Unknown error"}
             </pre>
