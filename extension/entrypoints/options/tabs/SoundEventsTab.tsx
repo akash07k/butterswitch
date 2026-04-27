@@ -296,7 +296,7 @@ export function SoundEventsTab() {
 
         {/* Tier filter */}
         <fieldset className="flex gap-4 items-center border-0 p-0 m-0">
-          <legend className="text-sm font-medium">Show:</legend>
+          <legend className="text-sm font-medium">Tier</legend>
           {TIER_OPTIONS.map((option) => (
             <label key={option.value} className="flex items-center gap-1.5 text-sm">
               <input
@@ -305,7 +305,7 @@ export function SoundEventsTab() {
                 value={option.value}
                 checked={tierFilter === option.value}
                 onChange={() => handleTierChange(option.value)}
-                className="w-4 h-4"
+                className="w-4 h-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               />
               {option.label}
             </label>
