@@ -97,12 +97,26 @@ function escapeHtml(text) {
 }
 
 /**
+ * Allow only URL schemes that cannot execute script: https, http,
+ * mailto, fragment-only references, and relative paths. Anything
+ * else (notably `javascript:`, `data:`, `vbscript:`) is rejected.
+ */
+function isSafeUrl(url) {
+  if (!url) return false;
+  if (url.startsWith("#")) return true;
+  if (url.startsWith("/") || url.startsWith("./") || url.startsWith("../")) return true;
+  return /^(https?|mailto):/i.test(url);
+}
+
+/**
  * Apply inline markdown transformations to a single line. Order:
  * escape HTML first so user content cannot inject tags, then layer
  * in the trusted tags we generate (code, strong, em, a, img).
  *
  * Images are converted before links so `![alt](src)` does not get
- * picked up by the `[text](url)` link rule.
+ * picked up by the `[text](url)` link rule. Both link href and
+ * image src run through `isSafeUrl`; rejected URLs are replaced
+ * with `#` so the link text still renders.
  */
 function inlineMarkdown(text) {
   return escapeHtml(text)
@@ -110,12 +124,13 @@ function inlineMarkdown(text) {
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, "$1<em>$2</em>")
     .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_match, alt, src) => {
-      return `<img src="${src}" alt="${alt}">`;
+      const safeSrc = isSafeUrl(src) ? src : "#";
+      return `<img src="${safeSrc}" alt="${alt}">`;
     })
-    .replace(
-      /\[([^\]]+)\]\(([^)\s]+)\)/g,
-      '<a href="$2" rel="noopener noreferrer">$1</a>',
-    );
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_match, label, url) => {
+      const safeUrl = isSafeUrl(url) ? url : "#";
+      return `<a href="${safeUrl}" rel="noopener noreferrer">${label}</a>`;
+    });
 }
 
 /**
