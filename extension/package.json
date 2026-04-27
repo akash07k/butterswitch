@@ -26,6 +26,7 @@
     "release:dry": "release-it --dry-run",
     "release:push": "git push --follow-tags origin main",
     "do-release": "pnpm release && pnpm release:push",
+    "pretypecheck": "node scripts/build-whats-new.mjs",
     "typecheck": "tsc --noEmit",
     "prepare:clean-types": "node scripts/prepare-clean-types.mjs",
     "lint": "eslint .",

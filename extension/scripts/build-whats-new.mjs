@@ -3,10 +3,11 @@
  * @file build-whats-new.mjs
  *
  * Build-time script that extracts the current version's section from
- * the repo CHANGELOG.md and writes it as HTML to
- * extension/public/whats-new.json. The What's New page entrypoint
- * fetches this JSON at runtime when the user opens it after an
- * extension update.
+ * the repo CHANGELOG.md and writes it as a TypeScript module to
+ * extension/entrypoints/whats-new/whats-new.generated.ts. The
+ * What's New page imports the module statically, so the release
+ * notes are inlined into the page bundle at build time and there is
+ * no runtime fetch.
  *
  * Why build-time and not runtime markdown parsing:
  *   - Avoids shipping a markdown library inside the extension bundle.
@@ -14,8 +15,9 @@
  *     subset (headings, lists, links, bold, inline code), so a small
  *     hand-rolled converter covers every shape we expect.
  *
- * Output shape:
- *   { version: string, html: string, generatedAt: string (ISO date) }
+ * Output shape (TypeScript module):
+ *   export interface WhatsNewPayload { version: string; html: string; generatedAt: string; }
+ *   export const WHATS_NEW: WhatsNewPayload = { ... };
  *
  * Behaviour when the version section is missing (e.g., the release
  * has not been written to CHANGELOG.md yet): the script writes a
@@ -32,8 +34,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..", "..");
 const CHANGELOG_PATH = resolve(REPO_ROOT, "CHANGELOG.md");
 const PACKAGE_JSON_PATH = resolve(REPO_ROOT, "extension", "package.json");
-const OUTPUT_DIR = resolve(REPO_ROOT, "extension", "public");
-const OUTPUT_PATH = resolve(OUTPUT_DIR, "whats-new.json");
+const OUTPUT_DIR = resolve(REPO_ROOT, "extension", "entrypoints", "whats-new");
+const OUTPUT_PATH = resolve(OUTPUT_DIR, "whats-new.generated.ts");
 
 /** Read the version string from extension/package.json. */
 function readExtensionVersion() {
@@ -239,12 +241,24 @@ function main() {
     mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  const payload = {
-    version,
-    html,
-    generatedAt: new Date().toISOString(),
-  };
-  writeFileSync(OUTPUT_PATH, JSON.stringify(payload, null, 2) + "\n", "utf8");
+  const generatedAt = new Date().toISOString();
+  const module = [
+    "// GENERATED FILE — do not edit. Source: CHANGELOG.md, generator: extension/scripts/build-whats-new.mjs",
+    "",
+    "export interface WhatsNewPayload {",
+    "  version: string;",
+    "  html: string;",
+    "  generatedAt: string;",
+    "}",
+    "",
+    "export const WHATS_NEW: WhatsNewPayload = {",
+    `  version: ${JSON.stringify(version)},`,
+    `  html: ${JSON.stringify(html)},`,
+    `  generatedAt: ${JSON.stringify(generatedAt)},`,
+    "};",
+    "",
+  ].join("\n");
+  writeFileSync(OUTPUT_PATH, module, "utf8");
   process.stdout.write(
     `[build-whats-new] Wrote ${OUTPUT_PATH} (version ${version}, ${html.length} chars)\n`,
   );
