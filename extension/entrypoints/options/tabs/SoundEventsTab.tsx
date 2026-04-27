@@ -206,7 +206,7 @@ export function SoundEventsTab() {
 
   /** Toggle an event's enabled state. */
   const handleToggle = (event: EventDefinition, checked: boolean) => {
-    const updated = { ...configs[event.id]!, enabled: checked };
+    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), enabled: checked };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
     saveEventConfig(event.id, updated);
     announce(`${event.label} ${checked ? "enabled" : "disabled"}`, "polite");
@@ -215,28 +215,28 @@ export function SoundEventsTab() {
   /** Update volume UI state on drag (does NOT save to storage yet). */
   const handleVolume = (event: EventDefinition, values: number[]) => {
     const volume = values[0] ?? 100;
-    const updated = { ...configs[event.id]!, volume };
+    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), volume };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
   };
 
   /** Save volume to storage when slider is released. */
   const handleVolumeCommit = (event: EventDefinition, values: number[]) => {
     const volume = values[0] ?? 100;
-    const updated = { ...configs[event.id]!, volume };
+    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), volume };
     saveEventConfig(event.id, updated);
   };
 
   /** Update pitch UI state on drag (does NOT save to storage yet). */
   const handlePitch = (event: EventDefinition, values: number[]) => {
     const pitch = values[0] ?? 1.0;
-    const updated = { ...configs[event.id]!, pitch };
+    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), pitch };
     setConfigs((prev) => ({ ...prev, [event.id]: updated }));
   };
 
   /** Save pitch to storage when slider is released. */
   const handlePitchCommit = (event: EventDefinition, values: number[]) => {
     const pitch = values[0] ?? 1.0;
-    const updated = { ...configs[event.id]!, pitch };
+    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), pitch };
     saveEventConfig(event.id, updated);
   };
 
