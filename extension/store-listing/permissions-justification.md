@@ -61,4 +61,4 @@ Chrome's MV3 service worker has no DOM and cannot play audio directly. ButterSwi
 
 ## No host permissions
 
-ButterSwitch does not request `host_permissions` or any "access all websites" permission. It cannot read page content, inject scripts, observe network requests, or see form data. The `web_accessible_resources` entry only exposes the extension's own bundled sound files (`sounds/**/*.ogg`) to web pages - necessary because Chrome serves audio files to any requesting frame; nothing about user content flows out.
+ButterSwitch does not request `host_permissions` or any "access all websites" permission. It cannot read page content, inject scripts, observe network requests, or see form data.
