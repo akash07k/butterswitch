@@ -99,13 +99,19 @@ function escapeHtml(text) {
 /**
  * Apply inline markdown transformations to a single line. Order:
  * escape HTML first so user content cannot inject tags, then layer
- * in the trusted tags we generate (code, strong, em, a).
+ * in the trusted tags we generate (code, strong, em, a, img).
+ *
+ * Images are converted before links so `![alt](src)` does not get
+ * picked up by the `[text](url)` link rule.
  */
 function inlineMarkdown(text) {
   return escapeHtml(text)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, "$1<em>$2</em>")
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_match, alt, src) => {
+      return `<img src="${src}" alt="${alt}">`;
+    })
     .replace(
       /\[([^\]]+)\]\(([^)\s]+)\)/g,
       '<a href="$2" rel="noopener noreferrer">$1</a>',
@@ -126,6 +132,8 @@ function markdownToHtml(markdown) {
   const out = [];
   let listType = null;
   let inPara = false;
+  let inCodeBlock = false;
+  let codeLines = [];
 
   const closeList = () => {
     if (listType) {
@@ -142,6 +150,26 @@ function markdownToHtml(markdown) {
 
   for (const raw of lines) {
     const line = raw.trimEnd();
+
+    // Fenced code block delimiter: ``` optionally followed by a
+    // language hint. The hint is dropped — content between fences
+    // renders as a plain <pre><code> with HTML-escaped text.
+    if (/^```/.test(line)) {
+      if (inCodeBlock) {
+        out.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+        codeLines = [];
+        inCodeBlock = false;
+      } else {
+        closePara();
+        closeList();
+        inCodeBlock = true;
+      }
+      continue;
+    }
+    if (inCodeBlock) {
+      codeLines.push(escapeHtml(raw));
+      continue;
+    }
 
     if (!line.trim()) {
       closePara();
@@ -192,6 +220,9 @@ function markdownToHtml(markdown) {
     out.push(inlineMarkdown(line));
   }
 
+  if (inCodeBlock) {
+    out.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+  }
   closePara();
   closeList();
   return out.join("\n").replace(/<p>\n/g, "<p>");
