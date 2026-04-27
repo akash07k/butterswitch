@@ -37,6 +37,7 @@ import { BrowserSettingsStore } from "../core/settings/browser-store.js";
 import { DEFAULT_SETTINGS } from "../core/settings/defaults.js";
 import { detectPlatform } from "../shared/platform/detect.js";
 import { soundEngineModule } from "../modules/sound-engine/index.js";
+import { EVENT_REGISTRY_BY_ID } from "../modules/sound-engine/event-registry.js";
 import { CONFIG } from "../config/index.js";
 import type { AudioBackend } from "../modules/sound-engine/audio-backends/types.js";
 import type { ModuleContext } from "../core/module-system/types.js";
@@ -377,8 +378,7 @@ export default defineBackground(() => {
         return { success: false, error: "Sound engine not initialized" };
       }
 
-      const { EVENT_REGISTRY } = await import("../modules/sound-engine/event-registry.js");
-      const eventDef = EVENT_REGISTRY.find((e) => e.id === eventId);
+      const eventDef = EVENT_REGISTRY_BY_ID.get(eventId);
       if (!eventDef) {
         return { success: false, error: `Unknown event: ${eventId}` };
       }
