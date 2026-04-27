@@ -292,13 +292,17 @@ export function SoundEventsTab() {
     }
   };
 
-  /** Handle tier filter change. */
+  /** Handle tier filter change.
+   *
+   * Clears the live-region count first so the polite queue is empty
+   * when the debounced count update fires. Without the reset the
+   * tier-change announcement and the count update can race in the
+   * NVDA polite queue and one drops on the floor. The count change
+   * alone tells the user what just happened ("20 of 20 useful events
+   * match"), so no separate "Filter: ..." announcement is needed. */
   const handleTierChange = (value: string) => {
+    setAnnouncedMatchCount(null);
     setTierFilter(value);
-    const option = TIER_OPTIONS.find((o) => o.value === value);
-    if (option) {
-      announce(`Filter: ${option.label}`, "polite");
-    }
   };
 
   return (
