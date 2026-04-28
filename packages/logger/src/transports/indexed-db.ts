@@ -35,8 +35,14 @@ export class IndexedDBTransport implements Transport {
    * on a near-cap store would write up to 99 entries past the cap
    * before the modulo-100 rotation check fires. The probe runs once
    * on the first `log()` and anchors `writeCount` to the actual count.
+   *
+   * Stored as a promise so concurrent callers all await the same probe
+   * — without this gate, two parallel `log()` calls would both see an
+   * unseeded `writeCount`, both kick off a probe, and the second
+   * caller's increment could be clobbered when the first caller's
+   * probe result lands.
    */
-  private writeCountSeeded = false;
+  private seedPromise: Promise<void> | null = null;
 
   /**
    * Persist a log entry to IndexedDB.
@@ -50,14 +56,20 @@ export class IndexedDBTransport implements Transport {
     // Seed writeCount from the real store population on the first
     // write after construction. Any error here is non-fatal — fall
     // back to counting from zero, the rotation cap is soft anyway.
-    if (!this.writeCountSeeded) {
-      this.writeCountSeeded = true;
-      try {
-        this.writeCount = await this.countEntries(db);
-      } catch {
-        this.writeCount = 0;
-      }
+    // The promise is shared across concurrent callers so only one
+    // probe runs and every increment stacks on top of the seeded
+    // value rather than racing it.
+    if (this.seedPromise === null) {
+      this.seedPromise = this.countEntries(db).then(
+        (count) => {
+          this.writeCount = count;
+        },
+        () => {
+          this.writeCount = 0;
+        },
+      );
     }
+    await this.seedPromise;
 
     await this.put(db, entry);
 

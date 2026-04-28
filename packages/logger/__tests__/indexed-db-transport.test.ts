@@ -110,6 +110,33 @@ describe("IndexedDBTransport", () => {
     expect(count).toBe(2);
   });
 
+  it("serialises seeding so concurrent log() calls do not lose increments", async () => {
+    // Pre-populate the store via a first instance, then dispose it so
+    // a fresh transport (the one under test) hits the seeding path.
+    const sharedDbName = `concurrent-seed-${Date.now()}`;
+
+    const seeder = new IndexedDBTransport({ dbName: sharedDbName, maxEntries: 1000 });
+    for (let i = 0; i < 10; i++) {
+      await seeder.log(makeEntry({ message: `seed-${i}` }));
+    }
+    expect(await seeder.count()).toBe(10);
+    await seeder.dispose();
+
+    // Fire two log() calls in parallel against a fresh instance so they
+    // both reach the seeding gate before the probe resolves. The bug
+    // fixed here would have the second caller increment writeCount
+    // before the first caller's probe wrote the seeded value back,
+    // dropping the store count by one.
+    const reopened = new IndexedDBTransport({ dbName: sharedDbName, maxEntries: 1000 });
+    await Promise.all([
+      reopened.log(makeEntry({ message: "concurrent-a" })),
+      reopened.log(makeEntry({ message: "concurrent-b" })),
+    ]);
+
+    expect(await reopened.count()).toBe(12);
+    await reopened.dispose();
+  });
+
   it("seeds writeCount from store population so rotation fires on cold start", async () => {
     // Simulate a service worker that wrote 99 entries, slept, and
     // woke up. The dbName is shared across both instances so
