@@ -176,6 +176,21 @@ describe("child logger", () => {
     expect(transport.log).toHaveBeenCalledTimes(1);
   });
 
+  it("child dispose does not close parent transports", async () => {
+    const logger = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
+    const child = logger.child({ tag: "ui" });
+
+    await child.dispose();
+
+    // Parent still owns the transport — disposing the child must not
+    // call dispose() on it. The parent should keep writing normally.
+    expect(transport.dispose).not.toHaveBeenCalled();
+
+    logger.info("after child dispose");
+    expect(transport.entries).toHaveLength(1);
+    expect(transport.entries[0]!.message).toBe("after child dispose");
+  });
+
   it("grandchild stops writing once any ancestor is disposed", async () => {
     const root = createLogger({ level: LogLevel.DEBUG, transports: [transport] });
     const child = root.child({ tag: "a" });

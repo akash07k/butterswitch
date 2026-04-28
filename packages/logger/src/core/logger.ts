@@ -102,6 +102,12 @@ class LoggerImpl implements Logger {
   async dispose(): Promise<void> {
     if (this.disposed) return;
     this.disposed = true;
+    // Children share their transports with the parent (shallow-copied
+    // by `child()`). A child disposing would close the parent's IDB
+    // connection or WebSocket out from under it. Only the root logger
+    // owns its transports; children just flip their `disposed` flag
+    // so subsequent writes are gated by the parent-chain check.
+    if (this.parent !== null) return;
     await Promise.all(this.transports.map((t) => t.dispose?.()));
   }
 
