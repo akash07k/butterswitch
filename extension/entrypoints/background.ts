@@ -385,6 +385,31 @@ export default defineBackground(() => {
           break;
         }
 
+        case "toggle-mute-when-blurred": {
+          const stored = await browser.storage.local.get("general.muteWhenBlurred");
+          const current =
+            (stored["general.muteWhenBlurred"] as boolean | undefined) ??
+            DEFAULT_SETTINGS.general.muteWhenBlurred;
+          const next = !current;
+          await browser.storage.local.set({ "general.muteWhenBlurred": next });
+          logger.info(`Mute when unfocused toggled: ${current} -> ${next}`);
+
+          try {
+            await browser.notifications.create({
+              type: "basic",
+              iconUrl: browser.runtime.getURL("/icon/128.png"),
+              title: "ButterSwitch",
+              message: `Mute when unfocused: ${next ? "enabled" : "disabled"}`,
+            });
+          } catch (e) {
+            logger.error(
+              "Failed to show mute-when-unfocused notification",
+              e instanceof Error ? e : undefined,
+            );
+          }
+          break;
+        }
+
         case "open-options": {
           browser.runtime.openOptionsPage();
           logger.info("Opened options page via shortcut");

@@ -67,6 +67,10 @@ export default defineConfig({
         suggested_key: { default: "Alt+M" },
         description: "Toggle sound mute on/off",
       },
+      "toggle-mute-when-blurred": {
+        suggested_key: { default: "Alt+Shift+M" },
+        description: "Toggle muting sounds when browser is unfocused",
+      },
       "open-options": {
         suggested_key: { default: "Alt+Shift+O" },
         description: "Open ButterSwitch options page",
