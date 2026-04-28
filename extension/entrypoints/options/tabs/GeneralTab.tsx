@@ -28,6 +28,7 @@ import { announce } from "@/shared/a11y/announcer";
 /** General settings tab — master volume, mute, theme selector, and module toggles. */
 export function GeneralTab() {
   const [muted, setMuted] = useState(false);
+  const [muteWhenBlurred, setMuteWhenBlurred] = useState(false);
   const [volume, setVolume] = useState(80);
   const [activeTheme, setActiveTheme] = useState(DEFAULT_THEME_ID);
   const [soundEngineEnabled, setSoundEngineEnabled] = useState(true);
@@ -59,12 +60,15 @@ export function GeneralTab() {
       try {
         const stored = await browser.storage.local.get([
           "general.muted",
+          "general.muteWhenBlurred",
           "general.masterVolume",
           "general.activeTheme",
           "general.enabledModules",
           "general.showWhatsNewOnUpdate",
         ]);
         if (stored["general.muted"] !== undefined) setMuted(stored["general.muted"] as boolean);
+        if (stored["general.muteWhenBlurred"] !== undefined)
+          setMuteWhenBlurred(stored["general.muteWhenBlurred"] as boolean);
         if (stored["general.masterVolume"] !== undefined)
           setVolume(stored["general.masterVolume"] as number);
         if (stored["general.activeTheme"] !== undefined)
@@ -94,6 +98,16 @@ export function GeneralTab() {
     const newMuted = !checked;
     setMuted(newMuted);
     saveSetting("general.muted", newMuted, newMuted ? "All sounds muted" : "Sounds unmuted");
+  };
+
+  /** Toggle "mute when browser is unfocused". */
+  const handleMuteWhenBlurredChange = (checked: boolean) => {
+    setMuteWhenBlurred(checked);
+    saveSetting(
+      "general.muteWhenBlurred",
+      checked,
+      checked ? "Mute when unfocused enabled" : "Mute when unfocused disabled",
+    );
   };
 
   /** Update volume UI state on drag (does NOT save to storage yet). */
@@ -152,6 +166,23 @@ export function GeneralTab() {
         <div className="flex items-center justify-between">
           <Label htmlFor="mute-toggle">Sound</Label>
           <Switch id="mute-toggle" checked={!muted} onCheckedChange={handleMuteChange} />
+        </div>
+
+        {/* Mute when browser is unfocused */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="mute-when-blurred-toggle">Mute when browser is unfocused</Label>
+            <p id="mute-when-blurred-desc" className="text-sm text-muted-foreground">
+              Stop playing sounds when you switch to another application. Sounds resume when you
+              return to the browser.
+            </p>
+          </div>
+          <Switch
+            id="mute-when-blurred-toggle"
+            aria-describedby="mute-when-blurred-desc"
+            checked={muteWhenBlurred}
+            onCheckedChange={handleMuteWhenBlurredChange}
+          />
         </div>
 
         {/* Volume */}
@@ -261,12 +292,14 @@ export function GeneralTab() {
           variant="destructive"
           onClick={() => {
             setMuted(false);
+            setMuteWhenBlurred(false);
             setVolume(80);
             setActiveTheme(DEFAULT_THEME_ID);
             setSoundEngineEnabled(true);
             setShowWhatsNewOnUpdate(true);
             browser.storage.local.set({
               "general.muted": false,
+              "general.muteWhenBlurred": false,
               "general.masterVolume": 80,
               "general.activeTheme": DEFAULT_THEME_ID,
               "general.enabledModules": ["sound-engine"],
@@ -298,6 +331,7 @@ export function GeneralTab() {
           onClick={async () => {
             await browser.storage.local.clear();
             setMuted(false);
+            setMuteWhenBlurred(false);
             setVolume(80);
             setActiveTheme(DEFAULT_THEME_ID);
             setSoundEngineEnabled(true);
