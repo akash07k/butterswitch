@@ -6,7 +6,7 @@ import {
   unlinkSync,
   existsSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, relative, isAbsolute } from "node:path";
 import { homedir } from "node:os";
 import type { LogEntry } from "./types.js";
 
@@ -99,8 +99,14 @@ export class SessionStore {
   loadSession(filename: string): LogEntry[] {
     const filePath = resolve(this.logDir, filename);
 
-    // Prevent path traversal — resolved path must stay within logDir
-    if (!filePath.startsWith(resolve(this.logDir))) return [];
+    // Prevent path traversal — resolved path must stay within logDir.
+    // A startsWith check would let `../sessions-evil/x.jsonl` slip through
+    // when logDir is `.../sessions` because the sibling shares the prefix.
+    // path.relative returns a `..`-prefixed (or absolute) string when the
+    // target is outside the base, which catches the sibling case too.
+    const resolvedBase = resolve(this.logDir);
+    const rel = relative(resolvedBase, filePath);
+    if (rel.startsWith("..") || isAbsolute(rel)) return [];
 
     if (!existsSync(filePath)) return [];
 

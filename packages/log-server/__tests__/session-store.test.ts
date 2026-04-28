@@ -1,5 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { existsSync, rmSync, readFileSync, appendFileSync } from "node:fs";
+import {
+  existsSync,
+  rmSync,
+  readFileSync,
+  appendFileSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { SessionStore } from "../src/session-store.js";
@@ -136,6 +143,24 @@ describe("SessionStore", () => {
     // Absolute paths should also be rejected — resolve() would keep them
     // intact, so the startsWith check must catch them.
     expect(store.loadSession("/etc/passwd")).toEqual([]);
+  });
+
+  it("rejects sibling-directory paths that share the logDir prefix", () => {
+    // Regression: a `startsWith(resolvedLogDir)` traversal check would
+    // wrongly accept a sibling like `<logDir>-evil/x.jsonl` because the
+    // sibling path begins with the logDir string. path.relative catches
+    // this — `relative("/foo/sessions", "/foo/sessions-evil/x.jsonl")`
+    // returns `"../sessions-evil/x.jsonl"`, which is rejected.
+    const baseDir = tempDir();
+    const logDir = `${baseDir}-base`;
+    const siblingDir = `${baseDir}-base-evil`;
+    dirs.push(logDir, siblingDir);
+
+    mkdirSync(siblingDir, { recursive: true });
+    writeFileSync(join(siblingDir, "leak.jsonl"), '{"sneaky":"value"}\n');
+
+    const store = new SessionStore({ logDir });
+    expect(store.loadSession("../" + "base-evil/leak.jsonl")).toEqual([]);
   });
 
   it("skips malformed JSONL lines when loading a session", () => {

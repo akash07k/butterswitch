@@ -6,7 +6,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
-import { join, extname, resolve } from "node:path";
+import { join, extname, resolve, relative, isAbsolute } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { LogEntry } from "./types.js";
 import type { SessionStore } from "./session-store.js";
@@ -266,10 +266,15 @@ export class LogServer extends EventEmitter {
     const url = reqUrl === "/" ? "/index.html" : reqUrl;
     const filePath = join(this.config.webDir, url);
 
-    // Path traversal protection — ensure resolved path stays within webDir
+    // Path traversal protection — ensure resolved path stays within webDir.
+    // A startsWith check would let a sibling directory with the same prefix
+    // slip through (e.g., webDir `.../web` vs requested `.../web-evil/x`).
+    // path.relative returns a `..`-prefixed (or absolute) string when the
+    // target is outside the base, which catches the sibling case too.
     const resolvedPath = resolve(filePath);
     const resolvedWebDir = resolve(this.config.webDir);
-    if (!resolvedPath.startsWith(resolvedWebDir)) {
+    const rel = relative(resolvedWebDir, resolvedPath);
+    if (rel.startsWith("..") || isAbsolute(rel)) {
       res.writeHead(403, { "Content-Type": "text/plain" });
       res.end("Forbidden");
       return;
