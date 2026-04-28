@@ -238,7 +238,13 @@ export function SoundEventsTab() {
           // re-render with the previous config so the visual toggle
           // snaps back, and tell the user assertively because the
           // visible toggle just lied to them.
-          setConfigs((prev) => ({ ...prev, [event.id]: { ...prev[event.id]! } }));
+          // `prev[event.id]` may be undefined if the toggle fires before
+          // the load effect resolves; fall back to defaults so the entry
+          // still has enabled/volume/pitch after the revert.
+          setConfigs((prev) => ({
+            ...prev,
+            [event.id]: { ...(prev[event.id] ?? getEventDefaults(event.id)) },
+          }));
           announce(
             `${event.label} requires the ${needed.join(", ")} permission. Not enabled.`,
             "assertive",
