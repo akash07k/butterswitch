@@ -13,13 +13,13 @@ Store-listing copy lives in [`extension/store-listing/`](./extension/store-listi
 
 ## What it does
 
-64 browser events across three tiers: 25 essential (on by default), 37 useful (opt-in), and 2 advanced (power users). Every event has its own enable toggle, volume slider, pitch slider, and preview button.
+65 browser events across three tiers: 26 essential (on by default), 37 useful (opt-in), and 2 advanced (power users). Every event has its own enable toggle, volume slider, pitch slider, and preview button.
 
-The Pulse sound theme ships built in. Adding new themes is supported; the format is in [`docs/sound-themes.md`](./docs/sound-themes.md).
+The Pulse sound theme ships built in. The theme format is documented in [`docs/sound-themes.md`](./docs/sound-themes.md) for future authoring; in-extension theme import is planned for a future release.
 
 A global cooldown (~150 ms) prevents cascading sounds from a single user action. Per-event debounce handles rapid-fire duplicates. Higher-priority events can preempt lower-priority cues already in the cooldown window.
 
-Keyboard shortcuts: Alt+M to toggle mute, Alt+Shift+O to open options (both global). Inside the options page: Alt+T cycles themes, Shift+? reads a help announcement.
+Keyboard shortcuts: Alt+M to toggle mute, Alt+Shift+M to mute when the browser is unfocused, Alt+Shift+U to open options (all global). Inside the options page: Alt+T cycles themes, Shift+? reads a help announcement.
 
 ## Privacy
 
