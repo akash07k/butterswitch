@@ -109,6 +109,13 @@ export function SoundEventsTab() {
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("1");
   const [configs, setConfigs] = useState<Record<string, EventConfig>>({});
+  // Mirror of `configs` for handlers that need the latest value without
+  // capturing a stale closure (e.g., a slider commit firing after a
+  // toggle that flipped `enabled` in the same render cycle).
+  const configsRef = useRef(configs);
+  useEffect(() => {
+    configsRef.current = configs;
+  }, [configs]);
   const [confirmReset, setConfirmReset] = useState(false);
   const confirmResetRef = useRef<HTMLButtonElement>(null);
   // Debounced result count for the screen-reader live-region (see render below).
@@ -240,38 +247,53 @@ export function SoundEventsTab() {
         }
       }
     }
-    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), enabled: checked };
-    setConfigs((prev) => ({ ...prev, [event.id]: updated }));
-    saveEventConfig(event.id, updated);
+    setConfigs((prev) => {
+      const current = prev[event.id] ?? getEventDefaults(event.id);
+      const updated = { ...current, enabled: checked };
+      // Persist inside the setter so the write sees the freshest config
+      // even if a concurrent slider update landed between render and here.
+      // saveEventConfig is idempotent (same key → same value), so a
+      // strict-mode double-invoke is safe.
+      saveEventConfig(event.id, updated);
+      return { ...prev, [event.id]: updated };
+    });
     announce(`${event.label} ${checked ? "enabled" : "disabled"}`, "polite");
   };
 
   /** Update volume UI state on drag (does NOT save to storage yet). */
   const handleVolume = (event: EventDefinition, values: number[]) => {
     const volume = values[0] ?? 100;
-    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), volume };
-    setConfigs((prev) => ({ ...prev, [event.id]: updated }));
+    setConfigs((prev) => {
+      const current = prev[event.id] ?? getEventDefaults(event.id);
+      return { ...prev, [event.id]: { ...current, volume } };
+    });
   };
 
   /** Save volume to storage when slider is released. */
   const handleVolumeCommit = (event: EventDefinition, values: number[]) => {
     const volume = values[0] ?? 100;
-    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), volume };
-    saveEventConfig(event.id, updated);
+    // Read from the ref so we get the latest enabled/pitch values, even
+    // if a concurrent state update hasn't been reflected in this closure.
+    const current = configsRef.current[event.id] ?? getEventDefaults(event.id);
+    saveEventConfig(event.id, { ...current, volume });
   };
 
   /** Update pitch UI state on drag (does NOT save to storage yet). */
   const handlePitch = (event: EventDefinition, values: number[]) => {
     const pitch = values[0] ?? 1.0;
-    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), pitch };
-    setConfigs((prev) => ({ ...prev, [event.id]: updated }));
+    setConfigs((prev) => {
+      const current = prev[event.id] ?? getEventDefaults(event.id);
+      return { ...prev, [event.id]: { ...current, pitch } };
+    });
   };
 
   /** Save pitch to storage when slider is released. */
   const handlePitchCommit = (event: EventDefinition, values: number[]) => {
     const pitch = values[0] ?? 1.0;
-    const updated = { ...(configs[event.id] ?? getEventDefaults(event.id)), pitch };
-    saveEventConfig(event.id, updated);
+    // Read from the ref so we get the latest enabled/volume values, even
+    // if a concurrent state update hasn't been reflected in this closure.
+    const current = configsRef.current[event.id] ?? getEventDefaults(event.id);
+    saveEventConfig(event.id, { ...current, pitch });
   };
 
   /** Preview an event's sound. */
