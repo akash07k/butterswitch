@@ -261,15 +261,19 @@ export default defineBackground(() => {
         sender: chrome.runtime.MessageSender,
         sendResponse: (response: unknown) => void,
       ) => {
-        // Reject anything that originates from a tab — content scripts
-        // and web pages always carry a sender.tab, while extension
-        // contexts (popup, options, offscreen) do not. ButterSwitch
-        // ships no content scripts, so any tab-originated message is
-        // either another extension probing this background or a page
-        // that escalated to talk to it. Either way, none of the LOG /
-        // CONNECT_LOG_SERVER / PREVIEW_SOUND / EXPORT_LOGS / CLEAR_LOGS
-        // handlers are appropriate for that caller.
-        if (sender.tab !== undefined) {
+        // Reject anything from another extension. ButterSwitch ships no
+        // content scripts and isn't externally_connectable, so messages
+        // whose sender.id doesn't match our own runtime id come from a
+        // foreign extension probing this background. Drop them; none of
+        // the LOG / CONNECT_LOG_SERVER / PREVIEW_SOUND / EXPORT_LOGS /
+        // CLEAR_LOGS handlers should serve a foreign caller.
+        //
+        // Do NOT guard on `sender.tab !== undefined` here: WXT defaults
+        // options_ui.open_in_tab to true, so the options page (the
+        // primary sender of these messages) renders inside a tab and
+        // therefore carries a sender.tab. Tab presence is not a trust
+        // signal; sender.id is.
+        if (sender.id !== browser.runtime.id) {
           return false;
         }
 
