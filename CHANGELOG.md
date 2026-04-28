@@ -2,6 +2,20 @@
 
 All notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.1.1 are released by hand; everything from v1.1.1 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.
 
+## [1.2.1](https://github.com/akash07k/butterswitch/compare/v1.2.0...v1.2.1) (2026-04-28)
+
+### Bug Fixes
+
+- **background:** register onInstalled synchronously to dodge MV3 race ([cba30e4](https://github.com/akash07k/butterswitch/commit/cba30e46d67fb87fabe06b8c63e48e23b18e550f))
+- **messaging:** trust by sender.id, not sender.tab ([89bdfee](https://github.com/akash07k/butterswitch/commit/89bdfee5d1d343f2b9bcab55ef734a1779718f40))
+- **release-it:** bump root package.json and stage CHANGELOG before commit ([8cebc2c](https://github.com/akash07k/butterswitch/commit/8cebc2ce416de151daabc40f75edfe0f1a3672a1))
+- **release:** read submission flags from secrets with sane defaults ([4976913](https://github.com/akash07k/butterswitch/commit/4976913396a1f2ff2e33dbe9bacc7a8a3c274f6d))
+- **whats-new:** include version in document title ([b720256](https://github.com/akash07k/butterswitch/commit/b720256b44f8e1bac5f32bffacd53d493ec03765))
+
+# Changelog
+
+All notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.1.1 are released by hand; everything from v1.1.1 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.
+
 ## [1.2.0](https://github.com/akash07k/butterswitch/compare/v1.1.0...v1.2.0) (2026-04-28)
 
 ### Features
