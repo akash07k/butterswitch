@@ -249,6 +249,12 @@ export default defineBackground(() => {
     settings: BrowserSettingsStore,
     idbTransport: IndexedDBTransport,
   ): void {
+    // Built once at setup time. The previous shape constructed a fresh
+    // child on every LOG message — a busy options page can fire dozens
+    // per second, each allocation copies the parent transports array
+    // and a new closure for the dispatch chain.
+    const uiLogger = logger.child({ tag: "ui" });
+
     browser.runtime.onMessage.addListener(
       (
         message: unknown,
@@ -275,7 +281,6 @@ export default defineBackground(() => {
             message: string;
             data?: Record<string, unknown>;
           };
-          const uiLogger = logger.child({ tag: "ui" });
           switch (logMsg.level) {
             case "debug":
               uiLogger.debug(logMsg.message, logMsg.data);
