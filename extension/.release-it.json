@@ -23,6 +23,7 @@
   "hooks": {
     "before:init": ["pnpm -r typecheck", "pnpm -w lint", "pnpm -w lint:md", "pnpm -r test"],
     "after:bump": "echo Version bumped to ${version}",
+    "before:release": "node scripts/release-bump-root.mjs",
     "after:release": "echo === === === === === === === === === === === ===\necho Released ${name} v${version} locally.\necho Tag v${version} is signed and ready.\necho \necho Next step (when you are ready):\necho   git push --follow-tags origin main\necho \necho That tag push fires .github/workflows/release.yml\necho which submits to Chrome Web Store and Firefox AMO.\necho === === === === === === === === === === === ==="
   },
   "plugins": {
