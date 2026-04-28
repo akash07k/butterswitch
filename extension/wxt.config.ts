@@ -72,7 +72,7 @@ export default defineConfig({
         description: "Toggle muting sounds when browser is unfocused",
       },
       "open-options": {
-        suggested_key: { default: "Alt+Shift+O" },
+        suggested_key: { default: "Alt+Shift+U" },
         description: "Open ButterSwitch options page",
       },
     },
