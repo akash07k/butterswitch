@@ -63,6 +63,13 @@ export default function App() {
     });
   }, []);
 
+  // Override the static fallback title from index.html with the
+  // current version so the browser tab label distinguishes this
+  // page from any other extension tabs the user has open.
+  useEffect(() => {
+    document.title = `What's new in ${EXTENSION_NAME} v${WHATS_NEW.version}`;
+  }, []);
+
   const handleClose = () => {
     window.close();
   };
