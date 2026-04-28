@@ -6,6 +6,16 @@ Reverse chronological (newest first).
 
 ---
 
+## Mute sounds when browser is unfocused
+
+A new `general.muteWhenBlurred` toggle (default off, exposed in the Sound Controls section of the General tab) tells the sound engine to suppress every cue while no browser window has focus. It composes with `general.muted` — either flag short-circuits the hot path. When the user comes back to the browser, mute-by-blur clears and normal cues resume; the `windows.onFocused` cue plays as the welcome-back signal if the user has that event enabled.
+
+The unfocus cue itself is part of "every cue", on purpose. The naive design lets `windows.onUnfocused` play once as a "you've left" signal and then goes silent. That sounds tidy on paper but the cue would be playing when the user has already moved focus out of the browser, which is exactly the situation they asked to be silent for. Full silence — including the unfocus cue — is the predictable behaviour. The state propagation that makes this work: `extension/modules/sound-engine/windows-focus-router.ts` exposes `onFocusStateChange(cb)` that fires inside the unfocused handler BEFORE the handler returns and the engine publishes the sound event. By the time `SoundEngineModule.handleBrowserEvent` sees the unfocus message, `this.browserFocused` is already `false` and the gate suppresses the cue.
+
+Extending the existing windows-focus-router rather than registering a separate `chrome.windows.onFocusChanged` listener keeps the WINDOW_ID_NONE debounce as the single source of truth for "did the user really leave the browser, or was that a Windows window-switch transient?". A second listener would either reimplement the same 150 ms debounce or fire `false` on every cross-window switch — both wrong. Subscribers are notified only on actual transitions; the initial state is `true` so a fresh subscribe does not fire.
+
+`Alt+Shift+M` is the global shortcut for toggling the new flag; the listener in `extension/entrypoints/background.ts` reads the current value, flips it, persists, and shows a basic browser notification with the new state. While we were touching the commands block, the long-standing `Alt+Shift+O` for opening the options page moved — first to `Alt+Shift+B`, then to `Alt+Shift+U` after `Alt+Shift+B` turned out to be silently captured before reaching the extension on both Chrome and Firefox (likely a Windows layout-switcher or WM-level intercept on common configs). `Alt+Shift+U` doesn't collide with any documented browser, OS, or third-party shortcut on the platforms we test against.
+
 ## management, cookies, and history declared as optional, requested at toggle time
 
 `management`, `cookies`, and `history` are declared under `optional_permissions` instead of the static `permissions` list. A fresh install therefore prompts only for the seven everyday permissions (`tabs`, `bookmarks`, `downloads`, `webNavigation`, `storage`, `notifications`, `idle`, plus `offscreen` on Chrome). Each of the three optional permissions is needed by exactly one cluster of Tier 2 events that ship disabled, and getting prompted up front for permissions the user may never enable is the kind of overreach store reviewers flag on audio extensions.
