@@ -44,6 +44,48 @@ import type { AudioBackend } from "../modules/sound-engine/audio-backends/types.
 import type { ModuleContext } from "../core/module-system/types.js";
 
 export default defineBackground(() => {
+  // Register the onInstalled listener synchronously at the very top
+  // of this callback. Chrome MV3 fires onInstalled while the service
+  // worker is starting up, and listeners registered after any await
+  // (e.g., inside the async bootstrap below) miss the event. Reads
+  // browser.storage.local directly because the settings store does
+  // not exist yet at this point in the lifecycle.
+  browser.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason === "install") {
+      browser.runtime.openOptionsPage();
+      console.log("[ButterSwitch] First install — opened options page for onboarding");
+      return;
+    }
+    if (details.reason !== "update") return;
+
+    const previousVersion = details.previousVersion;
+    const currentVersion = browser.runtime.getManifest().version;
+    if (!previousVersion || previousVersion === currentVersion) return;
+
+    const stored = await browser.storage.local.get("general.showWhatsNewOnUpdate");
+    const optedIn =
+      (stored["general.showWhatsNewOnUpdate"] as boolean | undefined) ??
+      DEFAULT_SETTINGS.general.showWhatsNewOnUpdate;
+    if (!optedIn) {
+      console.log(
+        `[ButterSwitch] Update ${previousVersion} -> ${currentVersion}; What's New disabled by user`,
+      );
+      return;
+    }
+
+    const url = browser.runtime.getURL(
+      `/whats-new.html?from=${encodeURIComponent(previousVersion)}`,
+    );
+    try {
+      await browser.tabs.create({ url });
+      console.log(
+        `[ButterSwitch] Update ${previousVersion} -> ${currentVersion}; opened What's New page`,
+      );
+    } catch (error) {
+      console.error("[ButterSwitch] Failed to open What's New tab:", error);
+    }
+  });
+
   /**
    * Bootstrap the extension — create all services and start modules.
    * Called from the synchronous defineBackground main function.
@@ -147,48 +189,12 @@ export default defineBackground(() => {
       // 10. Global keyboard shortcuts via browser.commands API
       setupCommandListener(logger);
 
-      // 11. onInstalled handler — first install opens the options page
-      //     for onboarding, version updates open the What's New page.
-      //     Both branches are mutually exclusive on details.reason, so
-      //     they share one listener. The update branch is gated on the
-      //     user setting general.showWhatsNewOnUpdate (default true) and
-      //     skipped when previousVersion equals the current version (some
-      //     reload paths fire onInstalled with reason="update" but no
-      //     real version bump).
-      browser.runtime.onInstalled.addListener(async (details) => {
-        if (details.reason === "install") {
-          browser.runtime.openOptionsPage();
-          logger.info("First install — opened options page for onboarding");
-          return;
-        }
-        if (details.reason !== "update") return;
-
-        const previousVersion = details.previousVersion;
-        const currentVersion = browser.runtime.getManifest().version;
-        if (!previousVersion || previousVersion === currentVersion) return;
-
-        const optedIn =
-          (await settings.get<boolean>("general.showWhatsNewOnUpdate")) ??
-          DEFAULT_SETTINGS.general.showWhatsNewOnUpdate;
-        if (!optedIn) {
-          logger.info(
-            `Update detected from ${previousVersion} to ${currentVersion}; What's New disabled by user`,
-          );
-          return;
-        }
-
-        const url = browser.runtime.getURL(
-          `/whats-new.html?from=${encodeURIComponent(previousVersion)}`,
-        );
-        try {
-          await browser.tabs.create({ url });
-          logger.info(
-            `Update detected from ${previousVersion} to ${currentVersion}; opened What's New page`,
-          );
-        } catch (error) {
-          logger.error("Failed to open What's New tab", error instanceof Error ? error : undefined);
-        }
-      });
+      // 11. onInstalled handler is registered synchronously at the top
+      //     of this defineBackground callback (above the bootstrap
+      //     definition) so the listener is in place before MV3 fires
+      //     the event during service-worker startup. Registering it
+      //     here, after several awaits, would race the event and miss
+      //     it on every install / update cycle.
 
       // 12. Clean up on service worker suspension.
       //     Dispose the settings store AFTER modules — modules may
