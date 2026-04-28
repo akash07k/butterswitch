@@ -20,6 +20,7 @@ export const CONFIG = {
     masterVolume: 80,
     activeTheme: "pulse",
     muted: false,
+    muteWhenBlurred: false,
     logLevel: LogLevel.INFO,
     logStreamEnabled: false,
     logServerUrl: "ws://localhost:8089",

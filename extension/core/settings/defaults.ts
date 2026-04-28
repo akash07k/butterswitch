@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: ButterSwitchSettings = {
     masterVolume: CONFIG.settings.masterVolume,
     activeTheme: CONFIG.settings.activeTheme,
     muted: CONFIG.settings.muted,
+    muteWhenBlurred: CONFIG.settings.muteWhenBlurred,
     logLevel: CONFIG.settings.logLevel,
     logStreamEnabled: CONFIG.settings.logStreamEnabled,
     logServerUrl: CONFIG.settings.logServerUrl,

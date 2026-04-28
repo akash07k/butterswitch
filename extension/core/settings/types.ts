@@ -36,6 +36,14 @@ export interface GeneralSettings {
   /** Global mute. When true, no sounds are played. */
   muted: boolean;
 
+  /**
+   * Suppress sounds while no browser window has focus. When true, the
+   * sound engine plays nothing while the user is in another application,
+   * including the `windows.onUnfocused` cue itself. Sounds resume when a
+   * browser window regains focus.
+   */
+  muteWhenBlurred: boolean;
+
   /** Minimum log level for the logger. */
   logLevel: LogLevel;
 
