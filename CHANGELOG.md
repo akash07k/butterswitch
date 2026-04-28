@@ -2,6 +2,20 @@
 
 All notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.1.1 are released by hand; everything from v1.1.1 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.
 
+## [1.3.0](https://github.com/akash07k/butterswitch/compare/v1.2.1...v1.3.0) (2026-04-28)
+
+### Features
+
+- **commands:** add Alt+Shift+M shortcut to toggle mute-when-unfocused ([278d6d4](https://github.com/akash07k/butterswitch/commit/278d6d43e24269ddd70c27094dd5f47a6244f005))
+- **general-tab:** add mute-when-unfocused toggle ([63dd2ec](https://github.com/akash07k/butterswitch/commit/63dd2ecf4ce1862c734e74a4e64b509530e6ef5c))
+- **settings:** add muteWhenBlurred toggle to general settings ([ff99b0b](https://github.com/akash07k/butterswitch/commit/ff99b0b3405046705460805828fcc1f4d3be1612))
+- **sound-engine:** expose focus state callback from window-focus router ([178763f](https://github.com/akash07k/butterswitch/commit/178763f651deacdd9eb7eb4760a0e51a41aeea84))
+- **sound-engine:** mute hot path when browser is unfocused ([db9726e](https://github.com/akash07k/butterswitch/commit/db9726e56e3c4e8e667ac3d2f2169838fe5e333d))
+
+# Changelog
+
+All notable changes to ButterSwitch are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and ButterSwitch adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries below v1.1.1 are released by hand; everything from v1.1.1 onward is generated from [Conventional Commits](https://conventionalcommits.org) by `release-it`.
+
 ## [1.2.1](https://github.com/akash07k/butterswitch/compare/v1.2.0...v1.2.1) (2026-04-28)
 
 ### Bug Fixes
