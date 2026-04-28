@@ -80,17 +80,23 @@ jobs:
       FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
       FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
       FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
-      # Optional submission flags. publish-extension would assume the
-      # same defaults if these were omitted, but listing them here keeps
-      # the submission posture (where it lands, whether it's reviewed,
-      # which AMO channel) visible in the workflow itself rather than
-      # buried in tool docs.
+      # Optional submission flags. Each reads from a GitHub secret of
+      # the same name when set, falling back to the documented default
+      # otherwise. Listing the defaults inline keeps the submission
+      # posture (where it lands, whether it's reviewed, which AMO
+      # channel) visible in the workflow itself, while still allowing
+      # operators to override per-repo via secrets without editing this
+      # file.
       #   CHROME_PUBLISH_TARGET=default     publish to public listing
-      #   CHROME_SKIP_SUBMIT_REVIEW=false   submit for review (not draft-only)
-      #   FIREFOX_CHANNEL=listed            public channel, not self-hosted
-      CHROME_PUBLISH_TARGET: default
-      CHROME_SKIP_SUBMIT_REVIEW: "false"
-      FIREFOX_CHANNEL: listed
+      #                                     (alt: "trustedTesters")
+      #   CHROME_SKIP_SUBMIT_REVIEW=false   submit for review (set the
+      #                                     secret to "true" to upload
+      #                                     as draft without review)
+      #   FIREFOX_CHANNEL=listed            public AMO channel
+      #                                     (alt: "unlisted" for self-host)
+      CHROME_PUBLISH_TARGET: ${{ secrets.CHROME_PUBLISH_TARGET || 'default' }}
+      CHROME_SKIP_SUBMIT_REVIEW: ${{ secrets.CHROME_SKIP_SUBMIT_REVIEW || 'false' }}
+      FIREFOX_CHANNEL: ${{ secrets.FIREFOX_CHANNEL || 'listed' }}
     steps:
       - uses: actions/checkout@v6
 
