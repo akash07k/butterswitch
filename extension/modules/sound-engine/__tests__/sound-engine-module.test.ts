@@ -20,6 +20,7 @@ import { SoundEngineModule } from "../index.js";
 import { BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "../event-engine.js";
 import { MessageBusImpl } from "../../../core/message-bus/bus.js";
 import { InMemorySettingsStore } from "../../../core/settings/store.js";
+import { CONFIG } from "../../../config/index.js";
 import type { AudioBackend, PlayResult } from "../audio-backends/types.js";
 import type { ModuleContext, PlatformInfo } from "../../../core/module-system/types.js";
 import type { Logger } from "@butterswitch/logger";
@@ -277,5 +278,141 @@ describe("SoundEngineModule integration", () => {
       // to the backend; 50% → 0.5
       expect.objectContaining({ volume: 0.5, rate: 1.5 }),
     );
+  });
+
+  describe("muteWhenBlurred", () => {
+    /**
+     * The hot-path mute-when-blurred gate reads `browserFocused`,
+     * which is fed by the windows-focus-router's onFocusStateChange
+     * callback. The router's handler is wired into the engine via
+     * EventEngine.registerAll(), which addsListener on
+     * `chrome.windows.onFocusChanged`. To drive the focus state from
+     * a test we extend the chrome/browser stub with a windows API
+     * that captures the registered listener, then invoke it directly.
+     */
+    function installWindowsApi(): {
+      fire: (windowId: number) => Promise<void>;
+    } {
+      const listeners: ((windowId: unknown) => void)[] = [];
+      const stub = (globalThis as unknown as { chrome: Record<string, unknown> }).chrome;
+      stub.windows = {
+        onFocusChanged: {
+          addListener: (fn: (windowId: unknown) => void) => listeners.push(fn),
+          removeListener: (fn: (windowId: unknown) => void) => {
+            const i = listeners.indexOf(fn);
+            if (i >= 0) listeners.splice(i, 1);
+          },
+        },
+      };
+      (globalThis as unknown as { browser: Record<string, unknown> }).browser.windows =
+        stub.windows;
+      return {
+        fire: async (windowId: number) => {
+          for (const fn of listeners) fn(windowId);
+          await drainMicrotasks();
+        },
+      };
+    }
+
+    const WINDOW_ID_NONE = -1;
+    const WINDOW_SWITCH_DEBOUNCE_MS = 150;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("suppresses when muteWhenBlurred=true and the browser is unfocused", async () => {
+      const { fire } = installWindowsApi();
+      await settings.set("general.muteWhenBlurred", true);
+      await module.initialize(context);
+      await module.activate();
+
+      // Drive a real unfocus through the router: WINDOW_ID_NONE then
+      // wait the full debounce. The router's onFocusStateChange
+      // callback flips `browserFocused` to false BEFORE the unfocus
+      // event publishes downstream.
+      await fire(WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await drainMicrotasks();
+      backend.plays.length = 0; // discard any unfocus cue from the router itself
+
+      // A normal browser event arrives while unfocused — must not play.
+      messageBus.publish(BROWSER_EVENT_CHANNEL, makeMessage("tabs.onCreated"));
+      await drainMicrotasks();
+
+      expect(backend.plays).toHaveLength(0);
+    });
+
+    it("emits while focused regardless of muteWhenBlurred", async () => {
+      installWindowsApi(); // initial state is focused; no events needed
+      await settings.set("general.muteWhenBlurred", true);
+      await module.initialize(context);
+      await module.activate();
+
+      messageBus.publish(BROWSER_EVENT_CHANNEL, makeMessage("tabs.onCreated"));
+      await drainMicrotasks();
+
+      expect(backend.plays).toHaveLength(1);
+    });
+
+    it("emits when muteWhenBlurred=false even while unfocused", async () => {
+      const { fire } = installWindowsApi();
+      // Default is false; spell it out for the reader.
+      await settings.set("general.muteWhenBlurred", false);
+      await module.initialize(context);
+      await module.activate();
+
+      await fire(WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await drainMicrotasks();
+      backend.plays.length = 0;
+
+      // The unfocus cue itself just played, lighting up the global
+      // cooldown. Step past it so the next event is not gated by the
+      // cooldown rather than by the focus state.
+      await vi.advanceTimersByTimeAsync(CONFIG.soundEngine.globalCooldownMs + 10);
+
+      messageBus.publish(BROWSER_EVENT_CHANNEL, makeMessage("tabs.onCreated"));
+      await drainMicrotasks();
+
+      expect(backend.plays).toHaveLength(1);
+    });
+
+    it("resumes emitting after focus returns", async () => {
+      const { fire } = installWindowsApi();
+      await settings.set("general.muteWhenBlurred", true);
+      await module.initialize(context);
+      await module.activate();
+
+      // Unfocus → settled → suppressed.
+      await fire(WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await drainMicrotasks();
+      backend.plays.length = 0;
+
+      messageBus.publish(BROWSER_EVENT_CHANNEL, makeMessage("tabs.onCreated"));
+      await drainMicrotasks();
+      expect(backend.plays).toHaveLength(0);
+
+      // Refocus → router fires onFocusStateChange(true) →
+      // browserFocused flips → next event plays. The focused cue
+      // itself plays (Tier 1, default-enabled) and seeds the global
+      // cooldown, so step past it before publishing the test event.
+      await fire(7);
+      await drainMicrotasks();
+      backend.plays.length = 0;
+      await vi.advanceTimersByTimeAsync(CONFIG.soundEngine.globalCooldownMs + 10);
+
+      messageBus.publish(
+        BROWSER_EVENT_CHANNEL,
+        makeMessage("webNavigation.onBeforeNavigate", { url: "https://example.com" }),
+      );
+      await drainMicrotasks();
+      expect(backend.plays).toHaveLength(1);
+    });
   });
 });

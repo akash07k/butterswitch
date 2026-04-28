@@ -25,6 +25,7 @@ import { CooldownGate } from "./cooldown-gate.js";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
 import { getEventDefaults } from "../../config/events.js";
 import { CONFIG } from "../../config/index.js";
+import { DEFAULT_SETTINGS } from "../../core/settings/defaults.js";
 import { getAssetURL } from "../../shared/platform/url.js";
 
 /** Module ID used for registration and dependency references. */
@@ -98,6 +99,29 @@ export class SoundEngineModule implements ButterSwitchModule {
    * the watcher registered in activate().
    */
   private muted = false;
+
+  /**
+   * Cached "mute when no browser window has focus" toggle. Composes
+   * with `muted` — either flag suppresses sounds. Kept fresh by the
+   * `general.muteWhenBlurred` watcher registered in activate().
+   */
+  private muteWhenBlurred = false;
+
+  /**
+   * Tracked focus state, fed by the windows-focus-router's
+   * `onFocusStateChange` callback (subscribed during initialize()).
+   * Initial value `true` matches the router's own initial assumption
+   * — the service worker boots while the browser is open. Used in
+   * combination with `muteWhenBlurred` on the hot path.
+   */
+  private browserFocused = true;
+
+  /**
+   * Unsubscribe handle for the focus-state subscription set up in
+   * initialize(). Called and nulled in dispose() so the closure does
+   * not retain a reference to this module after teardown.
+   */
+  private unsubscribeFocusState: (() => void) | null = null;
 
   /**
    * Cached per-event config. handleBrowserEvent reads from this map
@@ -198,6 +222,15 @@ export class SoundEngineModule implements ButterSwitchModule {
     // pending setTimeout cannot outlive this module.
     const windowFocus = createWindowFocusEvents();
     this.windowFocusDispose = windowFocus.dispose;
+    // Subscribe BEFORE the engine starts dispatching so that by the
+    // time the unfocus handler publishes its sound event, this module
+    // already sees `browserFocused === false` and the hot-path gate
+    // can suppress the cue (when the user has opted into
+    // mute-when-blurred). The router fires the callback synchronously
+    // from inside its own handler, ahead of message-bus publish.
+    this.unsubscribeFocusState = windowFocus.onFocusStateChange((focused) => {
+      this.browserFocused = focused;
+    });
     const liveWindowFocusById = new Map(windowFocus.events.map((e) => [e.id, e]));
 
     // Replace the static window-focus metadata in the registry copy
@@ -239,11 +272,13 @@ export class SoundEngineModule implements ButterSwitchModule {
     // event arriving through the message bus reads the user's actual
     // mute / per-event configuration instead of defaults. Reads run
     // in parallel via Promise.all to keep cold-start latency low.
-    const [mutedValue, masterVolume] = await Promise.all([
+    const [mutedValue, muteWhenBlurredValue, masterVolume] = await Promise.all([
       settings.get<boolean>("general.muted"),
+      settings.get<boolean>("general.muteWhenBlurred"),
       settings.get<number>("general.masterVolume"),
     ]);
     this.muted = mutedValue ?? false;
+    this.muteWhenBlurred = muteWhenBlurredValue ?? DEFAULT_SETTINGS.general.muteWhenBlurred;
 
     await Promise.all(
       EVENT_REGISTRY.map(async (event) => {
@@ -274,6 +309,11 @@ export class SoundEngineModule implements ButterSwitchModule {
           });
         }
         logger.debug(muted ? "Muted" : "Unmuted");
+      }),
+      settings.watch("general.muteWhenBlurred", (newValue) => {
+        const next = (newValue as boolean | undefined) ?? DEFAULT_SETTINGS.general.muteWhenBlurred;
+        this.muteWhenBlurred = next;
+        logger.debug(`muteWhenBlurred = ${next}`);
       }),
       settings.watch("general.activeTheme", (newValue) => {
         const themeId = (newValue as string) ?? DEFAULT_THEME_ID;
@@ -347,6 +387,14 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     this.eventEngine?.dispose();
     this.cooldownGate?.reset();
+    // Drop the focus-state subscription before clearing the router's
+    // internal subscriber set in windowFocusDispose() — no harm in
+    // either order, but explicitly nulling here keeps the closure
+    // from retaining a reference to this module.
+    if (this.unsubscribeFocusState) {
+      this.unsubscribeFocusState();
+      this.unsubscribeFocusState = null;
+    }
     // Cancel any in-flight unfocus debounce armed by the windows-focus
     // router. Without this, a setTimeout could fire after the message
     // bus and audio backend are gone.
@@ -375,6 +423,14 @@ export class SoundEngineModule implements ButterSwitchModule {
     // Mute — from the in-memory cache populated by activate() and the
     // "general.muted" watcher.
     if (this.muted) return;
+
+    // Mute-when-blurred composes with `muted`: when the user has
+    // opted in and no browser window currently has focus, suppress
+    // every cue including the `windows.onUnfocused` cue itself. The
+    // windows-focus-router fires its focus-state callback BEFORE
+    // publishing its sound events, so `browserFocused` is up to date
+    // by the time the unfocus message arrives here.
+    if (this.muteWhenBlurred && !this.browserFocused) return;
 
     // Find the event definition to get its tier. O(1) Map lookup —
     // the handleBrowserEvent hot path sees every fire.
