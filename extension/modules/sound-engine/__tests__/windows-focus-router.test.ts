@@ -162,4 +162,118 @@ describe("createWindowFocusEvents", () => {
   it("dispose with no pending unfocus is a no-op", () => {
     expect(() => dispose()).not.toThrow();
   });
+
+  describe("onFocusStateChange", () => {
+    it("notifies false after the unfocus debounce settles", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      built.onFocusStateChange(cb);
+
+      const pending = invoke(built.events[1]!, WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      const result = await pending;
+
+      expect(result?.suppress).toBeUndefined();
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(cb).toHaveBeenCalledWith(false);
+
+      built.dispose();
+    });
+
+    it("notifies true on focus regain after a real unfocus", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      built.onFocusStateChange(cb);
+
+      // Drive a real unfocus first (debounce settles) so the next
+      // focused() call is an actual edge.
+      const pending = invoke(built.events[1]!, WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await pending;
+      cb.mockClear();
+
+      const focusedResult = await invoke(built.events[0]!, 7);
+      expect(focusedResult?.suppress).toBeUndefined();
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(cb).toHaveBeenCalledWith(true);
+
+      built.dispose();
+    });
+
+    it("does not fire false on a within-debounce window switch", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      built.onFocusStateChange(cb);
+
+      // The Linux/Windows window-switch quirk: NONE then a real id
+      // before the debounce elapses.
+      const unfocusedPromise = invoke(built.events[1]!, WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS - 50);
+      await invoke(built.events[0]!, 9);
+      // Drain the cancelled timer's queued resolution.
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      const unfocusedResult = await unfocusedPromise;
+      expect(unfocusedResult?.suppress).toBe(true);
+
+      // Initial state was focused, the focused() call was a no-op
+      // edge (already focused), and no unfocus settled — the
+      // subscriber must not have been called at all.
+      expect(cb).not.toHaveBeenCalled();
+
+      built.dispose();
+    });
+
+    it("only fires on actual transitions (no duplicates for same state)", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      built.onFocusStateChange(cb);
+
+      // Two focused() calls in a row while already focused — must not
+      // fire `true` since there is no transition.
+      await invoke(built.events[0]!, 1);
+      await invoke(built.events[0]!, 2);
+      expect(cb).not.toHaveBeenCalled();
+
+      built.dispose();
+    });
+
+    it("unsubscribing prevents further callbacks", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      const unsubscribe = built.onFocusStateChange(cb);
+      unsubscribe();
+
+      const pending = invoke(built.events[1]!, WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await pending;
+
+      expect(cb).not.toHaveBeenCalled();
+
+      built.dispose();
+    });
+
+    it("dispose clears subscribers so they receive no further notifications", async () => {
+      const cb = vi.fn();
+      const built = createWindowFocusEvents();
+      built.onFocusStateChange(cb);
+
+      built.dispose();
+
+      // After dispose, internal state was reset to focused and the
+      // subscriber set was cleared. Drive an unfocus through to
+      // settled — would normally fire `false`, but must not now.
+      const pending = invoke(built.events[1]!, WINDOW_ID_NONE);
+      await vi.advanceTimersByTimeAsync(WINDOW_SWITCH_DEBOUNCE_MS);
+      await pending;
+
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    it("returns the unsubscribe handle as a function", () => {
+      const built = createWindowFocusEvents();
+      const unsubscribe = built.onFocusStateChange(() => {});
+      expect(typeof unsubscribe).toBe("function");
+      built.dispose();
+    });
+  });
 });

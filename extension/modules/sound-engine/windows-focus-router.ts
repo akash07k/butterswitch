@@ -67,9 +67,25 @@ export interface WindowFocusEvents {
   /**
    * Cancel any pending unfocus timer and resolve its promise with
    * `false` (so the awaiting handler's promise settles cleanly with
-   * `{ suppress: true }` instead of leaking).
+   * `{ suppress: true }` instead of leaking). Also clears any
+   * focus-state subscribers and resets the tracked state to focused.
    */
   dispose: () => void;
+  /**
+   * Subscribe to focus-state transitions. The callback fires with
+   * `true` when a browser window regains focus and `false` after the
+   * unfocus debounce settles into a real "user left the browser"
+   * (i.e., not a within-debounce window switch). Initial state is
+   * assumed to be focused, so callbacks fire only on actual transitions
+   * — subscribing while already focused will not fire `true`
+   * immediately.
+   *
+   * Returns an unsubscribe function. Subscribers are notified BEFORE
+   * the corresponding sound event publishes, so a downstream listener
+   * (e.g., a "mute when unfocused" gate in the sound engine) sees the
+   * new state in time to suppress the cue itself.
+   */
+  onFocusStateChange(callback: (focused: boolean) => void): () => void;
 }
 
 /**
@@ -126,6 +142,34 @@ export function createWindowFocusEvents(): WindowFocusEvents {
   let pendingUnfocusResolver: ((shouldEmit: boolean) => void) | null = null;
   let pendingUnfocusTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Tracks whether a browser window currently has focus from the
+  // perspective of subscribers. Initial value is `true` because the
+  // service worker boots while the browser is open and (typically)
+  // focused; the first transition we observe is the interesting one.
+  let browserFocused = true;
+  const focusStateSubscribers = new Set<(focused: boolean) => void>();
+
+  /**
+   * Update the tracked focus state and notify subscribers. Early-returns
+   * on no-op transitions so subscribers only see actual edges (e.g., a
+   * second `true` from a focus-already-focused stays silent).
+   *
+   * Each subscriber call is wrapped in try/catch so a throwing handler
+   * cannot abort the rest of the notify chain.
+   */
+  function setFocusState(focused: boolean): void {
+    if (browserFocused === focused) return;
+    browserFocused = focused;
+    for (const cb of [...focusStateSubscribers]) {
+      try {
+        cb(focused);
+      } catch {
+        // Subscriber errors must not break the others. Logging is the
+        // caller's responsibility; this layer has no logger.
+      }
+    }
+  }
+
   /**
    * Detach and return the currently-pending unfocus resolver, if any.
    * Clears the associated timer so it cannot fire after the caller
@@ -158,6 +202,10 @@ export function createWindowFocusEvents(): WindowFocusEvents {
         if (resolver) {
           resolver(false);
         }
+        // Notify subscribers BEFORE the engine publishes the focused
+        // sound event, so a downstream "mute when unfocused" gate has
+        // the up-to-date state in time to let the cue through.
+        setFocusState(true);
         return {};
       },
     },
@@ -182,16 +230,32 @@ export function createWindowFocusEvents(): WindowFocusEvents {
             r?.(true);
           }, WINDOW_SWITCH_DEBOUNCE_MS);
         });
-        return shouldEmit ? {} : { suppress: true };
+        if (shouldEmit) {
+          // Debounce settled — the user really left the browser.
+          // Update subscribers BEFORE returning so the engine sees
+          // the new state in time to suppress the unfocus cue itself
+          // when the user has opted into mute-when-blurred.
+          setFocusState(false);
+          return {};
+        }
+        return { suppress: true };
       },
     },
   ];
 
   return {
     events,
+    onFocusStateChange(callback) {
+      focusStateSubscribers.add(callback);
+      return () => {
+        focusStateSubscribers.delete(callback);
+      };
+    },
     dispose() {
       const resolver = takePendingResolver();
       if (resolver) resolver(false);
+      focusStateSubscribers.clear();
+      browserFocused = true;
     },
   };
 }
