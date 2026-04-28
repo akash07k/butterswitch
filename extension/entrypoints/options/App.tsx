@@ -42,7 +42,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("general");
   const [showWelcome, setShowWelcome] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const welcomeHeadingRef = useRef<HTMLHeadingElement>(null);
   // One-shot guard for the welcome announcement. React.StrictMode (see
   // options/main.tsx) intentionally double-invokes effects in dev to
   // surface non-idempotent code. Storage reads and setShowWelcome are
@@ -170,12 +169,7 @@ export default function App() {
             aria-labelledby="welcome-heading"
             className="mb-6 border rounded-lg p-4 space-y-2"
           >
-            <h2
-              id="welcome-heading"
-              ref={welcomeHeadingRef}
-              tabIndex={-1}
-              className="text-lg font-semibold"
-            >
+            <h2 id="welcome-heading" className="text-lg font-semibold">
               Welcome to ButterSwitch
             </h2>
             <p className="text-muted-foreground">
