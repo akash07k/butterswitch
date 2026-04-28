@@ -104,7 +104,8 @@ function escapeHtml(text) {
 function isSafeUrl(url) {
   if (!url) return false;
   if (url.startsWith("#")) return true;
-  if (url.startsWith("/") || url.startsWith("./") || url.startsWith("../")) return true;
+  if (url.startsWith("/") && !url.startsWith("//")) return true;
+  if (url.startsWith("./") || url.startsWith("../")) return true;
   return /^(https?|mailto):/i.test(url);
 }
 
