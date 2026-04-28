@@ -73,6 +73,44 @@ export interface WindowFocusEvents {
 }
 
 /**
+ * Static metadata for the paired window-focus events — id, label,
+ * tier, etc. — without the live handler closure. The registry imports
+ * these so it stays a pure-data module; the engine layers handlers
+ * on top via {@link createWindowFocusEvents} during initialize().
+ *
+ * Both halves of the pair register against the same browser API
+ * (`browser.windows.onFocusChanged`); the engine delivers every fired
+ * event to both registered handlers, and each handler decides whether
+ * its own event id should emit based on the `windowId` argument.
+ */
+export const WINDOW_FOCUS_EVENT_DEFINITIONS: EventDefinition[] = [
+  {
+    id: "windows.onFocused",
+    namespace: "windows",
+    event: "onFocusChanged",
+    label: "Window Focused",
+    description: "A browser window received focus.",
+    tier: 1,
+    category: "windows",
+    platforms: ["chrome", "firefox"],
+    permissions: [],
+    extractData: (windowId: unknown) => ({ windowId }),
+  },
+  {
+    id: "windows.onUnfocused",
+    namespace: "windows",
+    event: "onFocusChanged",
+    label: "Window Unfocused",
+    description: "All browser windows lost focus (you switched to another application).",
+    tier: 1,
+    category: "windows",
+    platforms: ["chrome", "firefox"],
+    permissions: [],
+    extractData: (windowId: unknown) => ({ windowId }),
+  },
+];
+
+/**
  * Build the paired `windows.onFocused` / `windows.onUnfocused`
  * event definitions with a shared debounce that handles the
  * WINDOW_ID_NONE quirk on Windows and some Linux window managers.
@@ -103,18 +141,11 @@ export function createWindowFocusEvents(): WindowFocusEvents {
     return resolver;
   }
 
+  const [focusedDef, unfocusedDef] = WINDOW_FOCUS_EVENT_DEFINITIONS;
+
   const events: EventDefinition[] = [
     {
-      id: "windows.onFocused",
-      namespace: "windows",
-      event: "onFocusChanged",
-      label: "Window Focused",
-      description: "A browser window received focus.",
-      tier: 1,
-      category: "windows",
-      platforms: ["chrome", "firefox"],
-      permissions: [],
-      extractData: (windowId: unknown) => ({ windowId }),
+      ...focusedDef!,
       handler: async (windowId: unknown) => {
         if (typeof windowId !== "number" || windowId === WINDOW_ID_NONE) {
           return { suppress: true };
@@ -131,16 +162,7 @@ export function createWindowFocusEvents(): WindowFocusEvents {
       },
     },
     {
-      id: "windows.onUnfocused",
-      namespace: "windows",
-      event: "onFocusChanged",
-      label: "Window Unfocused",
-      description: "All browser windows lost focus (you switched to another application).",
-      tier: 1,
-      category: "windows",
-      platforms: ["chrome", "firefox"],
-      permissions: [],
-      extractData: (windowId: unknown) => ({ windowId }),
+      ...unfocusedDef!,
       handler: async (windowId: unknown) => {
         if (typeof windowId !== "number" || windowId !== WINDOW_ID_NONE) {
           return { suppress: true };

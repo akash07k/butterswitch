@@ -17,23 +17,16 @@
  */
 
 import type { EventDefinition } from "./types.js";
-import { createWindowFocusEvents } from "./windows-focus-router.js";
+import { WINDOW_FOCUS_EVENT_DEFINITIONS } from "./windows-focus-router.js";
 
 /**
- * Paired focus / unfocus events with shared closure state for the
- * WINDOW_ID_NONE debounce. Built once here so production shares one
- * pair across the entire registry; tests can build their own pair
- * via createWindowFocusEvents() to keep state independent.
- *
- * The factory also hands back a `dispose()` that cancels any pending
- * unfocus timer. Re-exported as {@link disposeWindowFocusEvents} so
- * the sound-engine module can call it during its own teardown and
- * not leave a stray `setTimeout` armed past dispose.
+ * The window-focus pair appears in the registry as plain metadata —
+ * id, label, tier, etc. — without the live debounce closure. The
+ * sound-engine module attaches handlers (and owns the debounce
+ * dispose handle) inside `initialize()` via createWindowFocusEvents().
+ * Keeping the closure construction out of this file preserves the
+ * registry's "pure data, no logic, no side effects" invariant.
  */
-const windowFocus = createWindowFocusEvents();
-
-/** Cancel any in-flight unfocus debounce. Called from sound-engine dispose. */
-export const disposeWindowFocusEvents = windowFocus.dispose;
 
 // ─────────────────────────────────────────────────────────────
 // Tier 1 — Essential (enabled by default)
@@ -404,10 +397,10 @@ const TIER_1_EVENTS: EventDefinition[] = [
   },
   // windows.onFocused + windows.onUnfocused — split from the
   // single onFocusChanged event so each can carry a distinct sound.
-  // The factory's closure state coordinates the debounce that
-  // suppresses the unfocused emission during a window-to-window
-  // switch on Windows / Linux. See windows-focus-router.ts.
-  ...windowFocus.events,
+  // Static metadata only here; the engine attaches the live debounce
+  // handlers in initialize() via createWindowFocusEvents(). See
+  // windows-focus-router.ts.
+  ...WINDOW_FOCUS_EVENT_DEFINITIONS,
 
   // === Runtime ===
   {

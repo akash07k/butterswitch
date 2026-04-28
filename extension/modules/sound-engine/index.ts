@@ -19,11 +19,8 @@ import type { ButterSwitchModule, ModuleContext } from "../../core/module-system
 import type { AudioBackend } from "./audio-backends/types.js";
 import { EventEngine, BROWSER_EVENT_CHANNEL, type BrowserEventMessage } from "./event-engine.js";
 import { ThemeManager } from "./theme-manager.js";
-import {
-  EVENT_REGISTRY,
-  EVENT_REGISTRY_BY_ID,
-  disposeWindowFocusEvents,
-} from "./event-registry.js";
+import { EVENT_REGISTRY, EVENT_REGISTRY_BY_ID } from "./event-registry.js";
+import { createWindowFocusEvents } from "./windows-focus-router.js";
 import { CooldownGate } from "./cooldown-gate.js";
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from "../../config/themes.js";
 import { getEventDefaults } from "../../config/events.js";
@@ -83,6 +80,14 @@ export class SoundEngineModule implements ButterSwitchModule {
 
   /** Unsubscribe function for the message bus subscription. */
   private unsubscribe: (() => void) | null = null;
+
+  /**
+   * Cancel any in-flight unfocus debounce armed by the window-focus
+   * router. Set during initialize() from createWindowFocusEvents() and
+   * called during dispose() so a stray setTimeout cannot fire after
+   * the message bus and audio backend are gone.
+   */
+  private windowFocusDispose: (() => void) | null = null;
 
   /** Unwatch functions for settings watchers. */
   private unwatchers: (() => void)[] = [];
@@ -187,12 +192,26 @@ export class SoundEngineModule implements ButterSwitchModule {
 
     this.eventEngine = new EventEngine(browserGlobal, context.messageBus, logger);
 
+    // Build the live window-focus pair here (not at registry module
+    // load) so the registry stays pure data. The factory's closure
+    // owns the WINDOW_ID_NONE debounce; we hold its dispose so a
+    // pending setTimeout cannot outlive this module.
+    const windowFocus = createWindowFocusEvents();
+    this.windowFocusDispose = windowFocus.dispose;
+    const liveWindowFocusById = new Map(windowFocus.events.map((e) => [e.id, e]));
+
+    // Replace the static window-focus metadata in the registry copy
+    // passed to the engine with the live, handler-attached versions.
+    // Other consumers (UI, preview) keep importing EVENT_REGISTRY as
+    // pure metadata.
+    const eventsForEngine = EVENT_REGISTRY.map((e) => liveWindowFocusById.get(e.id) ?? e);
+
     // Register listeners for ALL events on this platform. The runtime
     // handler (handleBrowserEvent) checks per-event enabled state from
     // user settings, so listeners must exist for Tier 2/3 events that
     // the user may enable at runtime without requiring a restart.
-    this.eventEngine.registerAll(EVENT_REGISTRY, context.platform.browser);
-    logger.info("Event engine ready", { registeredEvents: EVENT_REGISTRY.length });
+    this.eventEngine.registerAll(eventsForEngine, context.platform.browser);
+    logger.info("Event engine ready", { registeredEvents: eventsForEngine.length });
 
     // 4. Build the cooldown / debounce gate. Initialised here (not in
     //    activate) so its state survives deactivate/reactivate cycles
@@ -331,7 +350,10 @@ export class SoundEngineModule implements ButterSwitchModule {
     // Cancel any in-flight unfocus debounce armed by the windows-focus
     // router. Without this, a setTimeout could fire after the message
     // bus and audio backend are gone.
-    disposeWindowFocusEvents();
+    if (this.windowFocusDispose) {
+      this.windowFocusDispose();
+      this.windowFocusDispose = null;
+    }
     await this.backend?.dispose();
     this.context?.logger.info("Sound engine disposed");
   }
