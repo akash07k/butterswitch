@@ -41,6 +41,15 @@ const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_MAX_PAYLOAD = 1024 * 1024; // 1 MiB
 
 /**
+ * Inclusive upper bound for a valid LogLevel value. Mirrors
+ * `LogLevel.FATAL` from `@butterswitch/logger` (0=DEBUG..4=FATAL).
+ * Hardcoded so the log-server has no runtime dependency on the logger
+ * package; the level enum has not changed since the project began and
+ * the test suite would catch a drift.
+ */
+const MAX_LOG_LEVEL = 4;
+
+/**
  * Runtime guard that an arbitrary JSON value matches the {@link LogEntry}
  * shape. Origin checks and the localhost bind already gate who can talk
  * to the server, but parsed payloads from a permitted origin still flow
@@ -49,12 +58,23 @@ const DEFAULT_MAX_PAYLOAD = 1024 * 1024; // 1 MiB
  * so a crafted message cannot land in a session log or be re-broadcast
  * to web clients with an unexpected shape.
  */
-function isValidLogEntry(value: unknown): value is LogEntry {
+export function isValidLogEntry(value: unknown): value is LogEntry {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   if (typeof v.id !== "string") return false;
   if (typeof v.timestamp !== "string") return false;
-  if (typeof v.level !== "number") return false;
+  // Level must be an integer in the valid LogLevel range. A bare
+  // `typeof === "number"` would let NaN, Infinity, and out-of-range
+  // values through, all of which render as unlabelled rows in the
+  // web viewer.
+  if (
+    typeof v.level !== "number" ||
+    !Number.isInteger(v.level) ||
+    v.level < 0 ||
+    v.level > MAX_LOG_LEVEL
+  ) {
+    return false;
+  }
   if (typeof v.tag !== "string") return false;
   if (typeof v.message !== "string") return false;
   if (v.data !== undefined && (typeof v.data !== "object" || v.data === null)) return false;

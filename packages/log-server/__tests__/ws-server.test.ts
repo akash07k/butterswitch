@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { LogServer } from "../src/ws-server.js";
+import { LogServer, isValidLogEntry } from "../src/ws-server.js";
 import WebSocket from "ws";
 import type { LogEntry } from "../src/types.js";
 
@@ -115,6 +115,28 @@ describe("LogServer", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(server.clientCount).toBe(0);
+  });
+});
+
+describe("isValidLogEntry", () => {
+  it("accepts a well-formed entry", () => {
+    expect(isValidLogEntry(makeEntry())).toBe(true);
+  });
+
+  it("rejects an entry with an out-of-range level", () => {
+    const entry = { ...makeEntry(), level: 99 };
+    expect(isValidLogEntry(entry)).toBe(false);
+  });
+
+  it("rejects an entry with a negative level", () => {
+    const entry = { ...makeEntry(), level: -1 };
+    expect(isValidLogEntry(entry)).toBe(false);
+  });
+
+  it("rejects non-integer level values", () => {
+    expect(isValidLogEntry({ ...makeEntry(), level: 1.5 })).toBe(false);
+    expect(isValidLogEntry({ ...makeEntry(), level: Number.NaN })).toBe(false);
+    expect(isValidLogEntry({ ...makeEntry(), level: Number.POSITIVE_INFINITY })).toBe(false);
   });
 });
 
